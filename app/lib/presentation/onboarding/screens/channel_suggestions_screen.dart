@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../../routing/route_names.dart';
 import '../../../utils/age_calculator.dart';
 import '../providers/onboarding_provider.dart';
 
@@ -157,7 +156,7 @@ class ChannelSuggestionsScreen extends ConsumerWidget {
               padding: const EdgeInsets.all(24),
               child: ElevatedButton(
                 onPressed: () =>
-                    context.pushNamed(RouteNames.setupComplete),
+                    context.pushNamed('contentPrefs'),
                 child: const Text('Next'),
               ),
             ),

@@ -4,6 +4,12 @@ import 'package:go_router/go_router.dart';
 
 import '../presentation/auth/screens/login_screen.dart';
 import '../presentation/auth/screens/signup_screen.dart';
+import '../presentation/onboarding/screens/welcome_screen.dart';
+import '../presentation/onboarding/screens/add_child_screen.dart';
+import '../presentation/onboarding/screens/filter_setup_screen.dart';
+import '../presentation/onboarding/screens/channel_suggestions_screen.dart';
+import '../presentation/onboarding/screens/content_prefs_screen.dart';
+import '../presentation/onboarding/screens/setup_complete_screen.dart';
 import 'guards/auth_guard.dart';
 import 'route_names.dart';
 
@@ -29,29 +35,32 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/onboarding/welcome',
         name: RouteNames.welcome,
-        builder: (context, state) => const _PlaceholderScreen('Welcome'),
+        builder: (context, state) => const WelcomeScreen(),
       ),
       GoRoute(
         path: '/onboarding/add-child',
         name: RouteNames.addChild,
-        builder: (context, state) => const _PlaceholderScreen('Add Child'),
+        builder: (context, state) => const AddChildScreen(),
       ),
       GoRoute(
         path: '/onboarding/filter-setup',
         name: RouteNames.filterSetup,
-        builder: (context, state) => const _PlaceholderScreen('Filter Setup'),
+        builder: (context, state) => const FilterSetupScreen(),
       ),
       GoRoute(
         path: '/onboarding/channels',
         name: RouteNames.channelSuggestions,
-        builder: (context, state) =>
-            const _PlaceholderScreen('Channel Suggestions'),
+        builder: (context, state) => const ChannelSuggestionsScreen(),
+      ),
+      GoRoute(
+        path: '/onboarding/content-prefs',
+        name: 'contentPrefs',
+        builder: (context, state) => const ContentPrefsScreen(),
       ),
       GoRoute(
         path: '/onboarding/complete',
         name: RouteNames.setupComplete,
-        builder: (context, state) =>
-            const _PlaceholderScreen('Setup Complete'),
+        builder: (context, state) => const SetupCompleteScreen(),
       ),
 
       // --- Parent Dashboard routes ---
