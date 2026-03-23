@@ -11,6 +11,8 @@ import '../presentation/onboarding/screens/channel_suggestions_screen.dart';
 import '../presentation/onboarding/screens/content_prefs_screen.dart';
 import '../presentation/onboarding/screens/setup_complete_screen.dart';
 import '../presentation/kid_mode/screens/kid_video_player_screen.dart';
+import '../presentation/kid_mode/screens/kid_home_screen.dart';
+import '../presentation/kid_mode/screens/child_select_screen.dart';
 import 'guards/auth_guard.dart';
 import 'route_names.dart';
 
@@ -131,12 +133,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/kid/select',
         name: RouteNames.childSelect,
-        builder: (context, state) => const _PlaceholderScreen('Select Child'),
+        builder: (context, state) => const ChildSelectScreen(),
       ),
       GoRoute(
         path: '/kid/home',
         name: RouteNames.kidHome,
-        builder: (context, state) => const _PlaceholderScreen('Kid Home'),
+        builder: (context, state) => const KidHomeScreen(),
       ),
       GoRoute(
         path: '/kid/player/:videoId',
