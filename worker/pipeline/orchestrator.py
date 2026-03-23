@@ -1,32 +1,151 @@
 """Pipeline orchestrator — chains analysis tiers and decides when to stop."""
 
 import logging
+
+from config import settings
 from models.analysis_result import AnalysisResult, Verdict
+from models.video_metadata import VideoMetadata
+from pipeline.result_writer import ResultWriter
+from pipeline.tier0_cache import Tier0Cache
+from pipeline.tier1_text import Tier1TextPipeline
+from pipeline.tier2_visual import Tier2VisualPipeline
+from pipeline.tier3_audio import Tier3AudioPipeline
 from utils.cost_tracker import AnalysisCost
+from utils.supabase_client import get_supabase_client
 
 logger = logging.getLogger(__name__)
 
 
 class PipelineOrchestrator:
-    """Run videos through the tiered analysis funnel."""
+    """Run videos through the tiered analysis funnel.
 
-    async def analyze(self, video_id: str) -> AnalysisResult:
-        """Run full analysis pipeline on a video.
+    Tier execution order:
+    0. Community cache lookup ($0) — skip if already analyzed
+    1. Metadata + transcript text analysis (~$0.003)
+    2. Visual frame analysis (~$0.015) — only if Tier 1 can't decide
+    3. Audio analysis (~$0.005) — only if flagged for audio review
 
-        Tiers are run in order, stopping early if confidence is high enough.
-        """
+    Stops early when confidence is high enough.
+    """
+
+    def __init__(self):
+        self._tier0 = Tier0Cache()
+        self._tier1 = Tier1TextPipeline()
+        self._tier2 = Tier2VisualPipeline()
+        self._tier3 = Tier3AudioPipeline()
+        self._writer = ResultWriter()
+
+    def analyze(self, video_id: str) -> AnalysisResult:
+        """Run full analysis pipeline on a video."""
         cost = AnalysisCost(video_id=video_id)
-        logger.info("Starting analysis for video: %s", video_id)
+        logger.info("=== Pipeline starting for: %s ===", video_id)
 
-        # TODO: Tier 0 — community cache lookup
-        # TODO: Tier 1 — metadata + transcript analysis
-        # TODO: Tier 2 — visual frame analysis
-        # TODO: Tier 3 — audio analysis
+        # Tier 0: Community cache
+        cached = self._tier0.lookup(video_id)
+        if cached is not None:
+            logger.info("Tier 0 cache hit — returning cached result")
+            return cached
 
-        cost.log_summary()
-        return AnalysisResult(
-            video_id=video_id,
-            verdict=Verdict.PENDING,
-            tiers_completed=[],
-            confidence=0.0,
+        # Fetch video metadata from Supabase
+        metadata = self._fetch_metadata(video_id)
+        if metadata is None:
+            logger.error("No metadata found for %s", video_id)
+            return AnalysisResult(
+                video_id=video_id,
+                verdict=Verdict.PENDING,
+                analysis_reasoning="Metadata not found",
+            )
+
+        # Tier 1: Text analysis
+        result = self._tier1.analyze(metadata)
+        logger.info(
+            "Tier 1 result: verdict=%s, confidence=%.2f",
+            result.verdict.value,
+            result.confidence,
         )
+
+        # Early stop: Tier 1 is confident enough
+        if result.confidence >= settings.tier1_confidence_threshold:
+            if result.verdict in (Verdict.APPROVE, Verdict.REJECT):
+                logger.info("Tier 1 confident — stopping early")
+                self._writer.write(result)
+                return result
+
+        # Tier 2: Visual analysis (if needed)
+        if result.verdict in (Verdict.NEEDS_VISUAL_REVIEW, Verdict.PENDING) or \
+           result.confidence < settings.tier1_confidence_threshold:
+            result = self._tier2.analyze(metadata, result)
+            logger.info(
+                "Tier 2 result: verdict=%s, confidence=%.2f",
+                result.verdict.value,
+                result.confidence,
+            )
+
+            # Early stop: Tier 2 resolved it
+            if result.confidence >= settings.tier2_confidence_threshold:
+                if result.verdict in (Verdict.APPROVE, Verdict.REJECT):
+                    logger.info("Tier 2 confident — stopping early")
+                    self._writer.write(result)
+                    return result
+
+        # Tier 3: Audio analysis (if flagged)
+        if result.verdict == Verdict.NEEDS_AUDIO_REVIEW or \
+           result.scores.audio_safety_score < 7:
+            result = self._tier3.analyze(metadata, result)
+            logger.info(
+                "Tier 3 result: verdict=%s, confidence=%.2f",
+                result.verdict.value,
+                result.confidence,
+            )
+
+        # Write final result
+        self._writer.write(result)
+        cost.log_summary()
+
+        logger.info(
+            "=== Pipeline complete for %s: verdict=%s, tiers=%s ===",
+            video_id,
+            result.verdict.value,
+            result.tiers_completed,
+        )
+
+        return result
+
+    def _fetch_metadata(self, video_id: str) -> VideoMetadata | None:
+        """Fetch video metadata from Supabase."""
+        try:
+            client = get_supabase_client()
+            row = (
+                client.table("yt_videos")
+                .select("*, yt_channels(title)")
+                .eq("video_id", video_id)
+                .maybe_single()
+                .execute()
+            )
+
+            if row.data is None:
+                return None
+
+            data = row.data
+            channel_title = ""
+            if data.get("yt_channels") and isinstance(data["yt_channels"], dict):
+                channel_title = data["yt_channels"].get("title", "")
+
+            return VideoMetadata(
+                video_id=data["video_id"],
+                title=data.get("title", ""),
+                description=data.get("description", ""),
+                channel_id=data.get("channel_id", ""),
+                channel_title=channel_title,
+                thumbnail_url=data.get("thumbnail_url", ""),
+                duration_seconds=data.get("duration_seconds", 0),
+                tags=data.get("tags") or [],
+                category_id=data.get("category_id", 0),
+                has_captions=data.get("has_captions", False),
+                view_count=data.get("view_count", 0),
+                like_count=data.get("like_count", 0),
+            )
+
+        except Exception as e:
+            logger.error("Failed to fetch metadata for %s: %s", video_id, e)
+            return None
