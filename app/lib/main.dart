@@ -5,6 +5,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 import 'app.dart';
+import 'data/datasources/local/local_cache.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -14,6 +15,7 @@ Future<void> main() async {
 
   // Initialize Hive for local caching
   await Hive.initFlutter();
+  await LocalCache.initialize();
 
   // Initialize Supabase
   await Supabase.initialize(
