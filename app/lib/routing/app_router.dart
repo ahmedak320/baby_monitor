@@ -16,6 +16,8 @@ import '../presentation/kid_mode/screens/child_select_screen.dart';
 import '../presentation/kid_mode/screens/kid_search_screen.dart';
 import '../presentation/parent_dashboard/screens/dashboard_screen.dart';
 import '../presentation/parent_dashboard/screens/child_activity_screen.dart';
+import '../presentation/parent_dashboard/screens/filtered_content_screen.dart';
+import '../presentation/parent_dashboard/screens/channel_management_screen.dart';
 import 'guards/auth_guard.dart';
 import 'route_names.dart';
 
@@ -85,14 +87,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: 'filtered-content',
             name: RouteNames.filteredContent,
-            builder: (context, state) =>
-                const _PlaceholderScreen('Filtered Content'),
+            builder: (context, state) => const FilteredContentScreen(),
           ),
           GoRoute(
             path: 'channels',
             name: RouteNames.channelManagement,
-            builder: (context, state) =>
-                const _PlaceholderScreen('Channel Management'),
+            builder: (context, state) => const ChannelManagementScreen(),
           ),
           GoRoute(
             path: 'filter-settings',
