@@ -21,6 +21,8 @@ import '../presentation/parent_dashboard/screens/channel_management_screen.dart'
 import '../presentation/parent_dashboard/screens/filter_settings_screen.dart';
 import '../presentation/parent_dashboard/screens/subscription_screen.dart';
 import '../presentation/parent_dashboard/screens/screen_time_settings_screen.dart';
+import '../presentation/parent_dashboard/screens/content_schedule_screen.dart';
+import '../presentation/parent_dashboard/screens/offline_playlists_screen.dart';
 import 'guards/auth_guard.dart';
 import 'route_names.dart';
 
@@ -113,14 +115,15 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: 'content-schedule',
             name: RouteNames.contentSchedule,
-            builder: (context, state) =>
-                const _PlaceholderScreen('Content Schedule'),
+            builder: (context, state) => const ContentScheduleScreen(
+              childId: '', // TODO: pass from parent
+              childName: 'Child',
+            ),
           ),
           GoRoute(
             path: 'offline-playlists',
             name: RouteNames.offlinePlaylists,
-            builder: (context, state) =>
-                const _PlaceholderScreen('Offline Playlists'),
+            builder: (context, state) => const OfflinePlaylistsScreen(),
           ),
           GoRoute(
             path: 'subscription',
