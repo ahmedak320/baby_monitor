@@ -13,6 +13,7 @@ import '../presentation/onboarding/screens/setup_complete_screen.dart';
 import '../presentation/kid_mode/screens/kid_video_player_screen.dart';
 import '../presentation/kid_mode/screens/kid_home_screen.dart';
 import '../presentation/kid_mode/screens/child_select_screen.dart';
+import '../presentation/kid_mode/screens/kid_search_screen.dart';
 import 'guards/auth_guard.dart';
 import 'route_names.dart';
 
@@ -156,7 +157,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/kid/search',
         name: RouteNames.kidSearch,
-        builder: (context, state) => const _PlaceholderScreen('Kid Search'),
+        builder: (context, state) => const KidSearchScreen(),
       ),
     ],
   );
