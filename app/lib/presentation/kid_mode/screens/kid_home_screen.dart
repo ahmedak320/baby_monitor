@@ -4,11 +4,17 @@ import 'package:go_router/go_router.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 
 import '../../../config/theme/kid_theme.dart';
+import '../../../domain/services/screen_time_service.dart';
 import '../../../providers/current_child_provider.dart';
 import '../../../routing/route_names.dart';
 import '../../../utils/duration_formatter.dart';
 import '../providers/kid_feed_provider.dart';
 import '../widgets/parental_gate.dart';
+import '../widgets/screen_time_indicator.dart';
+import '../widgets/winddown_banner.dart';
+import 'break_screen.dart';
+import 'time_up_screen.dart';
+import 'bedtime_screen.dart';
 
 class KidHomeScreen extends ConsumerWidget {
   const KidHomeScreen({super.key});
@@ -18,6 +24,23 @@ class KidHomeScreen extends ConsumerWidget {
     final child = ref.watch(currentChildProvider);
     final feedAsync = ref.watch(kidFeedProvider);
     final categories = ref.watch(kidCategoriesProvider);
+    final screenTime = ref.watch(screenTimeProvider);
+
+    // Screen time overlays
+    if (screenTime.status == ScreenTimeStatus.breakTime) {
+      return BreakScreen(breakDurationSeconds: screenTime.breakDurationSeconds);
+    }
+    if (screenTime.status == ScreenTimeStatus.timeUp) {
+      return TimeUpScreen(
+        onParentOverride: () => context.goNamed(RouteNames.dashboard),
+      );
+    }
+    if (screenTime.status == ScreenTimeStatus.bedtime ||
+        screenTime.status == ScreenTimeStatus.beforeWakeup) {
+      return BedtimeScreen(
+        onParentOverride: () => context.goNamed(RouteNames.dashboard),
+      );
+    }
 
     return Theme(
       data: KidTheme.theme,
@@ -26,10 +49,17 @@ class KidHomeScreen extends ConsumerWidget {
         body: SafeArea(
           child: Column(
             children: [
+              // Winddown banner
+              if (screenTime.status == ScreenTimeStatus.winddown)
+                WinddownBanner(
+                  minutesRemaining: screenTime.remainingMinutes ?? 5,
+                ),
+
               // Top bar
               _KidTopBar(
                 childName: child?.name ?? 'Kid',
                 onExitTap: () => _handleExit(context),
+                remainingMinutes: screenTime.remainingMinutes,
               ),
 
               // Category bubbles
@@ -144,8 +174,13 @@ class KidHomeScreen extends ConsumerWidget {
 class _KidTopBar extends StatelessWidget {
   final String childName;
   final VoidCallback onExitTap;
+  final int? remainingMinutes;
 
-  const _KidTopBar({required this.childName, required this.onExitTap});
+  const _KidTopBar({
+    required this.childName,
+    required this.onExitTap,
+    this.remainingMinutes,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -164,7 +199,10 @@ class _KidTopBar extends StatelessWidget {
             ),
           ),
           const Spacer(),
-          // Hidden exit: long-press the logo for 3 seconds
+          // Screen time indicator
+          ScreenTimeIndicator(minutesRemaining: remainingMinutes),
+          const SizedBox(width: 8),
+          // Hidden exit: long-press the settings icon
           GestureDetector(
             onLongPress: onExitTap,
             child: const Icon(
