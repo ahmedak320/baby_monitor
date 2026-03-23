@@ -10,6 +10,7 @@ import '../presentation/onboarding/screens/filter_setup_screen.dart';
 import '../presentation/onboarding/screens/channel_suggestions_screen.dart';
 import '../presentation/onboarding/screens/content_prefs_screen.dart';
 import '../presentation/onboarding/screens/setup_complete_screen.dart';
+import '../presentation/kid_mode/screens/kid_video_player_screen.dart';
 import 'guards/auth_guard.dart';
 import 'route_names.dart';
 
@@ -140,7 +141,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/kid/player/:videoId',
         name: RouteNames.kidPlayer,
-        builder: (context, state) => const _PlaceholderScreen('Video Player'),
+        builder: (context, state) => KidVideoPlayerScreen(
+          videoId: state.pathParameters['videoId'] ?? '',
+          videoTitle: state.uri.queryParameters['title'],
+        ),
       ),
       GoRoute(
         path: '/kid/categories',
