@@ -18,6 +18,9 @@ import '../presentation/parent_dashboard/screens/dashboard_screen.dart';
 import '../presentation/parent_dashboard/screens/child_activity_screen.dart';
 import '../presentation/parent_dashboard/screens/filtered_content_screen.dart';
 import '../presentation/parent_dashboard/screens/channel_management_screen.dart';
+import '../presentation/parent_dashboard/screens/filter_settings_screen.dart';
+import '../presentation/parent_dashboard/screens/subscription_screen.dart';
+import '../presentation/parent_dashboard/screens/screen_time_settings_screen.dart';
 import 'guards/auth_guard.dart';
 import 'route_names.dart';
 
@@ -97,14 +100,15 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: 'filter-settings',
             name: RouteNames.filterSettings,
-            builder: (context, state) =>
-                const _PlaceholderScreen('Filter Settings'),
+            builder: (context, state) => const FilterSettingsScreen(),
           ),
           GoRoute(
             path: 'screen-time',
             name: RouteNames.screenTimeSettings,
-            builder: (context, state) =>
-                const _PlaceholderScreen('Screen Time Settings'),
+            builder: (context, state) => const ScreenTimeSettingsScreen(
+              childId: '', // TODO: pass from parent
+              childName: 'Child',
+            ),
           ),
           GoRoute(
             path: 'content-schedule',
@@ -121,8 +125,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: 'subscription',
             name: RouteNames.subscription,
-            builder: (context, state) =>
-                const _PlaceholderScreen('Subscription'),
+            builder: (context, state) => const SubscriptionScreen(),
           ),
           GoRoute(
             path: 'edit-child/:childId',
