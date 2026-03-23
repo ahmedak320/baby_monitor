@@ -14,6 +14,8 @@ import '../presentation/kid_mode/screens/kid_video_player_screen.dart';
 import '../presentation/kid_mode/screens/kid_home_screen.dart';
 import '../presentation/kid_mode/screens/child_select_screen.dart';
 import '../presentation/kid_mode/screens/kid_search_screen.dart';
+import '../presentation/parent_dashboard/screens/dashboard_screen.dart';
+import '../presentation/parent_dashboard/screens/child_activity_screen.dart';
 import 'guards/auth_guard.dart';
 import 'route_names.dart';
 
@@ -71,13 +73,14 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/dashboard',
         name: RouteNames.dashboard,
-        builder: (context, state) => const _PlaceholderScreen('Dashboard'),
+        builder: (context, state) => const DashboardScreen(),
         routes: [
           GoRoute(
             path: 'child-activity/:childId',
             name: RouteNames.childActivity,
-            builder: (context, state) =>
-                const _PlaceholderScreen('Child Activity'),
+            builder: (context, state) => ChildActivityScreen(
+              childId: state.pathParameters['childId'] ?? '',
+            ),
           ),
           GoRoute(
             path: 'filtered-content',
