@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../presentation/common/widgets/responsive_layout.dart';
 import '../presentation/auth/screens/login_screen.dart';
 import '../presentation/auth/screens/signup_screen.dart';
 import '../presentation/onboarding/screens/welcome_screen.dart';
@@ -15,6 +16,7 @@ import '../presentation/kid_mode/screens/kid_home_screen.dart';
 import '../presentation/kid_mode/screens/child_select_screen.dart';
 import '../presentation/kid_mode/screens/kid_search_screen.dart';
 import '../presentation/parent_dashboard/screens/dashboard_screen.dart';
+import '../presentation/parent_dashboard/screens/tablet_dashboard_screen.dart';
 import '../presentation/parent_dashboard/screens/child_activity_screen.dart';
 import '../presentation/parent_dashboard/screens/filtered_content_screen.dart';
 import '../presentation/parent_dashboard/screens/channel_management_screen.dart';
@@ -80,7 +82,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/dashboard',
         name: RouteNames.dashboard,
-        builder: (context, state) => const DashboardScreen(),
+        builder: (context, state) => ResponsiveLayout(
+          phone: const DashboardScreen(),
+          tablet: const TabletDashboardScreen(),
+        ),
         routes: [
           GoRoute(
             path: 'child-activity/:childId',

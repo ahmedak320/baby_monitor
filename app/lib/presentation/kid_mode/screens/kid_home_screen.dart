@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 
 import '../../../config/theme/kid_theme.dart';
+import '../../common/widgets/responsive_layout.dart';
 import '../../../domain/services/screen_time_service.dart';
 import '../../../providers/current_child_provider.dart';
 import '../../../routing/route_names.dart';
@@ -130,11 +131,13 @@ class _KidHomeScreenState extends ConsumerState<KidHomeScreen> {
                       );
                     }
 
+                    final columns = adaptiveGridColumns(context, phoneColumns: 2);
+
                     return GridView.builder(
                       padding: const EdgeInsets.symmetric(horizontal: 16),
                       gridDelegate:
-                          const SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: 2,
+                          SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: columns,
                         childAspectRatio: 0.85,
                         crossAxisSpacing: 12,
                         mainAxisSpacing: 12,
