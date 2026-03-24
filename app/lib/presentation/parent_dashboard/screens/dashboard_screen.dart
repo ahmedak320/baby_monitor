@@ -2,17 +2,66 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../data/repositories/profile_repository.dart';
+import '../../../domain/services/age_transition_service.dart';
 import '../../../presentation/auth/providers/auth_provider.dart';
 import '../../../providers/subscription_provider.dart';
 import '../../../routing/route_names.dart';
 import '../../../utils/age_calculator.dart';
 import '../providers/dashboard_provider.dart';
+import '../widgets/age_transition_dialog.dart';
 
-class DashboardScreen extends ConsumerWidget {
+class DashboardScreen extends ConsumerStatefulWidget {
   const DashboardScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<DashboardScreen> createState() => _DashboardScreenState();
+}
+
+class _DashboardScreenState extends ConsumerState<DashboardScreen> {
+  bool _checkedTransitions = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_checkedTransitions) {
+      _checkedTransitions = true;
+      _checkAgeTransitions();
+    }
+  }
+
+  Future<void> _checkAgeTransitions() async {
+    final stats = await ref.read(dashboardStatsProvider.future);
+    if (!mounted || stats.isEmpty) return;
+
+    final children = stats.map((s) => s.child).toList();
+    final transitions = await AgeTransitionService.checkTransitions(children);
+
+    if (!mounted || transitions.isEmpty) return;
+
+    // Show dialog for each transition
+    for (final transition in transitions) {
+      if (!mounted) return;
+      await showDialog<void>(
+        context: context,
+        builder: (ctx) => AgeTransitionDialog(
+          transition: transition,
+          onApplyDefaults: () {
+            AgeTransitionService.applyTransitionSettings(
+              transition,
+              ProfileRepository(),
+            );
+            Navigator.of(ctx).pop();
+            ref.invalidate(dashboardStatsProvider);
+          },
+          onKeepCurrent: () => Navigator.of(ctx).pop(),
+        ),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final statsAsync = ref.watch(dashboardStatsProvider);
     final subscriptionAsync = ref.watch(subscriptionProvider);
 

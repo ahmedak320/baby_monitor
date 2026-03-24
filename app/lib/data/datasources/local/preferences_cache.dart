@@ -32,4 +32,25 @@ class PreferencesCache {
   static Future<void> setDeviceId(String id) async {
     await LocalCache.preferences.put(_deviceIdKey, id);
   }
+
+  /// Get the stored age bracket label for a child.
+  static String? getChildBracket(String childId) =>
+      LocalCache.preferences.get('child_bracket_$childId') as String?;
+
+  /// Set the age bracket label for a child.
+  static Future<void> setChildBracket(String childId, String bracket) async {
+    await LocalCache.preferences.put('child_bracket_$childId', bracket);
+  }
+
+  /// Get the last time age transition was dismissed for a child.
+  static String? getTransitionDismissed(String childId) =>
+      LocalCache.preferences.get('transition_dismissed_$childId') as String?;
+
+  /// Mark an age transition as dismissed.
+  static Future<void> setTransitionDismissed(String childId) async {
+    await LocalCache.preferences.put(
+      'transition_dismissed_$childId',
+      DateTime.now().toIso8601String(),
+    );
+  }
 }
