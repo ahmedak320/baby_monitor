@@ -53,4 +53,16 @@ class PreferencesCache {
       DateTime.now().toIso8601String(),
     );
   }
+
+  /// Get the last date a notification type was shown.
+  static String? getLastNotificationDate(String notificationType) =>
+      LocalCache.preferences.get('notification_$notificationType') as String?;
+
+  /// Set the last date a notification type was shown.
+  static Future<void> setLastNotificationDate(
+    String notificationType,
+    String date,
+  ) async {
+    await LocalCache.preferences.put('notification_$notificationType', date);
+  }
 }

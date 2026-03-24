@@ -4,12 +4,15 @@ import 'package:go_router/go_router.dart';
 
 import '../../../data/repositories/profile_repository.dart';
 import '../../../domain/services/age_transition_service.dart';
+import '../../../domain/services/notification_service.dart';
 import '../../../presentation/auth/providers/auth_provider.dart';
 import '../../../providers/subscription_provider.dart';
 import '../../../routing/route_names.dart';
 import '../../../utils/age_calculator.dart';
 import '../providers/dashboard_provider.dart';
+import '../providers/notification_provider.dart';
 import '../widgets/age_transition_dialog.dart';
+import '../widgets/notification_banner.dart';
 
 class DashboardScreen extends ConsumerStatefulWidget {
   const DashboardScreen({super.key});
@@ -99,7 +102,12 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               error: (_, _) => const SizedBox.shrink(),
             ),
 
-            const SizedBox(height: 16),
+            const SizedBox(height: 8),
+
+            // Notifications
+            _NotificationsSection(),
+
+            const SizedBox(height: 8),
 
             // Start Kid Mode button
             SizedBox(
@@ -372,6 +380,44 @@ class _QuickAction extends StatelessWidget {
       label: Text(label),
       onPressed: onTap,
     );
+  }
+}
+
+class _NotificationsSection extends ConsumerWidget {
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final notificationsAsync = ref.watch(pendingNotificationsProvider);
+
+    return notificationsAsync.when(
+      data: (notifications) {
+        if (notifications.isEmpty) return const SizedBox.shrink();
+        return Column(
+          children: notifications.map((n) {
+            return NotificationBanner(
+              notification: n,
+              onDismiss: () {
+                NotificationService().markShown(n.type);
+                ref.invalidate(pendingNotificationsProvider);
+              },
+              onTap: () => _handleNotificationTap(context, n),
+            );
+          }).toList(),
+        );
+      },
+      loading: () => const SizedBox.shrink(),
+      error: (_, _) => const SizedBox.shrink(),
+    );
+  }
+
+  void _handleNotificationTap(BuildContext context, AppNotification n) {
+    switch (n.type) {
+      case NotificationType.filteredContentAlert:
+        context.pushNamed(RouteNames.filteredContent);
+      case NotificationType.screenTimeReport:
+        context.pushNamed(RouteNames.screenTimeSettings);
+      default:
+        break;
+    }
   }
 }
 
