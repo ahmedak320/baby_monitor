@@ -25,6 +25,7 @@ class RouteNames {
   static const offlinePlaylists = 'offlinePlaylists';
   static const subscription = 'subscription';
   static const childProfileEdit = 'childProfileEdit';
+  static const about = 'about';
 
   // Kid Mode
   static const childSelect = 'childSelect';
