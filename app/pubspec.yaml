@@ -42,6 +42,7 @@ dependencies:
 
   # Auth & Security
   local_auth: ^2.3.0
+  crypto: ^3.0.6
   flutter_screen_lock: ^9.1.0
 
   # Payments
