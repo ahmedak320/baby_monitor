@@ -8,6 +8,8 @@ import '../../../domain/services/screen_time_service.dart';
 import '../../../providers/current_child_provider.dart';
 import '../../../routing/route_names.dart';
 import '../../../utils/duration_formatter.dart';
+import '../../../domain/services/feed_curation_service.dart';
+import '../../../utils/thumbnail_preloader.dart';
 import '../providers/kid_feed_provider.dart';
 import '../widgets/parental_gate.dart';
 import '../widgets/screen_time_indicator.dart';
@@ -16,11 +18,26 @@ import 'break_screen.dart';
 import 'time_up_screen.dart';
 import 'bedtime_screen.dart';
 
-class KidHomeScreen extends ConsumerWidget {
+class KidHomeScreen extends ConsumerStatefulWidget {
   const KidHomeScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<KidHomeScreen> createState() => _KidHomeScreenState();
+}
+
+class _KidHomeScreenState extends ConsumerState<KidHomeScreen> {
+  bool _thumbnailsPreloaded = false;
+
+  void _preloadThumbnails(List<FeedItem> items) {
+    if (_thumbnailsPreloaded || !mounted) return;
+    _thumbnailsPreloaded = true;
+
+    final urls = items.map((i) => i.video.thumbnailUrl).toList();
+    ThumbnailPreloader.preloadThumbnails(context, urls, maxPreload: 8);
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final child = ref.watch(currentChildProvider);
     final feedAsync = ref.watch(kidFeedProvider);
     final categories = ref.watch(kidCategoriesProvider);
@@ -88,6 +105,9 @@ class KidHomeScreen extends ConsumerWidget {
               Expanded(
                 child: feedAsync.when(
                   data: (items) {
+                    // Preload first batch of thumbnails
+                    _preloadThumbnails(items);
+
                     if (items.isEmpty) {
                       return const Center(
                         child: Column(
@@ -119,6 +139,9 @@ class KidHomeScreen extends ConsumerWidget {
                         crossAxisSpacing: 12,
                         mainAxisSpacing: 12,
                       ),
+                      addAutomaticKeepAlives: false,
+                      addRepaintBoundaries: true,
+                      cacheExtent: 300,
                       itemCount: items.length,
                       itemBuilder: (context, index) {
                         final item = items[index];

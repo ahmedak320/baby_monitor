@@ -6,6 +6,9 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 import 'app.dart';
 import 'data/datasources/local/local_cache.dart';
+import 'domain/services/background_sync_service.dart';
+
+final _backgroundSync = BackgroundSyncService();
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -22,6 +25,9 @@ Future<void> main() async {
     url: dotenv.env['SUPABASE_URL'] ?? '',
     anonKey: dotenv.env['SUPABASE_ANON_KEY'] ?? '',
   );
+
+  // Start background sync for approved video cache
+  _backgroundSync.startPeriodicSync();
 
   runApp(
     const ProviderScope(
