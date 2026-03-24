@@ -222,6 +222,16 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                   label: 'Screen Time',
                   onTap: () => context.pushNamed(RouteNames.screenTimeSettings),
                 ),
+                _QuickAction(
+                  icon: Icons.feedback_outlined,
+                  label: 'Feedback',
+                  onTap: () => context.pushNamed(RouteNames.feedback),
+                ),
+                _QuickAction(
+                  icon: Icons.info_outline,
+                  label: 'About',
+                  onTap: () => context.pushNamed(RouteNames.about),
+                ),
               ],
             ),
           ],

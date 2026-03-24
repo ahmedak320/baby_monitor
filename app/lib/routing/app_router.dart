@@ -16,6 +16,7 @@ import '../presentation/kid_mode/screens/kid_home_screen.dart';
 import '../presentation/kid_mode/screens/child_select_screen.dart';
 import '../presentation/kid_mode/screens/kid_search_screen.dart';
 import '../presentation/parent_dashboard/screens/about_screen.dart';
+import '../presentation/parent_dashboard/screens/feedback_screen.dart';
 import '../presentation/parent_dashboard/screens/dashboard_screen.dart';
 import '../presentation/parent_dashboard/screens/tablet_dashboard_screen.dart';
 import '../presentation/parent_dashboard/screens/child_activity_screen.dart';
@@ -140,6 +141,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             path: 'about',
             name: RouteNames.about,
             builder: (context, state) => const AboutScreen(),
+          ),
+          GoRoute(
+            path: 'feedback',
+            name: RouteNames.feedback,
+            builder: (context, state) => const FeedbackScreen(),
           ),
           GoRoute(
             path: 'edit-child/:childId',

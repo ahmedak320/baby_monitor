@@ -26,6 +26,7 @@ class RouteNames {
   static const subscription = 'subscription';
   static const childProfileEdit = 'childProfileEdit';
   static const about = 'about';
+  static const feedback = 'feedback';
 
   // Kid Mode
   static const childSelect = 'childSelect';
