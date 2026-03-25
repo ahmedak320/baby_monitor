@@ -173,6 +173,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => KidVideoPlayerScreen(
           videoId: state.pathParameters['videoId'] ?? '',
           videoTitle: state.uri.queryParameters['title'],
+          isShort: state.uri.queryParameters['isShort'] == 'true',
         ),
       ),
       GoRoute(
