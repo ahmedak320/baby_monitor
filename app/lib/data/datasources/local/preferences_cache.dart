@@ -65,4 +65,22 @@ class PreferencesCache {
   ) async {
     await LocalCache.preferences.put('notification_$notificationType', date);
   }
+
+  /// Get quota usage for a bucket.
+  static int getQuotaUsage(String bucket) =>
+      (LocalCache.preferences.get('quota_$bucket') as int?) ?? 0;
+
+  /// Set quota usage for a bucket.
+  static Future<void> setQuotaUsage(String bucket, int value) async {
+    await LocalCache.preferences.put('quota_$bucket', value);
+  }
+
+  /// Get the last quota reset date.
+  static String? getQuotaResetDate() =>
+      LocalCache.preferences.get('quota_reset_date') as String?;
+
+  /// Set the quota reset date.
+  static Future<void> setQuotaResetDate(String date) async {
+    await LocalCache.preferences.put('quota_reset_date', date);
+  }
 }
