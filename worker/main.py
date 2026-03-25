@@ -10,10 +10,13 @@ import logging
 import os
 import sys
 
+import uvicorn
 from supabase import create_client
 
+from api.routes import create_api
 from config import settings
 from discovery.auto_discovery import AutoDiscovery
+from pipeline.orchestrator import PipelineOrchestrator
 from queue.consumer import QueueConsumer
 
 logging.basicConfig(
@@ -44,18 +47,32 @@ async def main() -> None:
 
     consumer = QueueConsumer()
 
-    # Set up auto-discovery
+    # Set up Supabase client
     supabase_client = create_client(
         settings.supabase_url,
         settings.supabase_service_key,
     )
+
+    # Set up auto-discovery
     discovery = AutoDiscovery(settings, supabase_client)
 
+    # Set up FastAPI server
+    orchestrator = PipelineOrchestrator(settings, supabase_client)
+    app = create_api(settings, orchestrator, supabase_client)
+
+    async def run_api():
+        config = uvicorn.Config(
+            app, host="0.0.0.0", port=settings.api_port, log_level="info"
+        )
+        server = uvicorn.Server(config)
+        await server.serve()
+
     try:
-        # Run queue consumer and auto-discovery in parallel
+        # Run queue consumer, auto-discovery, and API in parallel
         await asyncio.gather(
             consumer.start(),
             discovery.run_periodic(interval_hours=6),
+            run_api(),
         )
     except KeyboardInterrupt:
         logger.info("Shutting down...")

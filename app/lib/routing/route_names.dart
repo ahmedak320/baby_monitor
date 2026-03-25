@@ -28,6 +28,7 @@ class RouteNames {
   static const about = 'about';
   static const feedback = 'feedback';
   static const linkSubmission = 'linkSubmission';
+  static const devAnalysis = 'devAnalysis';
 
   // Kid Mode
   static const childSelect = 'childSelect';

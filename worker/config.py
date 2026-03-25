@@ -44,6 +44,10 @@ class Settings:
     poll_interval_seconds: int = 10
     max_concurrent_analyses: int = 3
     temp_dir: str = "/tmp/baby_monitor_worker"
+    worker_api_key: str = field(
+        default_factory=lambda: os.getenv("WORKER_API_KEY", "")
+    )
+    api_port: int = 8000
 
     # Tier thresholds
     tier1_confidence_threshold: float = 0.85

@@ -12,7 +12,6 @@ import '../../../data/models/video_metadata.dart';
 import '../../../data/datasources/remote/analysis_api.dart';
 import '../../../data/repositories/video_repository.dart';
 import '../../../domain/services/metadata_gate_service.dart';
-import '../../../domain/services/video_discovery_service.dart';
 import '../../../providers/current_child_provider.dart';
 import '../../../routing/route_names.dart';
 import '../../../utils/age_calculator.dart';

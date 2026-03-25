@@ -15,7 +15,10 @@ import '../presentation/kid_mode/screens/kid_video_player_screen.dart';
 import '../presentation/kid_mode/screens/kid_home_screen.dart';
 import '../presentation/kid_mode/screens/child_select_screen.dart';
 import '../presentation/kid_mode/screens/kid_search_screen.dart';
+import 'package:flutter/foundation.dart' show kDebugMode;
+
 import '../presentation/parent_dashboard/screens/about_screen.dart';
+import '../presentation/parent_dashboard/screens/dev_analysis_screen.dart';
 import '../presentation/parent_dashboard/screens/feedback_screen.dart';
 import '../presentation/parent_dashboard/screens/link_submission_screen.dart';
 import '../presentation/parent_dashboard/screens/dashboard_screen.dart';
@@ -153,6 +156,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             name: RouteNames.linkSubmission,
             builder: (context, state) => const LinkSubmissionScreen(),
           ),
+          if (kDebugMode)
+            GoRoute(
+              path: 'dev-analysis',
+              name: RouteNames.devAnalysis,
+              builder: (context, state) => const DevAnalysisScreen(),
+            ),
           GoRoute(
             path: 'edit-child/:childId',
             name: RouteNames.childProfileEdit,
