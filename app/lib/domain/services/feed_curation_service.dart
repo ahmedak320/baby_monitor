@@ -40,14 +40,16 @@ class FeedCurationService {
     List<String>? allowedContentTypes, // from schedule, if active
     List<String>? recentlyWatchedIds,
     int limit = 30,
+    bool includeMetadataApproved = false,
   }) async {
     final childAge = AgeCalculator.yearsFromDob(child.dateOfBirth);
 
-    // Fetch approved videos
+    // Fetch approved videos (optionally including metadata-approved)
     final videos = await _videoRepo.getApprovedVideos(
       childId: child.id,
       childAge: childAge,
-      limit: limit * 3, // fetch extra to allow filtering
+      limit: limit * 3,
+      includeMetadataApproved: includeMetadataApproved,
     );
 
     final feedItems = <FeedItem>[];

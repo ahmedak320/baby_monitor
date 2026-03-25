@@ -108,14 +108,17 @@ class VideoRepository {
   }
 
   /// Get approved videos for a child profile.
+  /// If [includeMetadataApproved] is true, also returns videos that passed
+  /// the metadata gate from trusted channels (analysis still pending).
   Future<List<VideoMetadata>> getApprovedVideos({
     required String childId,
     required int childAge,
     int limit = 50,
+    bool includeMetadataApproved = false,
   }) async {
     // Check local cache first for offline support
     final cachedIds = ApprovedCache.getApprovedVideoIds(childId);
-    if (cachedIds.isNotEmpty) {
+    if (cachedIds.isNotEmpty && !includeMetadataApproved) {
       final rows = await _client
           .from('yt_videos')
           .select()
@@ -127,8 +130,8 @@ class VideoRepository {
           .toList();
     }
 
-    // Query videos with completed analyses suitable for this age
-    final rows = await _client
+    // Query fully analyzed + approved videos
+    final completedRows = await _client
         .from('yt_videos')
         .select('*, video_analyses!inner(*)')
         .eq('analysis_status', 'completed')
@@ -137,9 +140,28 @@ class VideoRepository {
         .eq('video_analyses.is_globally_blacklisted', false)
         .limit(limit);
 
-    final videos = (rows as List)
+    final videos = (completedRows as List)
         .map((r) => VideoMetadata.fromSupabaseRow(r as Map<String, dynamic>))
         .toList();
+
+    // Optionally include metadata-approved videos from trusted channels
+    if (includeMetadataApproved && videos.length < limit) {
+      final remaining = limit - videos.length;
+      final metadataRows = await _client
+          .from('yt_videos')
+          .select('*, yt_channels!inner(*)')
+          .eq('analysis_status', 'metadata_approved')
+          .eq('metadata_gate_passed', true)
+          .gte('yt_channels.global_trust_score', 0.7)
+          .limit(remaining);
+
+      final metadataVideos = (metadataRows as List)
+          .map(
+              (r) => VideoMetadata.fromSupabaseRow(r as Map<String, dynamic>))
+          .toList();
+
+      videos.addAll(metadataVideos);
+    }
 
     // Update local cache
     final videoIds = videos.map((v) => v.videoId).toList();
