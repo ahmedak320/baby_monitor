@@ -17,6 +17,7 @@ import '../presentation/kid_mode/screens/child_select_screen.dart';
 import '../presentation/kid_mode/screens/kid_search_screen.dart';
 import '../presentation/parent_dashboard/screens/about_screen.dart';
 import '../presentation/parent_dashboard/screens/feedback_screen.dart';
+import '../presentation/parent_dashboard/screens/link_submission_screen.dart';
 import '../presentation/parent_dashboard/screens/dashboard_screen.dart';
 import '../presentation/parent_dashboard/screens/tablet_dashboard_screen.dart';
 import '../presentation/parent_dashboard/screens/child_activity_screen.dart';
@@ -146,6 +147,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             path: 'feedback',
             name: RouteNames.feedback,
             builder: (context, state) => const FeedbackScreen(),
+          ),
+          GoRoute(
+            path: 'submit-link',
+            name: RouteNames.linkSubmission,
+            builder: (context, state) => const LinkSubmissionScreen(),
           ),
           GoRoute(
             path: 'edit-child/:childId',

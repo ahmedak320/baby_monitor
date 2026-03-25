@@ -50,7 +50,7 @@ class VideoDiscoveryService {
     required String videoUrl,
     required String action,
   }) async {
-    final videoId = _parseVideoId(videoUrl);
+    final videoId = parseVideoId(videoUrl);
     if (videoId == null) return;
 
     final userId = SupabaseClientWrapper.currentUserId;
@@ -129,7 +129,7 @@ class VideoDiscoveryService {
   }
 
   /// Parse a YouTube video ID from various URL formats.
-  static String? _parseVideoId(String url) {
+  static String? parseVideoId(String url) {
     // youtube.com/watch?v=ID
     final watchMatch = RegExp(r'[?&]v=([a-zA-Z0-9_-]{11})').firstMatch(url);
     if (watchMatch != null) return watchMatch.group(1);

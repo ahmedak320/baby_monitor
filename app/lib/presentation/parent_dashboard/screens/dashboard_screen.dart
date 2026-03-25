@@ -25,6 +25,16 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   bool _checkedTransitions = false;
 
   @override
+  void initState() {
+    super.initState();
+    // Refresh data every time dashboard is shown
+    Future.microtask(() {
+      ref.invalidate(dashboardStatsProvider);
+      ref.invalidate(pendingNotificationsProvider);
+    });
+  }
+
+  @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     if (!_checkedTransitions) {
@@ -150,11 +160,12 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                               size: 48, color: Colors.grey),
                           const SizedBox(height: 12),
                           const Text('No children added yet'),
-                          const SizedBox(height: 8),
-                          TextButton(
+                          const SizedBox(height: 12),
+                          ElevatedButton.icon(
                             onPressed: () =>
                                 context.pushNamed(RouteNames.addChild),
-                            child: const Text('Add a child'),
+                            icon: const Icon(Icons.add),
+                            label: const Text('Add a child'),
                           ),
                         ],
                       ),
@@ -181,9 +192,22 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                 ),
               ),
               error: (e, _) => Card(
+                color: Colors.red[50],
                 child: Padding(
                   padding: const EdgeInsets.all(16),
-                  child: Text('Error loading stats: $e'),
+                  child: Column(
+                    children: [
+                      Text('Error: $e',
+                          style: const TextStyle(color: Colors.red)),
+                      const SizedBox(height: 12),
+                      ElevatedButton.icon(
+                        onPressed: () =>
+                            context.pushNamed(RouteNames.addChild),
+                        icon: const Icon(Icons.add),
+                        label: const Text('Add a child'),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -221,6 +245,11 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                   icon: Icons.timer,
                   label: 'Screen Time',
                   onTap: () => context.pushNamed(RouteNames.screenTimeSettings),
+                ),
+                _QuickAction(
+                  icon: Icons.link,
+                  label: 'Submit Link',
+                  onTap: () => context.pushNamed(RouteNames.linkSubmission),
                 ),
                 _QuickAction(
                   icon: Icons.feedback_outlined,

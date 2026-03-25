@@ -19,6 +19,7 @@ class VideoAnalysis {
   final List<String> detectedIssues;
   final double confidence;
   final bool isGloballyBlacklisted;
+  final String analysisReasoning;
 
   const VideoAnalysis({
     required this.videoId,
@@ -35,6 +36,7 @@ class VideoAnalysis {
     this.detectedIssues = const [],
     this.confidence = 0,
     this.isGloballyBlacklisted = false,
+    this.analysisReasoning = '',
   });
 
   factory VideoAnalysis.fromJson(Map<String, dynamic> json) {
@@ -59,6 +61,8 @@ class VideoAnalysis {
       confidence: (json['confidence'] as num?)?.toDouble() ?? 0,
       isGloballyBlacklisted:
           json['is_globally_blacklisted'] as bool? ?? false,
+      analysisReasoning:
+          json['analysis_reasoning'] as String? ?? '',
     );
   }
 }
