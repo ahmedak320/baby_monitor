@@ -84,6 +84,7 @@ class QueueConsumer:
         """
         try:
             # Find the highest priority queued job
+            # Priority: 1=playing now, 2=search, 3=parent, 5=feed, 8=discovery
             result = (
                 self._client.table("analysis_queue")
                 .select("*")

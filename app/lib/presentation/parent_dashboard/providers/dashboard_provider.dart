@@ -11,6 +11,7 @@ class ChildDashboardStats {
   final int videosWatchedToday;
   final int filteredToday;
   final int? limitMinutesToday;
+  final int interruptionsToday;
 
   const ChildDashboardStats({
     required this.child,
@@ -18,6 +19,7 @@ class ChildDashboardStats {
     this.videosWatchedToday = 0,
     this.filteredToday = 0,
     this.limitMinutesToday,
+    this.interruptionsToday = 0,
   });
 }
 
