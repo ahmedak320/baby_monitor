@@ -174,7 +174,11 @@ class VideoRepository {
   }
 
   /// Request analysis for a video (add to queue).
-  Future<void> requestAnalysis(String videoId) async {
+  Future<void> requestAnalysis(
+    String videoId, {
+    int priority = 5,
+    String source = 'manual',
+  }) async {
     final userId = SupabaseClientWrapper.currentUserId;
 
     // Check if already queued or completed
@@ -190,7 +194,52 @@ class VideoRepository {
     await _client.from('analysis_queue').insert({
       'video_id': videoId,
       'requested_by': userId,
-      'priority': 5,
+      'priority': priority,
+      'source': source,
+    });
+  }
+
+  /// Upsert a video into the database with discovery metadata.
+  Future<void> upsertVideo(
+    VideoMetadata video, {
+    String source = 'manual',
+    String analysisStatus = 'pending',
+    bool metadataGatePassed = false,
+    String? metadataGateReason,
+  }) async {
+    final row = video.toSupabaseRow(source: source);
+    row['analysis_status'] = analysisStatus;
+    row['metadata_gate_passed'] = metadataGatePassed;
+    if (metadataGateReason != null) {
+      row['metadata_gate_reason'] = metadataGateReason;
+    }
+
+    // Upsert channel if we have channel info
+    if (video.channelId.isNotEmpty) {
+      await _client.from('yt_channels').upsert({
+        'channel_id': video.channelId,
+        'title': video.channelTitle,
+      }, onConflict: 'channel_id');
+    }
+
+    await _client.from('yt_videos').upsert(
+      row,
+      onConflict: 'video_id',
+    );
+  }
+
+  /// Log a video interruption (when analysis rejects mid-play).
+  Future<void> logInterruption({
+    required String childId,
+    required String videoId,
+    required String reason,
+    required int watchedSeconds,
+  }) async {
+    await _client.from('video_interruptions').insert({
+      'child_id': childId,
+      'video_id': videoId,
+      'reason': reason,
+      'watch_seconds_before_interrupt': watchedSeconds,
     });
   }
 

@@ -10,7 +10,10 @@ import logging
 import os
 import sys
 
+from supabase import create_client
+
 from config import settings
+from discovery.auto_discovery import AutoDiscovery
 from queue.consumer import QueueConsumer
 
 logging.basicConfig(
@@ -41,8 +44,19 @@ async def main() -> None:
 
     consumer = QueueConsumer()
 
+    # Set up auto-discovery
+    supabase_client = create_client(
+        settings.supabase_url,
+        settings.supabase_service_key,
+    )
+    discovery = AutoDiscovery(settings, supabase_client)
+
     try:
-        await consumer.start()
+        # Run queue consumer and auto-discovery in parallel
+        await asyncio.gather(
+            consumer.start(),
+            discovery.run_periodic(interval_hours=6),
+        )
     except KeyboardInterrupt:
         logger.info("Shutting down...")
         await consumer.stop()

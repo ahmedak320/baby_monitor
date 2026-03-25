@@ -98,6 +98,18 @@ class PipedApiClient {
         .toList();
   }
 
+  /// Get related videos for a given video.
+  Future<List<VideoMetadata>> getRelatedVideos(String videoId) async {
+    final response = await _dio.get('$_baseUrl/streams/$videoId');
+    final data = response.data as Map<String, dynamic>;
+    final items = (data['relatedStreams'] as List?) ?? [];
+
+    return items
+        .where((item) => item['type'] == 'stream')
+        .map((item) => _parseStreamItem(item as Map<String, dynamic>))
+        .toList();
+  }
+
   VideoMetadata _parseStreamItem(Map<String, dynamic> item) {
     final url = item['url'] as String? ?? '';
     final videoId = _extractVideoId(url);

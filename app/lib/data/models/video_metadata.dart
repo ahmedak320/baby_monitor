@@ -13,6 +13,9 @@ class VideoMetadata {
   final bool hasCaptions;
   final int viewCount;
   final int likeCount;
+  final bool isShort;
+  final String? analysisStatus;
+  final String? discoverySource;
 
   const VideoMetadata({
     required this.videoId,
@@ -28,9 +31,18 @@ class VideoMetadata {
     this.hasCaptions = false,
     this.viewCount = 0,
     this.likeCount = 0,
+    this.isShort = false,
+    this.analysisStatus,
+    this.discoverySource,
   });
 
-  Map<String, dynamic> toSupabaseRow() => {
+  /// Detect if this video is a YouTube Short.
+  bool get detectedAsShort =>
+      isShort ||
+      durationSeconds > 0 && durationSeconds <= 60 ||
+      title.toLowerCase().contains('#shorts');
+
+  Map<String, dynamic> toSupabaseRow({String? source}) => {
         'video_id': videoId,
         'channel_id': channelId.isNotEmpty ? channelId : null,
         'title': title,
@@ -43,6 +55,8 @@ class VideoMetadata {
         'has_captions': hasCaptions,
         'view_count': viewCount,
         'like_count': likeCount,
+        'is_short': detectedAsShort,
+        if (source != null) 'discovery_source': source,
       };
 
   factory VideoMetadata.fromSupabaseRow(Map<String, dynamic> row) {
@@ -62,6 +76,9 @@ class VideoMetadata {
       hasCaptions: row['has_captions'] as bool? ?? false,
       viewCount: row['view_count'] as int? ?? 0,
       likeCount: row['like_count'] as int? ?? 0,
+      isShort: row['is_short'] as bool? ?? false,
+      analysisStatus: row['analysis_status'] as String?,
+      discoverySource: row['discovery_source'] as String?,
     );
   }
 }

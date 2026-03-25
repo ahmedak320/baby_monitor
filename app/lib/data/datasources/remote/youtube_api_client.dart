@@ -133,9 +133,91 @@ class YouTubeApiClient {
     return _piped.getChannelVideos(channelId);
   }
 
+  /// Get trending videos. Uses Piped by default (free) or official API.
+  Future<List<VideoMetadata>> getTrending({String region = 'US'}) async {
+    // Prefer Piped for trending (free, no quota cost)
+    try {
+      return await _piped.getTrending(region: region);
+    } catch (_) {
+      // Fallback to official API
+      if (!_hasQuota || _apiKey.isEmpty) return [];
+      return _officialGetTrending(region: region);
+    }
+  }
+
+  /// Get related/sidebar videos for a given video.
+  /// Prefers Piped (free) over official API (100 units per search).
+  Future<List<VideoMetadata>> getRelatedVideos(String videoId) async {
+    try {
+      return await _piped.getRelatedVideos(videoId);
+    } catch (_) {
+      // Piped failed — use official search with relatedToVideoId
+      if (!_hasQuota || _apiKey.isEmpty) return [];
+      return _officialRelatedVideos(videoId);
+    }
+  }
+
   // ==========================================
   // OFFICIAL YOUTUBE DATA API v3
   // ==========================================
+
+  Future<List<VideoMetadata>> _officialGetTrending({
+    String region = 'US',
+  }) async {
+    _useQuota(1); // videos.list with chart=mostPopular costs 1 unit
+
+    final response = await _dio.get('$_baseUrl/videos', queryParameters: {
+      'part': 'snippet,contentDetails,statistics',
+      'chart': 'mostPopular',
+      'regionCode': region,
+      'videoCategoryId': '24', // Entertainment — includes kids content
+      'maxResults': 20,
+      'key': _apiKey,
+    });
+
+    if (response.statusCode == 403) {
+      throw const QuotaExceededException();
+    }
+
+    final items = (response.data['items'] as List?) ?? [];
+    return items
+        .map((item) =>
+            _parseOfficialVideoItem(item as Map<String, dynamic>))
+        .toList();
+  }
+
+  Future<List<VideoMetadata>> _officialRelatedVideos(String videoId) async {
+    _useQuota(100); // search.list costs 100 units
+
+    final response = await _dio.get('$_baseUrl/search', queryParameters: {
+      'part': 'snippet',
+      'relatedToVideoId': videoId,
+      'type': 'video',
+      'safeSearch': 'strict',
+      'maxResults': 10,
+      'key': _apiKey,
+    });
+
+    if (response.statusCode == 403) {
+      throw const QuotaExceededException();
+    }
+
+    final items = (response.data['items'] as List?) ?? [];
+    return items.map((item) {
+      final snippet = item['snippet'] as Map<String, dynamic>;
+      final id = item['id'] as Map<String, dynamic>;
+      return VideoMetadata(
+        videoId: id['videoId'] as String? ?? '',
+        title: snippet['title'] as String? ?? '',
+        description: snippet['description'] as String? ?? '',
+        channelId: snippet['channelId'] as String? ?? '',
+        channelTitle: snippet['channelTitle'] as String? ?? '',
+        thumbnailUrl: _bestThumbnail(snippet['thumbnails']),
+        publishedAt:
+            DateTime.tryParse(snippet['publishedAt'] as String? ?? ''),
+      );
+    }).toList();
+  }
 
   Future<VideoSearchResult> _officialSearch(
     String query, {
