@@ -331,7 +331,8 @@ class _KidVideoCard extends StatelessWidget {
                 children: [
                   thumbnailUrl.isNotEmpty
                       ? CachedNetworkImage(
-                          imageUrl: thumbnailUrl,
+                          imageUrl: thumbnailUrl.replaceAll(
+                              '_live.jpg', '.jpg'),
                           fit: BoxFit.cover,
                           placeholder: (_, _) => Container(
                             color: Colors.grey[200],

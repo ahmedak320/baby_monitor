@@ -182,18 +182,50 @@ class _LeftPanel extends StatelessWidget {
         ),
         const SizedBox(height: 8),
         statsAsync.when(
-          data: (statsList) => Column(
-            children: statsList.map((s) {
-              final isSelected = s.child.id == selectedChildId;
-              return _CompactChildTile(
-                stats: s,
-                isSelected: isSelected,
-                onTap: () => onChildSelected(s.child.id),
+          data: (statsList) {
+            if (statsList.isEmpty) {
+              return Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    children: [
+                      const Icon(Icons.child_care, size: 40, color: Colors.grey),
+                      const SizedBox(height: 8),
+                      const Text('No children added yet'),
+                      const SizedBox(height: 8),
+                      ElevatedButton.icon(
+                        onPressed: () => context.pushNamed(RouteNames.addChild),
+                        icon: const Icon(Icons.add),
+                        label: const Text('Add a child'),
+                      ),
+                    ],
+                  ),
+                ),
               );
-            }).toList(),
-          ),
+            }
+            return Column(
+              children: statsList.map((s) {
+                final isSelected = s.child.id == selectedChildId;
+                return _CompactChildTile(
+                  stats: s,
+                  isSelected: isSelected,
+                  onTap: () => onChildSelected(s.child.id),
+                );
+              }).toList(),
+            );
+          },
           loading: () => const Center(child: CircularProgressIndicator()),
-          error: (e, _) => Text('Error: $e'),
+          error: (e, _) => Column(
+            children: [
+              Text('Error: $e', style: const TextStyle(color: Colors.red)),
+              const SizedBox(height: 8),
+              ElevatedButton.icon(
+                onPressed: () => context.pushNamed(RouteNames.addChild),
+                icon: const Icon(Icons.add),
+                label: const Text('Add a child'),
+              ),
+            ],
+          ),
         ),
 
         const SizedBox(height: 24),

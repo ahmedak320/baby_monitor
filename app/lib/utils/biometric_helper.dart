@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/services.dart';
 import 'package:local_auth/local_auth.dart';
 
@@ -7,6 +8,7 @@ class BiometricHelper {
 
   /// Check if biometric authentication is available.
   static Future<bool> get isAvailable async {
+    if (kIsWeb) return false;
     try {
       final canCheck = await _auth.canCheckBiometrics;
       final isDeviceSupported = await _auth.isDeviceSupported();
@@ -18,6 +20,7 @@ class BiometricHelper {
 
   /// Get available biometric types.
   static Future<List<BiometricType>> get availableBiometrics async {
+    if (kIsWeb) return [];
     try {
       return await _auth.getAvailableBiometrics();
     } on PlatformException {
@@ -27,9 +30,11 @@ class BiometricHelper {
 
   /// Authenticate the user with biometrics or device PIN.
   /// Returns true if authentication succeeded.
+  /// On web, always returns true (biometrics not available).
   static Future<bool> authenticate({
     String reason = 'Verify your identity to continue',
   }) async {
+    if (kIsWeb) return true;
     try {
       return await _auth.authenticate(
         localizedReason: reason,

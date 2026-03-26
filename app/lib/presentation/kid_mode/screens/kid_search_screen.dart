@@ -421,7 +421,8 @@ class _SearchResultTile extends StatelessWidget {
                     children: [
                       video.thumbnailUrl.isNotEmpty
                           ? CachedNetworkImage(
-                              imageUrl: video.thumbnailUrl,
+                              imageUrl: video.thumbnailUrl
+                                  .replaceAll('_live.jpg', '.jpg'),
                               fit: BoxFit.cover,
                             )
                           : Container(

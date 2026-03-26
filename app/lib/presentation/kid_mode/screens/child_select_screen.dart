@@ -20,14 +20,30 @@ class ChildSelectScreen extends ConsumerWidget {
         title: const Text('Who\'s watching?'),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
-          onPressed: () => context.goNamed(RouteNames.dashboard),
+          onPressed: () => context.pop(),
         ),
       ),
       body: childrenAsync.when(
         data: (children) {
           if (children.isEmpty) {
-            return const Center(
-              child: Text('No children added yet.\nGo to settings to add a child.'),
+            return Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.child_care, size: 64, color: Colors.grey),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'No children added yet.',
+                    style: TextStyle(fontSize: 16),
+                  ),
+                  const SizedBox(height: 12),
+                  ElevatedButton.icon(
+                    onPressed: () => context.pushNamed(RouteNames.addChild),
+                    icon: const Icon(Icons.add),
+                    label: const Text('Add a child'),
+                  ),
+                ],
+              ),
             );
           }
 

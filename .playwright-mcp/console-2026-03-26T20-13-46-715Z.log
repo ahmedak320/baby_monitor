@@ -1,0 +1,2 @@
+[   21107ms] [ERROR] Access to XMLHttpRequest at 'https://pipedapi.kavin.rocks/search?q=labubu&filter=videos' from origin 'http://localhost:8080' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource. @ http://localhost:8080/#/kid/search:0
+[   21114ms] [ERROR] Failed to load resource: net::ERR_FAILED @ https://pipedapi.kavin.rocks/search?q=labubu&filter=videos:0

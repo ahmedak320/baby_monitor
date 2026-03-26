@@ -22,7 +22,7 @@ dependencies:
   supabase_flutter: ^2.9.0
 
   # YouTube player
-  youtube_player_flutter: ^9.1.1
+  youtube_player_iframe: ^5.0.0
 
   # Local storage
   hive_flutter: ^1.1.0

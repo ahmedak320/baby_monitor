@@ -12,7 +12,10 @@ class ThumbnailPreloader {
     List<String> thumbnailUrls, {
     int maxPreload = 10,
   }) async {
-    final urls = thumbnailUrls.take(maxPreload).where((u) => u.isNotEmpty);
+    final urls = thumbnailUrls
+        .take(maxPreload)
+        .where((u) => u.isNotEmpty)
+        .map((u) => u.replaceAll('_live.jpg', '.jpg'));
 
     for (final url in urls) {
       try {

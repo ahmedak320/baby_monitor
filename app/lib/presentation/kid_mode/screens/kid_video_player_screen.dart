@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:youtube_player_flutter/youtube_player_flutter.dart';
+import 'package:youtube_player_iframe/youtube_player_iframe.dart';
 
 import '../../../data/datasources/remote/analysis_api.dart';
 import '../../../data/repositories/video_repository.dart';
@@ -35,6 +35,8 @@ class _KidVideoPlayerScreenState extends ConsumerState<KidVideoPlayerScreen> {
   bool _isInterrupted = false;
   String? _interruptReason;
   StreamSubscription<String>? _analysisSub;
+  StreamSubscription<YoutubePlayerValue>? _playerStateSub;
+  StreamSubscription<YoutubeVideoState>? _videoStateSub;
 
   @override
   void initState() {
@@ -47,23 +49,45 @@ class _KidVideoPlayerScreenState extends ConsumerState<KidVideoPlayerScreen> {
       ]);
     }
 
-    _controller = YoutubePlayerController(
-      initialVideoId: widget.videoId,
-      flags: YoutubePlayerFlags(
-        autoPlay: true,
+    _controller = YoutubePlayerController.fromVideoId(
+      videoId: widget.videoId,
+      autoPlay: true,
+      params: YoutubePlayerParams(
         mute: false,
-        disableDragSeek: widget.isShort,
-        enableCaption: true,
-        hideControls: widget.isShort,
-        hideThumbnail: true,
+        showControls: !widget.isShort,
+        showFullscreenButton: !widget.isShort,
         loop: false,
-        controlsVisibleAtStart: false,
+        enableCaption: true,
+        playsInline: true,
       ),
-    )..addListener(_onPlayerStateChange);
+    );
+
+    _playerStateSub = _controller.listen((event) {
+      _onPlayerStateChange(event);
+    });
+
+    // Track playing state via videoStateStream (fires every 100ms while playing)
+    _videoStateSub = _controller.videoStateStream.listen((state) {
+      if (!mounted) return;
+      if (!_isPlaying) {
+        setState(() => _isPlaying = true);
+      }
+    });
+
+    // Autoplay is on, so assume playing after a short delay.
+    // Stream events update _isPlaying when available (native platforms),
+    // but on web postMessage may be blocked by cross-origin restrictions.
+    Future.delayed(const Duration(seconds: 2), () {
+      if (mounted && !_isPlaying && !_isInterrupted) {
+        setState(() => _isPlaying = true);
+      }
+    });
 
     // Watch time tracking
     _watchTimer = Timer.periodic(const Duration(seconds: 1), (_) {
-      if (_isPlaying) _watchedSeconds++;
+      if (_isPlaying) {
+        setState(() => _watchedSeconds++);
+      }
     });
 
     // Subscribe to analysis completions for real-time interruption
@@ -106,7 +130,7 @@ class _KidVideoPlayerScreenState extends ConsumerState<KidVideoPlayerScreen> {
     });
 
     // Pause the player
-    _controller.pause();
+    _controller.pauseVideo();
 
     // Log the interruption
     final child = ref.read(currentChildProvider);
@@ -125,14 +149,14 @@ class _KidVideoPlayerScreenState extends ConsumerState<KidVideoPlayerScreen> {
     });
   }
 
-  void _onPlayerStateChange() {
+  void _onPlayerStateChange(YoutubePlayerValue value) {
     if (!mounted) return;
-    final state = _controller.value.playerState;
-    setState(() {
-      _isPlaying = state == PlayerState.playing;
-    });
+    final playing = value.playerState == PlayerState.playing;
+    if (_isPlaying != playing) {
+      setState(() => _isPlaying = playing);
+    }
 
-    if (state == PlayerState.ended) {
+    if (value.playerState == PlayerState.ended) {
       _saveWatchRecord(completed: true);
       _onVideoEnded();
     }
@@ -149,8 +173,10 @@ class _KidVideoPlayerScreenState extends ConsumerState<KidVideoPlayerScreen> {
   @override
   void dispose() {
     _analysisSub?.cancel();
+    _playerStateSub?.cancel();
+    _videoStateSub?.cancel();
     _watchTimer?.cancel();
-    _controller.dispose();
+    _controller.close();
     SystemChrome.setPreferredOrientations([]);
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     super.dispose();
@@ -181,35 +207,26 @@ class _KidVideoPlayerScreenState extends ConsumerState<KidVideoPlayerScreen> {
             Column(
               children: [
                 Expanded(
-                  child: YoutubePlayerBuilder(
-                    player: YoutubePlayer(
-                      controller: _controller,
-                      showVideoProgressIndicator: !widget.isShort,
-                      progressIndicatorColor: const Color(0xFF6C63FF),
-                      progressColors: const ProgressBarColors(
-                        playedColor: Color(0xFF6C63FF),
-                        handleColor: Color(0xFF6C63FF),
+                  child: Column(
+                    children: [
+                      if (!widget.isShort)
+                        _TopBar(
+                          title: widget.videoTitle ?? '',
+                          onBack: () => Navigator.of(context).pop(),
+                        ),
+                      Expanded(
+                        child: YoutubePlayer(
+                          controller: _controller,
+                          aspectRatio: widget.isShort ? 9 / 16 : 16 / 9,
+                          backgroundColor: Colors.black,
+                        ),
                       ),
-                      onEnded: (_) => _onVideoEnded(),
-                      aspectRatio: widget.isShort ? 9 / 16 : 16 / 9,
-                    ),
-                    builder: (context, player) {
-                      return Column(
-                        children: [
-                          if (!widget.isShort)
-                            _TopBar(
-                              title: widget.videoTitle ?? '',
-                              onBack: () => Navigator.of(context).pop(),
-                            ),
-                          Expanded(child: player),
-                          if (!widget.isShort)
-                            _BottomBar(
-                              watchedSeconds: _watchedSeconds,
-                              isPlaying: _isPlaying,
-                            ),
-                        ],
-                      );
-                    },
+                      if (!widget.isShort)
+                        _BottomBar(
+                          watchedSeconds: _watchedSeconds,
+                          isPlaying: _isPlaying,
+                        ),
+                    ],
                   ),
                 ),
               ],
