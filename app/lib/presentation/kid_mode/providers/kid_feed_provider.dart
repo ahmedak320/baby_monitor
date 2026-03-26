@@ -25,10 +25,17 @@ final kidFeedProvider = FutureProvider<List<FeedItem>>((ref) async {
   discovery.discoverTrending(); // fire and forget
 
   final service = ref.watch(feedCurationProvider);
-  return service.buildFeed(
-    child: child,
-    includeMetadataApproved: true,
-  );
+  try {
+    final feed = await service.buildFeed(
+      child: child,
+      includeMetadataApproved: true,
+    );
+    return feed;
+  } catch (e) {
+    // Log and return empty on error
+    print('Feed build error: $e');
+    return [];
+  }
 });
 
 /// Provides "Up Next" suggestions after a video.

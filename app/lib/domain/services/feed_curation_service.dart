@@ -45,12 +45,28 @@ class FeedCurationService {
     final childAge = AgeCalculator.yearsFromDob(child.dateOfBirth);
 
     // Fetch approved videos (optionally including metadata-approved)
-    final videos = await _videoRepo.getApprovedVideos(
-      childId: child.id,
-      childAge: childAge,
-      limit: limit * 3,
-      includeMetadataApproved: includeMetadataApproved,
-    );
+    List<VideoMetadata> videos;
+    try {
+      videos = await _videoRepo.getApprovedVideos(
+        childId: child.id,
+        childAge: childAge,
+        limit: limit * 3,
+        includeMetadataApproved: includeMetadataApproved,
+      );
+    } catch (e) {
+      // Fallback: try without metadata-approved if query fails
+      // (e.g., migration 004 not run yet)
+      try {
+        videos = await _videoRepo.getApprovedVideos(
+          childId: child.id,
+          childAge: childAge,
+          limit: limit * 3,
+          includeMetadataApproved: false,
+        );
+      } catch (_) {
+        return [];
+      }
+    }
 
     final feedItems = <FeedItem>[];
     final usedCategories = <String>{};
@@ -62,19 +78,23 @@ class FeedCurationService {
       // Skip recently watched
       if (recentSet.contains(video.videoId)) continue;
 
-      // Get analysis
+      // Get analysis (may be null for metadata-approved videos)
       final analysis = await _videoRepo.getAnalysis(video.videoId);
-      if (analysis == null) continue;
 
-      // Run filter
-      final result = _filterService.filterForChild(
-        analysis: analysis,
-        child: child,
-      );
-      if (!result.isApproved) continue;
+      // If we have analysis, run the content filter
+      if (analysis != null) {
+        final result = _filterService.filterForChild(
+          analysis: analysis,
+          child: child,
+        );
+        if (!result.isApproved) continue;
+      } else if (video.analysisStatus != 'metadata_approved') {
+        // No analysis and not metadata-approved — skip
+        continue;
+      }
 
       // Check content type preferences and schedule
-      final labels = analysis.contentLabels;
+      final labels = analysis?.contentLabels ?? [];
       if (allowedContentTypes != null && allowedContentTypes.isNotEmpty) {
         final hasAllowed = labels.any(
           (l) => allowedContentTypes.contains(l),

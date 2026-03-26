@@ -150,21 +150,25 @@ class VideoRepository {
 
     // Optionally include metadata-approved videos from trusted channels
     if (includeMetadataApproved && videos.length < limit) {
-      final remaining = limit - videos.length;
-      final metadataRows = await _client
-          .from('yt_videos')
-          .select('*, yt_channels!inner(*)')
-          .eq('analysis_status', 'metadata_approved')
-          .eq('metadata_gate_passed', true)
-          .gte('yt_channels.global_trust_score', 0.7)
-          .limit(remaining);
+      try {
+        final remaining = limit - videos.length;
+        final metadataRows = await _client
+            .from('yt_videos')
+            .select('*, yt_channels!inner(*)')
+            .eq('analysis_status', 'metadata_approved')
+            .eq('metadata_gate_passed', true)
+            .gte('yt_channels.global_trust_score', 0.7)
+            .limit(remaining);
 
-      final metadataVideos = (metadataRows as List)
-          .map(
-              (r) => VideoMetadata.fromSupabaseRow(r as Map<String, dynamic>))
-          .toList();
+        final metadataVideos = (metadataRows as List)
+            .map(
+                (r) => VideoMetadata.fromSupabaseRow(r as Map<String, dynamic>))
+            .toList();
 
-      videos.addAll(metadataVideos);
+        videos.addAll(metadataVideos);
+      } catch (_) {
+        // metadata_gate_passed column may not exist if migration not run
+      }
     }
 
     // Update local cache
