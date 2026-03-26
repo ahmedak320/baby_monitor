@@ -135,12 +135,15 @@ class VideoRepository {
     }
 
     // Query fully analyzed + approved videos
+    // age_min <= childAge: video is for this age or younger
+    // age_max >= childAge - 4: include videos up to 4 years below
+    //   (a 7-year-old can still enjoy content for ages 3+)
     final completedRows = await _client
         .from('yt_videos')
         .select('*, video_analyses!inner(*)')
         .eq('analysis_status', 'completed')
         .lte('video_analyses.age_min_appropriate', childAge)
-        .gte('video_analyses.age_max_appropriate', childAge)
+        .gte('video_analyses.age_max_appropriate', (childAge - 4).clamp(0, 18))
         .eq('video_analyses.is_globally_blacklisted', false)
         .limit(limit);
 
