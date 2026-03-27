@@ -43,7 +43,7 @@ async def main() -> None:
         logger.error("SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are required")
         sys.exit(1)
 
-    if not settings.anthropic_api_key:
+    if settings.ai_provider == "claude" and not settings.anthropic_api_key:
         logger.warning("ANTHROPIC_API_KEY not set — Claude Haiku analysis disabled")
 
     consumer = QueueConsumer()
@@ -58,7 +58,7 @@ async def main() -> None:
     discovery = AutoDiscovery(settings, supabase_client)
 
     # Set up FastAPI server
-    orchestrator = PipelineOrchestrator(settings, supabase_client)
+    orchestrator = PipelineOrchestrator()
     app = create_api(settings, orchestrator, supabase_client)
 
     async def run_api():

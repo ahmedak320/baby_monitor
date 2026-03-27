@@ -1,6 +1,5 @@
 """Google Gemini provider for content analysis."""
 
-import base64
 import json
 import logging
 import os
@@ -50,17 +49,18 @@ class GeminiProvider(AnalysisProvider):
 
     def __init__(self):
         try:
-            import google.generativeai as genai
+            from google import genai
 
             api_key = os.getenv("GEMINI_API_KEY", "")
             if api_key:
-                genai.configure(api_key=api_key)
-            self._genai = genai
-            self._model = genai.GenerativeModel("gemini-2.0-flash")
+                self._client = genai.Client(api_key=api_key)
+            else:
+                self._client = None
+            self._model_name = "gemini-2.0-flash"
         except ImportError:
-            logger.warning("google-generativeai not installed; Gemini provider unavailable")
-            self._genai = None
-            self._model = None
+            logger.warning("google-genai not installed; Gemini provider unavailable")
+            self._client = None
+            self._model_name = None
 
     def analyze_text(
         self,
@@ -72,7 +72,7 @@ class GeminiProvider(AnalysisProvider):
         transcript: str,
         toxicity_summary: str = "",
     ) -> TextAnalysisResult:
-        if self._model is None:
+        if self._client is None:
             return TextAnalysisResult(
                 overall_verdict="NEEDS_VISUAL_REVIEW",
                 reasoning="Gemini provider not available",
@@ -90,7 +90,9 @@ class GeminiProvider(AnalysisProvider):
 
         try:
             _rate_limiter.wait_if_needed()
-            response = self._model.generate_content(prompt)
+            response = self._client.models.generate_content(
+                model=self._model_name, contents=prompt
+            )
             _rate_limiter.record_request()
             logger.info("Gemini text analysis complete. %d requests remaining today.", _rate_limiter.remaining_today)
             raw_text = response.text.strip()
@@ -134,7 +136,7 @@ class GeminiProvider(AnalysisProvider):
         title: str = "",
         context: str = "",
     ) -> ImageAnalysisResult:
-        if self._model is None:
+        if self._client is None:
             return ImageAnalysisResult(
                 reasoning="Gemini provider not available",
                 provider_name="gemini",
@@ -154,7 +156,9 @@ class GeminiProvider(AnalysisProvider):
                 parts.append(img)
 
             _rate_limiter.wait_if_needed()
-            response = self._model.generate_content(parts)
+            response = self._client.models.generate_content(
+                model=self._model_name, contents=parts
+            )
             _rate_limiter.record_request()
             logger.info("Gemini vision analysis complete. %d requests remaining today.", _rate_limiter.remaining_today)
             raw_text = response.text.strip()

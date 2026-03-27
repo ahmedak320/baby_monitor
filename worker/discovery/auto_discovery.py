@@ -5,13 +5,13 @@ import ipaddress
 import logging
 import re
 import socket
-from datetime import datetime
+from datetime import date, datetime
 from typing import Any
 from urllib.parse import urlparse
 
 import httpx
 
-from ..config import Settings
+from config import Settings
 
 logger = logging.getLogger(__name__)
 
@@ -39,6 +39,9 @@ DISCOVERY_QUERIES = [
 ]
 
 
+DAILY_DISCOVERY_LIMIT = 250
+
+
 class AutoDiscovery:
     """Periodically searches for popular kids content and queues for analysis."""
 
@@ -47,9 +50,35 @@ class AutoDiscovery:
         self.supabase = supabase_client
         self.piped_url = settings.piped_api_url
         self._current_query_index = 0
+        self._daily_count = 0
+        self._daily_reset_date = date.today()
+
+    def _check_daily_reset(self) -> None:
+        """Reset the daily counter if the date has changed."""
+        today = date.today()
+        if today != self._daily_reset_date:
+            logger.info(
+                "Auto-discovery daily reset: %d videos discovered yesterday",
+                self._daily_count,
+            )
+            self._daily_count = 0
+            self._daily_reset_date = today
+
+    @property
+    def daily_remaining(self) -> int:
+        self._check_daily_reset()
+        return max(0, DAILY_DISCOVERY_LIMIT - self._daily_count)
 
     async def run_cycle(self) -> int:
         """Run one discovery cycle. Returns number of videos discovered."""
+        self._check_daily_reset()
+        if self._daily_count >= DAILY_DISCOVERY_LIMIT:
+            logger.info(
+                "Auto-discovery daily limit reached (%d/%d). Skipping cycle.",
+                self._daily_count, DAILY_DISCOVERY_LIMIT,
+            )
+            return 0
+
         query, category = DISCOVERY_QUERIES[self._current_query_index]
         self._current_query_index = (
             self._current_query_index + 1
@@ -60,7 +89,11 @@ class AutoDiscovery:
         try:
             videos = await self._search_piped(query)
             count = await self._ingest_videos(videos, category)
-            logger.info("Auto-discovery: ingested %d videos for '%s'", count, query)
+            self._daily_count += count
+            logger.info(
+                "Auto-discovery: ingested %d videos for '%s' (%d/%d today)",
+                count, query, self._daily_count, DAILY_DISCOVERY_LIMIT,
+            )
             return count
         except Exception as e:
             logger.error("Auto-discovery failed for '%s': %s", query, e)
@@ -69,15 +102,24 @@ class AutoDiscovery:
     async def run_periodic(self, interval_hours: int = 6) -> None:
         """Run discovery cycles periodically."""
         while True:
-            # Run through 3 queries per cycle
-            for _ in range(3):
-                await self.run_cycle()
-                await asyncio.sleep(5)  # Brief pause between queries
+            if self.daily_remaining > 0:
+                # Run through 3 queries per cycle
+                for _ in range(3):
+                    if self.daily_remaining == 0:
+                        break
+                    await self.run_cycle()
+                    await asyncio.sleep(5)  # Brief pause between queries
 
-            logger.info(
-                "Auto-discovery cycle complete. Next cycle in %dh.",
-                interval_hours,
-            )
+                logger.info(
+                    "Auto-discovery cycle complete (%d/%d today). Next cycle in %dh.",
+                    self._daily_count, DAILY_DISCOVERY_LIMIT, interval_hours,
+                )
+            else:
+                logger.info(
+                    "Auto-discovery daily limit reached (%d/%d). Next cycle in %dh.",
+                    self._daily_count, DAILY_DISCOVERY_LIMIT, interval_hours,
+                )
+
             await asyncio.sleep(interval_hours * 3600)
 
     @staticmethod

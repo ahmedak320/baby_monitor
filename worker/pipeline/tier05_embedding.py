@@ -25,24 +25,22 @@ class Tier05Embedding:
     """Embedding-based pre-filter using Gemini Embedding 2."""
 
     def __init__(self):
-        self._model = None
-        self._genai = None
+        self._client = None
+        self._model = "models/gemini-embedding-exp-03-07"
         try:
-            import google.generativeai as genai
+            from google import genai
 
             api_key = os.getenv("GEMINI_API_KEY", "")
             if api_key:
-                genai.configure(api_key=api_key)
-                self._genai = genai
-                self._model = "models/gemini-embedding-exp-03-07"
+                self._client = genai.Client(api_key=api_key)
             else:
                 logger.warning("No GEMINI_API_KEY; Tier 0.5 disabled")
         except ImportError:
-            logger.warning("google-generativeai not installed; Tier 0.5 disabled")
+            logger.warning("google-genai not installed; Tier 0.5 disabled")
 
     @property
     def is_available(self) -> bool:
-        return self._genai is not None
+        return self._client is not None
 
     def compute_embedding(self, metadata: VideoMetadata) -> Optional[list[float]]:
         """Compute embedding vector for a video's text content."""
@@ -53,13 +51,17 @@ class Tier05Embedding:
         text = f"{metadata.title}\n{metadata.channel_title}\n{metadata.description[:2000]}"
 
         try:
-            result = self._genai.embed_content(
+            from google.genai import types
+
+            result = self._client.models.embed_content(
                 model=self._model,
-                content=text,
-                task_type="SEMANTIC_SIMILARITY",
-                output_dimensionality=768,
+                contents=text,
+                config=types.EmbedContentConfig(
+                    task_type="SEMANTIC_SIMILARITY",
+                    output_dimensionality=768,
+                ),
             )
-            return result["embedding"]
+            return result.embeddings[0].values
         except Exception as e:
             logger.error("Embedding computation failed: %s", e)
             return None
