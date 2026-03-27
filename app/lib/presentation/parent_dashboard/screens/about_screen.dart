@@ -1,8 +1,10 @@
 import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../config/app_metadata.dart';
 import '../../../config/legal_content.dart';
+import '../../../routing/route_names.dart';
 import '../../common/widgets/legal_text_screen.dart';
 import 'dev_settings_screen.dart';
 
@@ -102,6 +104,14 @@ class _AboutScreenState extends State<AboutScreen> {
             onTap: () {
               // Could launch mailto: link
             },
+          ),
+          const Divider(),
+          ListTile(
+            leading: const Icon(Icons.manage_accounts_outlined),
+            title: const Text('Account Settings'),
+            subtitle: const Text('Manage profiles & delete account'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => context.goNamed(RouteNames.accountSettings),
           ),
         ],
       ),

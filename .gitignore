@@ -3,6 +3,11 @@
 .env.local
 .env.production
 
+# Android signing
+app/android/key.properties
+*.keystore
+*.jks
+
 # Flutter
 app/.dart_tool/
 app/.packages

@@ -31,6 +31,7 @@ import '../presentation/parent_dashboard/screens/subscription_screen.dart';
 import '../presentation/parent_dashboard/screens/screen_time_settings_screen.dart';
 import '../presentation/parent_dashboard/screens/content_schedule_screen.dart';
 import '../presentation/parent_dashboard/screens/offline_playlists_screen.dart';
+import '../presentation/parent_dashboard/screens/account_settings_screen.dart';
 import 'guards/auth_guard.dart';
 import 'route_names.dart';
 
@@ -164,6 +165,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
               name: RouteNames.devAnalysis,
               builder: (context, state) => const DevAnalysisScreen(),
             ),
+          GoRoute(
+            path: 'account-settings',
+            name: RouteNames.accountSettings,
+            builder: (context, state) => const AccountSettingsScreen(),
+          ),
           GoRoute(
             path: 'edit-child/:childId',
             name: RouteNames.childProfileEdit,
