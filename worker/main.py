@@ -17,7 +17,7 @@ from api.routes import create_api
 from config import settings
 from discovery.auto_discovery import AutoDiscovery
 from pipeline.orchestrator import PipelineOrchestrator
-from queue.consumer import QueueConsumer
+from job_queue.consumer import QueueConsumer
 
 logging.basicConfig(
     level=logging.INFO,
