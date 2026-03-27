@@ -1,45 +1,85 @@
 import 'package:flutter/material.dart';
 
-/// Colorful, large-touch-target theme for kid mode.
+/// YouTube-mirror dark theme for kid mode.
+/// Matches YouTube's actual dark mode colors so kids feel at home.
 class KidTheme {
   KidTheme._();
 
+  // YouTube dark mode colors
+  static const background = Color(0xFF0F0F0F);
+  static const surface = Color(0xFF212121);
+  static const surfaceVariant = Color(0xFF272727);
+  static const youtubeRed = Color(0xFFFF0000);
+  static const textPrimary = Color(0xFFFFFFFF);
+  static const textSecondary = Color(0xFFAAAAAA);
+  static const bottomNav = Color(0xFF212121);
+
   static ThemeData get theme => ThemeData(
         useMaterial3: true,
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFFFF6B6B),
-          secondary: const Color(0xFF4ECDC4),
-          tertiary: const Color(0xFFFFE66D),
+        brightness: Brightness.dark,
+        scaffoldBackgroundColor: background,
+        colorScheme: const ColorScheme.dark(
+          primary: youtubeRed,
+          secondary: youtubeRed,
+          surface: surface,
+          onSurface: textPrimary,
+        ),
+        appBarTheme: const AppBarTheme(
+          backgroundColor: background,
+          foregroundColor: textPrimary,
+          elevation: 0,
+          surfaceTintColor: Colors.transparent,
+        ),
+        bottomNavigationBarTheme: const BottomNavigationBarThemeData(
+          backgroundColor: bottomNav,
+          selectedItemColor: textPrimary,
+          unselectedItemColor: textSecondary,
+          type: BottomNavigationBarType.fixed,
+          elevation: 0,
         ),
         textTheme: const TextTheme(
           headlineLarge: TextStyle(
-            fontSize: 32,
+            fontSize: 28,
             fontWeight: FontWeight.bold,
+            color: textPrimary,
           ),
           headlineMedium: TextStyle(
-            fontSize: 24,
+            fontSize: 20,
             fontWeight: FontWeight.bold,
+            color: textPrimary,
           ),
-          bodyLarge: TextStyle(fontSize: 20),
-          bodyMedium: TextStyle(fontSize: 18),
+          bodyLarge: TextStyle(fontSize: 16, color: textPrimary),
+          bodyMedium: TextStyle(fontSize: 14, color: textPrimary),
+          bodySmall: TextStyle(fontSize: 12, color: textSecondary),
+        ),
+        cardTheme: CardThemeData(
+          color: surface,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          elevation: 0,
         ),
         elevatedButtonTheme: ElevatedButtonThemeData(
           style: ElevatedButton.styleFrom(
-            minimumSize: const Size(double.infinity, 64),
+            backgroundColor: youtubeRed,
+            foregroundColor: textPrimary,
+            minimumSize: const Size(double.infinity, 48),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(20),
             ),
-            textStyle: const TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-            ),
           ),
         ),
-        cardTheme: CardThemeData(
+        iconTheme: const IconThemeData(color: textPrimary),
+        dividerTheme: const DividerThemeData(
+          color: Color(0xFF383838),
+        ),
+        chipTheme: ChipThemeData(
+          backgroundColor: surfaceVariant,
+          selectedColor: textPrimary,
+          labelStyle: const TextStyle(color: textPrimary, fontSize: 13),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20),
+            borderRadius: BorderRadius.circular(8),
           ),
-          elevation: 4,
         ),
       );
 }

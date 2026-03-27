@@ -4,21 +4,22 @@ import 'package:go_router/go_router.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 
 import '../../../config/theme/kid_theme.dart';
-import '../../common/widgets/responsive_layout.dart';
 import '../../../domain/services/screen_time_service.dart';
-import '../../../providers/current_child_provider.dart';
+import '../../../domain/services/feed_curation_service.dart';
 import '../../../routing/route_names.dart';
 import '../../../utils/duration_formatter.dart';
-import '../../../domain/services/feed_curation_service.dart';
 import '../../../utils/thumbnail_preloader.dart';
 import '../providers/kid_feed_provider.dart';
-import '../widgets/parental_gate.dart';
-import '../widgets/screen_time_indicator.dart';
+import '../providers/shorts_feed_provider.dart';
 import '../widgets/winddown_banner.dart';
 import 'break_screen.dart';
 import 'time_up_screen.dart';
 import 'bedtime_screen.dart';
+import 'shorts_feed_screen.dart';
+import 'kid_library_screen.dart';
+import 'kid_profile_screen.dart';
 
+/// YouTube-mirror kid mode with 4-tab bottom navigation.
 class KidHomeScreen extends ConsumerStatefulWidget {
   const KidHomeScreen({super.key});
 
@@ -27,25 +28,13 @@ class KidHomeScreen extends ConsumerStatefulWidget {
 }
 
 class _KidHomeScreenState extends ConsumerState<KidHomeScreen> {
-  bool _thumbnailsPreloaded = false;
-
-  void _preloadThumbnails(List<FeedItem> items) {
-    if (_thumbnailsPreloaded || !mounted) return;
-    _thumbnailsPreloaded = true;
-
-    final urls = items.map((i) => i.video.thumbnailUrl).toList();
-    ThumbnailPreloader.preloadThumbnails(context, urls, maxPreload: 8);
-  }
+  int _currentTab = 0;
 
   @override
   Widget build(BuildContext context) {
-    final child = ref.watch(currentChildProvider);
-    final feedAsync = ref.watch(kidFeedProvider);
-    final categories = ref.watch(kidCategoriesProvider);
     final screenTime = ref.watch(screenTimeProvider);
-    final selectedCategory = ref.watch(selectedCategoryProvider);
 
-    // Screen time overlays
+    // Screen time overlays take priority
     if (screenTime.status == ScreenTimeStatus.breakTime) {
       return BreakScreen(breakDurationSeconds: screenTime.breakDurationSeconds);
     }
@@ -64,7 +53,7 @@ class _KidHomeScreenState extends ConsumerState<KidHomeScreen> {
     return Theme(
       data: KidTheme.theme,
       child: Scaffold(
-        backgroundColor: const Color(0xFFF5F5FF),
+        backgroundColor: KidTheme.background,
         body: SafeArea(
           child: Column(
             children: [
@@ -74,88 +63,153 @@ class _KidHomeScreenState extends ConsumerState<KidHomeScreen> {
                   minutesRemaining: screenTime.remainingMinutes ?? 5,
                 ),
 
-              // Top bar
-              _KidTopBar(
-                childName: child?.name ?? 'Kid',
-                onExitTap: () => _handleExit(context),
-                remainingMinutes: screenTime.remainingMinutes,
-              ),
-
-              // Category bubbles
-              SizedBox(
-                height: 56,
-                child: ListView.separated(
-                  scrollDirection: Axis.horizontal,
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  itemCount: categories.length,
-                  separatorBuilder: (_, _) => const SizedBox(width: 8),
-                  itemBuilder: (context, index) {
-                    final cat = categories[index];
-                    final isSelected = selectedCategory == cat.id;
-                    return _CategoryBubble(
-                      emoji: cat.emoji,
-                      label: cat.label,
-                      isSelected: isSelected,
-                      onTap: () {
-                        ref.read(selectedCategoryProvider.notifier).state =
-                            isSelected ? null : cat.id;
-                      },
-                    );
-                  },
+              // Tab content
+              Expanded(
+                child: IndexedStack(
+                  index: _currentTab,
+                  children: const [
+                    _HomeTabContent(),
+                    ShortsFeedScreen(),
+                    KidLibraryScreen(),
+                    KidProfileScreen(),
+                  ],
                 ),
               ),
-              const SizedBox(height: 12),
+            ],
+          ),
+        ),
+        bottomNavigationBar: Theme(
+          data: KidTheme.theme,
+          child: BottomNavigationBar(
+            currentIndex: _currentTab,
+            onTap: (index) => setState(() => _currentTab = index),
+            items: const [
+              BottomNavigationBarItem(
+                icon: Icon(Icons.home_outlined),
+                activeIcon: Icon(Icons.home),
+                label: 'Home',
+              ),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.electric_bolt_outlined),
+                activeIcon: Icon(Icons.electric_bolt),
+                label: 'Shorts',
+              ),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.video_library_outlined),
+                activeIcon: Icon(Icons.video_library),
+                label: 'Library',
+              ),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.person_outline),
+                activeIcon: Icon(Icons.person),
+                label: 'You',
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
 
-              // Video feed
-              Expanded(
-                child: feedAsync.when(
-                  data: (items) {
-                    // Preload first batch of thumbnails
-                    _preloadThumbnails(items);
+/// Home tab content — search bar, Shorts preview row, categories, video grid.
+class _HomeTabContent extends ConsumerStatefulWidget {
+  const _HomeTabContent();
 
-                    if (items.isEmpty) {
-                      return const Center(
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(Icons.video_library_outlined,
-                                size: 64, color: Colors.grey),
-                            SizedBox(height: 16),
-                            Text(
-                              'Preparing your videos...',
-                              style: TextStyle(fontSize: 18, color: Colors.grey),
-                            ),
-                            SizedBox(height: 8),
-                            Text(
-                              'Check back soon!',
-                              style: TextStyle(fontSize: 14, color: Colors.grey),
-                            ),
-                          ],
-                        ),
-                      );
-                    }
+  @override
+  ConsumerState<_HomeTabContent> createState() => _HomeTabContentState();
+}
 
-                    final columns = adaptiveGridColumns(context, phoneColumns: 2);
+class _HomeTabContentState extends ConsumerState<_HomeTabContent> {
+  bool _thumbnailsPreloaded = false;
 
-                    return GridView.builder(
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      gridDelegate:
-                          SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: columns,
-                        childAspectRatio: 0.85,
-                        crossAxisSpacing: 12,
-                        mainAxisSpacing: 12,
+  void _preloadThumbnails(List<FeedItem> items) {
+    if (_thumbnailsPreloaded || !mounted) return;
+    _thumbnailsPreloaded = true;
+    final urls = items.map((i) => i.video.thumbnailUrl).toList();
+    ThumbnailPreloader.preloadThumbnails(context, urls, maxPreload: 8);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final feedAsync = ref.watch(kidFeedProvider);
+    final shortsAsync = ref.watch(shortsFeedProvider);
+    final categories = ref.watch(kidCategoriesProvider);
+    final selectedCategory = ref.watch(selectedCategoryProvider);
+
+    return CustomScrollView(
+      slivers: [
+        // Search bar
+        SliverToBoxAdapter(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+            child: GestureDetector(
+              onTap: () => context.pushNamed(RouteNames.kidSearch),
+              child: Container(
+                height: 40,
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                decoration: BoxDecoration(
+                  color: KidTheme.surfaceVariant,
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.search, color: KidTheme.textSecondary, size: 20),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Search',
+                      style: TextStyle(
+                        color: KidTheme.textSecondary,
+                        fontSize: 14,
                       ),
-                      addAutomaticKeepAlives: false,
-                      addRepaintBoundaries: true,
-                      cacheExtent: 300,
-                      itemCount: items.length,
+                    ),
+                    const Spacer(),
+                    Icon(Icons.mic, color: KidTheme.textSecondary, size: 20),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+
+        // Shorts preview row
+        shortsAsync.when(
+          data: (shorts) {
+            if (shorts.isEmpty) return const SliverToBoxAdapter(child: SizedBox.shrink());
+            return SliverToBoxAdapter(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: Row(
+                      children: [
+                        Icon(Icons.electric_bolt,
+                            color: KidTheme.youtubeRed, size: 18),
+                        const SizedBox(width: 4),
+                        const Text(
+                          'Shorts',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  SizedBox(
+                    height: 200,
+                    child: ListView.separated(
+                      scrollDirection: Axis.horizontal,
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      itemCount: shorts.length.clamp(0, 10),
+                      separatorBuilder: (_, _) => const SizedBox(width: 8),
                       itemBuilder: (context, index) {
-                        final item = items[index];
-                        return _KidVideoCard(
-                          title: item.video.title,
-                          thumbnailUrl: item.video.thumbnailUrl,
-                          duration: item.video.durationSeconds,
+                        final item = shorts[index];
+                        return _ShortsPreviewCard(
+                          item: item,
                           onTap: () {
                             context.pushNamed(
                               RouteNames.kidPlayer,
@@ -164,249 +218,329 @@ class _KidHomeScreenState extends ConsumerState<KidHomeScreen> {
                               },
                               queryParameters: {
                                 'title': item.video.title,
+                                'isShort': 'true',
                               },
                             );
                           },
                         );
                       },
-                    );
-                  },
-                  loading: () => const Center(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        CircularProgressIndicator(),
-                        SizedBox(height: 16),
-                        Text('Loading videos...'),
-                      ],
                     ),
                   ),
-                  error: (e, _) => Center(
-                    child: Text('Oops! Something went wrong.\n$e'),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Future<void> _handleExit(BuildContext context) async {
-    final passed = await showParentalGate(context);
-    if (passed && context.mounted) {
-      context.goNamed(RouteNames.dashboard);
-    }
-  }
-}
-
-class _KidTopBar extends StatelessWidget {
-  final String childName;
-  final VoidCallback onExitTap;
-  final int? remainingMinutes;
-
-  const _KidTopBar({
-    required this.childName,
-    required this.onExitTap,
-    this.remainingMinutes,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      child: Row(
-        children: [
-          const Icon(Icons.child_care, size: 32, color: Color(0xFF6C63FF)),
-          const SizedBox(width: 8),
-          Text(
-            'Hi, $childName!',
-            style: const TextStyle(
-              fontSize: 22,
-              fontWeight: FontWeight.bold,
-              color: Color(0xFF333333),
-            ),
-          ),
-          const Spacer(),
-          // Screen time indicator
-          ScreenTimeIndicator(minutesRemaining: remainingMinutes),
-          const SizedBox(width: 8),
-          // Hidden exit: long-press the settings icon
-          GestureDetector(
-            onLongPress: onExitTap,
-            child: const Icon(
-              Icons.settings,
-              size: 20,
-              color: Colors.grey,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _CategoryBubble extends StatelessWidget {
-  final String emoji;
-  final String label;
-  final bool isSelected;
-  final VoidCallback onTap;
-
-  const _CategoryBubble({
-    required this.emoji,
-    required this.label,
-    this.isSelected = false,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        decoration: BoxDecoration(
-          color: isSelected ? const Color(0xFF6C63FF) : Colors.white,
-          borderRadius: BorderRadius.circular(24),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.05),
-              blurRadius: 4,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(emoji, style: const TextStyle(fontSize: 20)),
-            const SizedBox(width: 6),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-                color: isSelected ? Colors.white : null,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _KidVideoCard extends StatelessWidget {
-  final String title;
-  final String thumbnailUrl;
-  final int duration;
-  final VoidCallback onTap;
-
-  const _KidVideoCard({
-    required this.title,
-    required this.thumbnailUrl,
-    required this.duration,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.08),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        ),
-        clipBehavior: Clip.antiAlias,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // Thumbnail
-            Expanded(
-              flex: 3,
-              child: Stack(
-                fit: StackFit.expand,
-                children: [
-                  thumbnailUrl.isNotEmpty
-                      ? CachedNetworkImage(
-                          imageUrl: thumbnailUrl.replaceAll(
-                              '_live.jpg', '.jpg'),
-                          fit: BoxFit.cover,
-                          placeholder: (_, _) => Container(
-                            color: Colors.grey[200],
-                            child: const Icon(Icons.play_circle_outline,
-                                size: 40, color: Colors.grey),
-                          ),
-                          errorWidget: (_, _, _) => Container(
-                            color: Colors.grey[200],
-                            child: const Icon(Icons.broken_image,
-                                size: 40, color: Colors.grey),
-                          ),
-                        )
-                      : Container(
-                          color: Colors.grey[200],
-                          child: const Icon(Icons.play_circle_outline,
-                              size: 40, color: Colors.grey),
-                        ),
-                  // Play button overlay
-                  const Center(
-                    child: Icon(
-                      Icons.play_circle_filled,
-                      size: 44,
-                      color: Colors.white70,
-                    ),
-                  ),
-                  // Duration badge
-                  if (duration > 0)
-                    Positioned(
-                      bottom: 4,
-                      right: 4,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 6, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: Colors.black54,
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                        child: Text(
-                          DurationFormatter.videoLength(duration),
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 11,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ),
-                    ),
+                  const SizedBox(height: 16),
                 ],
               ),
+            );
+          },
+          loading: () => const SliverToBoxAdapter(child: SizedBox.shrink()),
+          error: (_, _) => const SliverToBoxAdapter(child: SizedBox.shrink()),
+        ),
+
+        // Category chips
+        SliverToBoxAdapter(
+          child: SizedBox(
+            height: 40,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              itemCount: categories.length,
+              separatorBuilder: (_, _) => const SizedBox(width: 8),
+              itemBuilder: (context, index) {
+                final cat = categories[index];
+                final isSelected = selectedCategory == cat.id;
+                return _CategoryChip(
+                  label: cat.label,
+                  emoji: cat.emoji,
+                  isSelected: isSelected,
+                  onTap: () {
+                    ref.read(selectedCategoryProvider.notifier).state =
+                        isSelected ? null : cat.id;
+                  },
+                );
+              },
             ),
-            // Title
-            Expanded(
-              flex: 1,
-              child: Padding(
+          ),
+        ),
+
+        const SliverToBoxAdapter(child: SizedBox(height: 12)),
+
+        // Video feed grid
+        feedAsync.when(
+          data: (items) {
+            _preloadThumbnails(items);
+
+            if (items.isEmpty) {
+              return SliverFillRemaining(
+                child: Center(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.video_library_outlined,
+                          size: 64, color: KidTheme.textSecondary),
+                      const SizedBox(height: 16),
+                      Text(
+                        'Preparing your videos...',
+                        style: TextStyle(
+                            fontSize: 16, color: KidTheme.textSecondary),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            }
+
+            return SliverList(
+              delegate: SliverChildBuilderDelegate(
+                (context, index) {
+                  final item = items[index];
+                  return _YouTubeVideoCard(
+                    item: item,
+                    onTap: () {
+                      context.pushNamed(
+                        RouteNames.kidPlayer,
+                        pathParameters: {'videoId': item.video.videoId},
+                        queryParameters: {'title': item.video.title},
+                      );
+                    },
+                  );
+                },
+                childCount: items.length,
+              ),
+            );
+          },
+          loading: () => const SliverFillRemaining(
+            child: Center(child: CircularProgressIndicator()),
+          ),
+          error: (e, _) => SliverFillRemaining(
+            child: Center(
+              child: Text('Something went wrong',
+                  style: TextStyle(color: KidTheme.textSecondary)),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// Shorts preview card (tall thumbnail) for the home tab horizontal scroll.
+class _ShortsPreviewCard extends StatelessWidget {
+  final FeedItem item;
+  final VoidCallback onTap;
+
+  const _ShortsPreviewCard({required this.item, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 120,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(12),
+          color: KidTheme.surface,
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            if (item.video.thumbnailUrl.isNotEmpty)
+              CachedNetworkImage(
+                imageUrl:
+                    item.video.thumbnailUrl.replaceAll('_live.jpg', '.jpg'),
+                fit: BoxFit.cover,
+                placeholder: (_, _) =>
+                    Container(color: KidTheme.surface),
+                errorWidget: (_, _, _) =>
+                    Container(color: KidTheme.surface),
+              ),
+            // Gradient overlay at bottom
+            Positioned(
+              bottom: 0,
+              left: 0,
+              right: 0,
+              child: Container(
                 padding: const EdgeInsets.all(8),
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [Colors.transparent, Colors.black87],
+                  ),
+                ),
                 child: Text(
-                  title,
+                  item.video.title,
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
-                    fontSize: 13,
+                    color: Colors.white,
+                    fontSize: 11,
                     fontWeight: FontWeight.w500,
-                    height: 1.2,
                   ),
                 ),
               ),
             ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// YouTube-style category chip.
+class _CategoryChip extends StatelessWidget {
+  final String label;
+  final String emoji;
+  final bool isSelected;
+  final VoidCallback onTap;
+
+  const _CategoryChip({
+    required this.label,
+    required this.emoji,
+    required this.isSelected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: isSelected ? Colors.white : KidTheme.surfaceVariant,
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Text(
+          '$emoji $label',
+          style: TextStyle(
+            color: isSelected ? Colors.black : KidTheme.textPrimary,
+            fontSize: 13,
+            fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// YouTube-style video card for the main feed.
+class _YouTubeVideoCard extends StatelessWidget {
+  final FeedItem item;
+  final VoidCallback onTap;
+
+  const _YouTubeVideoCard({required this.item, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Thumbnail
+            AspectRatio(
+              aspectRatio: 16 / 9,
+              child: Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(12),
+                  color: KidTheme.surface,
+                ),
+                clipBehavior: Clip.antiAlias,
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    if (item.video.thumbnailUrl.isNotEmpty)
+                      CachedNetworkImage(
+                        imageUrl: item.video.thumbnailUrl
+                            .replaceAll('_live.jpg', '.jpg'),
+                        fit: BoxFit.cover,
+                        placeholder: (_, _) =>
+                            Container(color: KidTheme.surface),
+                        errorWidget: (_, _, _) => Container(
+                          color: KidTheme.surface,
+                          child: const Icon(Icons.broken_image,
+                              color: Colors.grey),
+                        ),
+                      ),
+                    // Duration badge
+                    if (item.video.durationSeconds > 0)
+                      Positioned(
+                        bottom: 8,
+                        right: 8,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: Colors.black87,
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: Text(
+                            DurationFormatter.videoLength(
+                                item.video.durationSeconds),
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 8),
+            // Video info row
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Channel avatar
+                CircleAvatar(
+                  radius: 18,
+                  backgroundColor: KidTheme.surfaceVariant,
+                  child: Text(
+                    item.video.channelTitle.isNotEmpty
+                        ? item.video.channelTitle[0].toUpperCase()
+                        : '?',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                // Title and channel
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        item.video.title,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                          height: 1.3,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        item.video.channelTitle,
+                        style: TextStyle(
+                          color: KidTheme.textSecondary,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
           ],
         ),
       ),
