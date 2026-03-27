@@ -31,6 +31,9 @@
 # Biometric / local_auth
 -keep class androidx.biometric.** { *; }
 
+# Google Play Core (referenced by Flutter deferred components)
+-dontwarn com.google.android.play.core.**
+
 # Keep R8 from stripping annotations
 -keepattributes RuntimeVisibleAnnotations
 -keepattributes RuntimeVisibleParameterAnnotations
