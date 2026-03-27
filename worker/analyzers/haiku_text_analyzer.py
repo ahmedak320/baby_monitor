@@ -152,11 +152,11 @@ class HaikuTextAnalyzer:
             logger.error("Failed to parse Haiku JSON response: %s", e)
             return HaikuTextResult(
                 overall_verdict="NEEDS_VISUAL_REVIEW",
-                reasoning=f"JSON parse error: {e}",
+                reasoning="Text analysis encountered a parsing error",
             )
         except Exception as e:
             logger.error("Haiku text analysis failed: %s", e)
             return HaikuTextResult(
                 overall_verdict="NEEDS_VISUAL_REVIEW",
-                reasoning=f"Analysis error: {e}",
+                reasoning="Text analysis encountered an error",
             )

@@ -42,3 +42,6 @@ supabase/.temp/
 .claude/
 PROMPT.md
 .superpowers/
+
+# Playwright MCP logs
+.playwright-mcp/

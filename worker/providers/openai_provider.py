@@ -102,7 +102,7 @@ class OpenAIProvider(AnalysisProvider):
             logger.error("OpenAI text analysis failed: %s", e)
             return TextAnalysisResult(
                 overall_verdict="NEEDS_VISUAL_REVIEW",
-                reasoning=f"OpenAI analysis error: {e}",
+                reasoning="OpenAI text analysis encountered an error",
                 provider_name="openai",
             )
 
@@ -165,7 +165,7 @@ class OpenAIProvider(AnalysisProvider):
         except Exception as e:
             logger.error("OpenAI image analysis failed: %s", e)
             return ImageAnalysisResult(
-                reasoning=f"OpenAI vision error: {e}",
+                reasoning="OpenAI vision analysis encountered an error",
                 provider_name="openai",
             )
 

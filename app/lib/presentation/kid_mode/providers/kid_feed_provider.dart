@@ -30,7 +30,7 @@ final kidFeedProvider = FutureProvider<List<FeedItem>>((ref) async {
   try {
     final feed = await service.buildFeed(
       child: child,
-      includeMetadataApproved: true,
+      includeMetadataApproved: false,
     );
 
     // Client-side category filter

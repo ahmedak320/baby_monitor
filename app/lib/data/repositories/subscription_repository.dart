@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart' show kDebugMode;
+
 import '../datasources/remote/supabase_client.dart';
 
 /// Subscription tier.
@@ -60,13 +62,12 @@ class SubscriptionRepository {
     final userId = SupabaseClientWrapper.currentUserId;
     if (userId == null) return;
 
-    await _client.rpc('increment_analysis_usage', params: {
-      'user_id': userId,
-    });
+    await _client.rpc('increment_analysis_usage');
   }
 
   /// Update the subscription tier (for dev/testing).
   Future<void> updateTier(SubscriptionTier tier) async {
+    if (!kDebugMode) return;
     final userId = SupabaseClientWrapper.currentUserId;
     if (userId == null) return;
 
@@ -81,6 +82,7 @@ class SubscriptionRepository {
 
   /// Reset the monthly analysis counter (for dev/testing).
   Future<void> resetAnalysisCount() async {
+    if (!kDebugMode) return;
     final userId = SupabaseClientWrapper.currentUserId;
     if (userId == null) return;
 

@@ -1,3 +1,7 @@
+import 'dart:convert';
+
+import 'package:crypto/crypto.dart';
+
 import '../../data/datasources/remote/supabase_client.dart';
 
 /// Lightweight analytics events tracked during beta testing.
@@ -26,6 +30,10 @@ class AnalyticsService {
     }
   }
 
+  /// Hash an identifier to avoid storing raw child IDs in analytics.
+  static String _hashId(String id) =>
+      sha256.convert(utf8.encode(id)).toString().substring(0, 16);
+
   // Common event helpers
 
   static Future<void> trackScreenView(String screenName) =>
@@ -39,11 +47,11 @@ class AnalyticsService {
           properties: {'video_id': videoId, 'reason': reason});
 
   static Future<void> trackKidModeStarted(String childId) =>
-      track('kid_mode_started', properties: {'child_id': childId});
+      track('kid_mode_started', properties: {'child_id': _hashId(childId)});
 
   static Future<void> trackKidModeEnded(String childId, int durationSeconds) =>
       track('kid_mode_ended',
-          properties: {'child_id': childId, 'duration_s': durationSeconds});
+          properties: {'child_id': _hashId(childId), 'duration_s': durationSeconds});
 
   static Future<void> trackFilterAdjusted(String setting, dynamic value) =>
       track('filter_adjusted',

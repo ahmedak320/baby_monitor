@@ -188,7 +188,7 @@ class FeedCurationService {
         childId: child.id,
         childAge: childAge,
         limit: limit * 3,
-        includeMetadataApproved: true,
+        includeMetadataApproved: false,
       );
 
       final channelSet = approvedChannels.toSet();

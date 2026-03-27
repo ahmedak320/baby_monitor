@@ -166,14 +166,6 @@ class _ReportContentScreenState extends ConsumerState<ReportContentScreen> {
         onConflict: 'video_id,parent_id',
       );
 
-      // If "dangerous", also flag for global blacklist
-      if (_selectedRating == 'dangerous') {
-        await SupabaseClientWrapper.client.from('video_analyses').update({
-          'is_globally_blacklisted': true,
-          'blacklist_reason': 'Reported by community: ${_commentController.text.trim()}',
-        }).eq('video_id', widget.videoId);
-      }
-
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -187,8 +179,8 @@ class _ReportContentScreenState extends ConsumerState<ReportContentScreen> {
       if (mounted) {
         setState(() => _isSubmitting = false);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to submit: $e'),
+          const SnackBar(
+            content: Text('Something went wrong. Please try again.'),
             backgroundColor: Colors.red,
           ),
         );

@@ -197,8 +197,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                   padding: const EdgeInsets.all(16),
                   child: Column(
                     children: [
-                      Text('Error: $e',
-                          style: const TextStyle(color: Colors.red)),
+                      const Text('Something went wrong. Please try again.',
+                          style: TextStyle(color: Colors.red)),
                       const SizedBox(height: 12),
                       ElevatedButton.icon(
                         onPressed: () =>

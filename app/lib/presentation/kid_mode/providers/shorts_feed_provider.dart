@@ -22,7 +22,7 @@ final shortsFeedProvider = FutureProvider<List<FeedItem>>((ref) async {
       childId: child.id,
       childAge: childAge,
       limit: 100,
-      includeMetadataApproved: true,
+      includeMetadataApproved: false,
     );
 
     // Filter for shorts only

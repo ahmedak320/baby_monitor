@@ -1,5 +1,5 @@
 import 'package:dio/dio.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
+import '../../../config/supabase_config.dart';
 
 import '../../models/video_metadata.dart';
 import 'piped_api_client.dart';
@@ -33,7 +33,7 @@ class YouTubeApiClient {
     String? apiKey,
   })  : _dio = dio ?? Dio(),
         _piped = piped ?? PipedApiClient(),
-        _apiKey = apiKey ?? dotenv.env['YOUTUBE_API_KEY'] ?? '';
+        _apiKey = apiKey ?? SupabaseConfig.youtubeApiKey;
 
   /// Whether the official API has quota remaining.
   bool get _hasQuota {

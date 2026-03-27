@@ -117,7 +117,7 @@ class GeminiProvider(AnalysisProvider):
             logger.error("Gemini text analysis failed: %s", e)
             return TextAnalysisResult(
                 overall_verdict="NEEDS_VISUAL_REVIEW",
-                reasoning=f"Gemini analysis error: {e}",
+                reasoning="Gemini text analysis encountered an error",
                 provider_name="gemini",
             )
 
@@ -168,7 +168,7 @@ class GeminiProvider(AnalysisProvider):
         except Exception as e:
             logger.error("Gemini image analysis failed: %s", e)
             return ImageAnalysisResult(
-                reasoning=f"Gemini vision error: {e}",
+                reasoning="Gemini vision analysis encountered an error",
                 provider_name="gemini",
             )
 

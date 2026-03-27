@@ -28,6 +28,14 @@ class KidSearchScreen extends ConsumerStatefulWidget {
 }
 
 class _KidSearchScreenState extends ConsumerState<KidSearchScreen> {
+  /// Escapes special LIKE/ILIKE pattern characters to prevent injection.
+  static String _escapeLike(String input) {
+    return input
+        .replaceAll(r'\', r'\\')
+        .replaceAll('%', r'\%')
+        .replaceAll('_', r'\_');
+  }
+
   final _searchController = TextEditingController();
   List<VideoMetadata> _approvedResults = [];
   List<VideoMetadata> _liveResults = [];
@@ -236,7 +244,7 @@ class _KidSearchScreenState extends ConsumerState<KidSearchScreen> {
       final response = await SupabaseClientWrapper.client
           .from('yt_videos')
           .select('*, video_analyses!inner(*)')
-          .ilike('title', '%${query.trim()}%')
+          .ilike('title', '%${_escapeLike(query.trim())}%')
           .eq('analysis_status', 'completed')
           .lte('video_analyses.age_min_appropriate', childAge)
           .eq('video_analyses.is_globally_blacklisted', false)

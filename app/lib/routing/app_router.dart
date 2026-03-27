@@ -32,14 +32,43 @@ import '../presentation/parent_dashboard/screens/screen_time_settings_screen.dar
 import '../presentation/parent_dashboard/screens/content_schedule_screen.dart';
 import '../presentation/parent_dashboard/screens/offline_playlists_screen.dart';
 import '../presentation/parent_dashboard/screens/account_settings_screen.dart';
+import '../data/datasources/local/preferences_cache.dart';
 import 'guards/auth_guard.dart';
+import 'guards/child_mode_guard.dart';
+import 'guards/setup_guard.dart';
 import 'route_names.dart';
 
 /// Provides the GoRouter instance.
 final appRouterProvider = Provider<GoRouter>((ref) {
   return GoRouter(
     initialLocation: '/login',
-    redirect: authGuard,
+    redirect: (context, state) {
+      // 1. Auth guard — redirect unauthenticated users to login
+      final authRedirect = authGuard(context, state);
+      if (authRedirect != null) return authRedirect;
+
+      // 2. Child mode guard — prevent escaping kid mode without parental gate
+      final kidModeRedirect = childModeGuard(
+        context,
+        state,
+        PreferencesCache.isKidModeActive,
+      );
+      if (kidModeRedirect != null) return kidModeRedirect;
+
+      // 3. Setup guard — redirect to onboarding if setup is incomplete
+      //    Only applies to non-auth and non-kid routes
+      final isAuthRoute = state.matchedLocation == '/login' ||
+          state.matchedLocation == '/signup';
+      final isKidRoute = state.matchedLocation.startsWith('/kid');
+      if (!isAuthRoute && !isKidRoute) {
+        // Check if parent has completed onboarding (has at least one child)
+        final setupCompleted = PreferencesCache.lastChildId != null;
+        final setupRedirect = setupGuard(context, state, setupCompleted);
+        if (setupRedirect != null) return setupRedirect;
+      }
+
+      return null;
+    },
     routes: [
       // --- Auth routes ---
       GoRoute(

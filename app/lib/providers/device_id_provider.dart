@@ -25,7 +25,7 @@ Future<void> registerDevice(String deviceId) async {
   if (userId == null) return;
 
   final platform = Platform.isIOS ? 'ios' : 'android';
-  final deviceName = Platform.localHostname;
+  final deviceName = '${Platform.isIOS ? "iOS" : "Android"} Device';
 
   await SupabaseClientWrapper.client.from('devices').upsert(
     {

@@ -31,7 +31,8 @@ logger = logging.getLogger(__name__)
 async def main() -> None:
     """Main worker loop."""
     logger.info("Starting Baby Monitor AI Worker...")
-    logger.info("Supabase URL: %s", settings.supabase_url)
+    masked_url = settings.supabase_url[:20] + "***" if len(settings.supabase_url) > 20 else "***"
+    logger.info("Supabase URL: %s", masked_url)
     logger.info("Temp dir: %s", settings.temp_dir)
 
     # Ensure temp directory exists
@@ -62,7 +63,7 @@ async def main() -> None:
 
     async def run_api():
         config = uvicorn.Config(
-            app, host="0.0.0.0", port=settings.api_port, log_level="info"
+            app, host=os.getenv("API_HOST", "127.0.0.1"), port=settings.api_port, log_level="info"
         )
         server = uvicorn.Server(config)
         await server.serve()

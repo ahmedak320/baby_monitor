@@ -65,5 +65,9 @@ class Settings:
     tier1_confidence_threshold: float = 0.85
     tier2_confidence_threshold: float = 0.90
 
+    def __post_init__(self) -> None:
+        """Ensure temp directory exists with restricted permissions."""
+        os.makedirs(self.temp_dir, mode=0o700, exist_ok=True)
+
 
 settings = Settings()

@@ -62,8 +62,8 @@ class _FeedbackScreenState extends ConsumerState<FeedbackScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to submit: $e'),
+          const SnackBar(
+            content: Text('Failed to submit feedback. Please try again.'),
             backgroundColor: Colors.red,
           ),
         );

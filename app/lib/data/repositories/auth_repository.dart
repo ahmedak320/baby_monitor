@@ -1,5 +1,6 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../datasources/local/local_cache.dart';
 import '../datasources/remote/supabase_client.dart';
 
 /// Result type for auth operations.
@@ -67,6 +68,7 @@ class AuthRepository {
 
   /// Sign out.
   Future<void> signOut() async {
+    await LocalCache.clearAll();
     await _auth.signOut();
   }
 

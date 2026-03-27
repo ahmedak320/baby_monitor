@@ -61,6 +61,11 @@ class FrameExtractor:
         Returns ExtractedFrames or None if download/extraction fails.
         Caller must call .cleanup() when done.
         """
+        import re
+        if not re.fullmatch(r'[a-zA-Z0-9_-]{11}', video_id):
+            logger.error("Invalid video_id format: %s", video_id[:20])
+            return None
+
         temp_dir = tempfile.mkdtemp(prefix=f"bm_{video_id}_", dir=self._temp_base)
 
         try:

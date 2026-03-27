@@ -14,4 +14,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
+RUN useradd --create-home --shell /bin/bash worker && \
+    chown -R worker:worker /app
+USER worker
+
 CMD ["python", "main.py"]

@@ -1,9 +1,13 @@
 """Periodic auto-discovery of popular kids content via Piped API."""
 
 import asyncio
+import ipaddress
 import logging
+import re
+import socket
 from datetime import datetime
 from typing import Any
+from urllib.parse import urlparse
 
 import httpx
 
@@ -51,15 +55,15 @@ class AutoDiscovery:
             self._current_query_index + 1
         ) % len(DISCOVERY_QUERIES)
 
-        logger.info(f"Auto-discovery: searching '{query}' ({category})")
+        logger.info("Auto-discovery: searching '%s' (%s)", query, category)
 
         try:
             videos = await self._search_piped(query)
             count = await self._ingest_videos(videos, category)
-            logger.info(f"Auto-discovery: ingested {count} videos for '{query}'")
+            logger.info("Auto-discovery: ingested %d videos for '%s'", count, query)
             return count
         except Exception as e:
-            logger.error(f"Auto-discovery failed for '{query}': {e}")
+            logger.error("Auto-discovery failed for '%s': %s", query, e)
             return 0
 
     async def run_periodic(self, interval_hours: int = 6) -> None:
@@ -71,13 +75,35 @@ class AutoDiscovery:
                 await asyncio.sleep(5)  # Brief pause between queries
 
             logger.info(
-                f"Auto-discovery cycle complete. "
-                f"Next cycle in {interval_hours}h."
+                "Auto-discovery cycle complete. Next cycle in %dh.",
+                interval_hours,
             )
             await asyncio.sleep(interval_hours * 3600)
 
+    @staticmethod
+    def _validate_url(url: str) -> None:
+        """Validate that a URL is safe (not pointing to private/loopback IPs)."""
+        parsed = urlparse(url)
+        if parsed.scheme not in ("http", "https"):
+            raise ValueError(f"Invalid URL scheme: {parsed.scheme}")
+        if not parsed.hostname:
+            raise ValueError("URL has no hostname")
+        # Resolve hostname and check for private/loopback addresses
+        try:
+            addr_infos = socket.getaddrinfo(parsed.hostname, None)
+        except socket.gaierror as e:
+            raise ValueError(f"Cannot resolve hostname: {parsed.hostname}") from e
+        for addr_info in addr_infos:
+            ip = ipaddress.ip_address(addr_info[4][0])
+            if ip.is_private or ip.is_loopback or ip.is_link_local or ip.is_reserved:
+                raise ValueError(
+                    f"URL resolves to non-public IP: {ip}"
+                )
+
     async def _search_piped(self, query: str) -> list[dict]:
         """Search Piped API for videos."""
+        self._validate_url(self.piped_url)
+
         async with httpx.AsyncClient() as client:
             response = await client.get(
                 f"{self.piped_url}/search",
@@ -161,19 +187,20 @@ class AutoDiscovery:
 
                 count += 1
             except Exception as e:
-                logger.warning(f"Failed to ingest {video_id}: {e}")
+                logger.warning("Failed to ingest %s: %s", video_id, e)
 
         return count
 
     @staticmethod
     def _extract_video_id(url: str) -> str | None:
-        import re
         match = re.search(r"[?&]v=([a-zA-Z0-9_-]{11})", url)
         if match:
             return match.group(1)
         parts = url.rstrip("/").split("/")
-        if parts and len(parts[-1]) == 11:
-            return parts[-1]
+        if parts:
+            candidate = parts[-1]
+            if re.fullmatch(r'[a-zA-Z0-9_-]{11}', candidate):
+                return candidate
         return None
 
     @staticmethod

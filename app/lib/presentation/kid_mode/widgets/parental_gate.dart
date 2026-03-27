@@ -24,9 +24,13 @@ class _ParentalGateState extends State<ParentalGate> {
   late int _num1;
   late int _num2;
   late int _correctAnswer;
+  late String _operation;
   final _answerController = TextEditingController();
   String? _error;
   int _attempts = 0;
+
+  /// Cooldown after 3 failed attempts (30 seconds).
+  static DateTime? _cooldownUntil;
 
   @override
   void initState() {
@@ -36,10 +40,28 @@ class _ParentalGateState extends State<ParentalGate> {
 
   void _generateProblem() {
     final random = Random();
-    // Adults can solve these easily, kids cannot
-    _num1 = 10 + random.nextInt(30); // 10-39
-    _num2 = 10 + random.nextInt(30); // 10-39
-    _correctAnswer = _num1 + _num2;
+    final age = widget.childAge;
+
+    if (age >= 10) {
+      // Multiplication: 10-29 x 10-29
+      _num1 = 10 + random.nextInt(20);
+      _num2 = 10 + random.nextInt(20);
+      _correctAnswer = _num1 * _num2;
+      _operation = '\u00d7'; // multiplication sign
+    } else if (age >= 7) {
+      // Three-digit addition: 100-499 + 100-499
+      _num1 = 100 + random.nextInt(400);
+      _num2 = 100 + random.nextInt(400);
+      _correctAnswer = _num1 + _num2;
+      _operation = '+';
+    } else {
+      // Two-digit addition (default for young kids)
+      _num1 = 10 + random.nextInt(30);
+      _num2 = 10 + random.nextInt(30);
+      _correctAnswer = _num1 + _num2;
+      _operation = '+';
+    }
+
     _answerController.clear();
     _error = null;
   }
@@ -72,7 +94,7 @@ class _ParentalGateState extends State<ParentalGate> {
             ),
             const SizedBox(height: 24),
             Text(
-              '$_num1 + $_num2 = ?',
+              '$_num1 $_operation $_num2 = ?',
               style: const TextStyle(
                 fontSize: 32,
                 fontWeight: FontWeight.bold,
@@ -119,21 +141,33 @@ class _ParentalGateState extends State<ParentalGate> {
   }
 
   void _checkAnswer() {
+    // Check cooldown
+    if (_cooldownUntil != null && DateTime.now().isBefore(_cooldownUntil!)) {
+      final remaining = _cooldownUntil!.difference(DateTime.now()).inSeconds;
+      setState(() {
+        _error = 'Please wait $remaining seconds before trying again.';
+      });
+      return;
+    }
+
     final answer = int.tryParse(_answerController.text.trim());
     if (answer == _correctAnswer) {
+      _cooldownUntil = null;
+      _attempts = 0;
       widget.onPassed();
     } else {
       _attempts++;
       if (_attempts >= 3) {
-        // Generate a new problem after 3 failed attempts
+        // Apply 30-second cooldown and generate new problem
+        _cooldownUntil = DateTime.now().add(const Duration(seconds: 30));
         setState(() {
           _generateProblem();
-          _error = 'Wrong answer. Try a new problem.';
+          _error = 'Too many wrong answers. Wait 30 seconds for a new problem.';
           _attempts = 0;
         });
       } else {
         setState(() {
-          _error = 'Incorrect. Try again.';
+          _error = 'Incorrect. ${3 - _attempts} attempts remaining.';
           _answerController.clear();
         });
       }

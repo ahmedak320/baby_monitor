@@ -4,7 +4,9 @@ import 'package:go_router/go_router.dart';
 
 import '../../../data/datasources/remote/supabase_client.dart';
 import '../../../data/repositories/profile_repository.dart';
+import '../../../domain/services/parental_control_service.dart';
 import '../../../routing/route_names.dart';
+import '../../../utils/biometric_helper.dart';
 
 class AccountSettingsScreen extends ConsumerStatefulWidget {
   const AccountSettingsScreen({super.key});
@@ -18,7 +20,66 @@ class _AccountSettingsScreenState extends ConsumerState<AccountSettingsScreen> {
   bool _isDeletingChild = false;
   bool _isDeletingAccount = false;
 
+  /// Re-authenticate the user via biometrics or a PIN dialog fallback.
+  /// Returns true if the user successfully authenticated.
+  Future<bool> _reauthenticate() async {
+    final biometricSuccess = await BiometricHelper.authenticate(
+      reason: 'Verify your identity to continue',
+    );
+    if (biometricSuccess) return true;
+
+    // Fallback: show a PIN dialog that verifies against the stored hash
+    if (!mounted) return false;
+    final pinController = TextEditingController();
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (ctx) {
+        return AlertDialog(
+          title: const Text('Enter PIN'),
+          content: TextField(
+            controller: pinController,
+            obscureText: true,
+            maxLength: 4,
+            keyboardType: TextInputType.number,
+            decoration: const InputDecoration(
+              hintText: '4-digit PIN',
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                final pin = pinController.text;
+                if (pin.length != 4) return;
+                final verified = await ParentalControlService.verifyPin(pin);
+                if (ctx.mounted) {
+                  if (verified) {
+                    Navigator.pop(ctx, true);
+                  } else {
+                    ScaffoldMessenger.of(ctx).showSnackBar(
+                      const SnackBar(content: Text('Incorrect PIN')),
+                    );
+                  }
+                }
+              },
+              child: const Text('Confirm'),
+            ),
+          ],
+        );
+      },
+    );
+    pinController.dispose();
+    return result ?? false;
+  }
+
   Future<void> _deleteChildProfile(String childId, String childName) async {
+    // Require re-authentication before showing the confirmation dialog
+    final authenticated = await _reauthenticate();
+    if (!authenticated || !mounted) return;
+
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -59,7 +120,7 @@ class _AccountSettingsScreenState extends ConsumerState<AccountSettingsScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to delete profile: $e')),
+          const SnackBar(content: Text('Failed to delete profile. Please try again.')),
         );
       }
     } finally {
@@ -68,6 +129,10 @@ class _AccountSettingsScreenState extends ConsumerState<AccountSettingsScreen> {
   }
 
   Future<void> _deleteAccount() async {
+    // Require re-authentication before showing the confirmation dialog
+    final authenticated = await _reauthenticate();
+    if (!authenticated || !mounted) return;
+
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -111,7 +176,7 @@ class _AccountSettingsScreenState extends ConsumerState<AccountSettingsScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to delete account: $e')),
+          const SnackBar(content: Text('Failed to delete account. Please try again.')),
         );
         setState(() => _isDeletingAccount = false);
       }

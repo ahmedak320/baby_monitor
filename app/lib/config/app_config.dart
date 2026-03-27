@@ -1,9 +1,9 @@
-import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'supabase_config.dart';
 
-/// Centralized app configuration from environment variables.
+/// Centralized app configuration from compile-time environment variables.
 class AppConfig {
   AppConfig._();
 
-  static String get supabaseUrl => dotenv.env['SUPABASE_URL'] ?? '';
-  static String get supabaseAnonKey => dotenv.env['SUPABASE_ANON_KEY'] ?? '';
+  static String get supabaseUrl => SupabaseConfig.supabaseUrl;
+  static String get supabaseAnonKey => SupabaseConfig.supabaseAnonKey;
 }

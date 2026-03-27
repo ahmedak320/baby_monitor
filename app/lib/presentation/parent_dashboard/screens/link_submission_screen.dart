@@ -67,7 +67,7 @@ class _LinkSubmissionScreenState extends ConsumerState<LinkSubmissionScreen> {
       }
     } catch (e) {
       setState(() {
-        _error = 'Could not fetch video: $e';
+        _error = 'Could not fetch video. Please check the URL and try again.';
         _loading = false;
       });
     }

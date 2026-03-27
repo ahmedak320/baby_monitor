@@ -1,16 +1,21 @@
 """FastAPI routes for direct video analysis and health checks."""
 
+import hmac
 import logging
+import os
+import re
+import uuid
 from typing import Any
 
-from fastapi import FastAPI, HTTPException, Header
-from pydantic import BaseModel
+from fastapi import FastAPI, HTTPException, Header, Query
+from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
 
 
 class AnalyzeRequest(BaseModel):
-    video_id: str
+    video_id: str = Field(pattern=r'^[a-zA-Z0-9_-]{11}$', max_length=11)
 
 
 class AnalysisResponse(BaseModel):
@@ -34,34 +39,54 @@ class AnalysisResponse(BaseModel):
 
 def create_api(settings: Any, orchestrator: Any, supabase_client: Any) -> FastAPI:
     """Create the FastAPI app with analysis routes."""
-    app = FastAPI(title="Baby Monitor Worker API", version="1.0.0")
+    env = os.getenv("ENVIRONMENT", "production")
+    if env == "production":
+        app = FastAPI(
+            title="Baby Monitor Worker API",
+            version="1.0.0",
+            docs_url=None,
+            redoc_url=None,
+            openapi_url=None,
+        )
+    else:
+        app = FastAPI(title="Baby Monitor Worker API", version="1.0.0")
 
     # Rate limiting: max 10 requests/minute per user
     from api.rate_limiter import RateLimiter
     app.add_middleware(RateLimiter, max_requests=10, window_seconds=60)
 
-    api_key = settings.worker_api_key or ""
+    # CORS middleware
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=[],
+        allow_methods=["GET", "POST"],
+        allow_headers=["Authorization"],
+    )
+
+    api_key = settings.worker_api_key
+    if not api_key:
+        raise RuntimeError("WORKER_API_KEY environment variable is required")
 
     def _verify_key(authorization: str | None = Header(None)) -> None:
-        if api_key and authorization != f"Bearer {api_key}":
+        if not authorization or not hmac.compare_digest(authorization, f"Bearer {api_key}"):
             raise HTTPException(status_code=401, detail="Invalid API key")
 
     @app.get("/api/health")
     async def health():
-        return {"status": "ok", "worker": "baby-monitor-analysis"}
+        return {"status": "ok"}
 
     @app.post("/api/analyze", response_model=AnalysisResponse)
     async def analyze(request: AnalyzeRequest, authorization: str | None = Header(None)):
         _verify_key(authorization)
 
         video_id = request.video_id
-        logger.info(f"API: Analyzing video {video_id}")
+        logger.info("API: Analyzing video %s", video_id)
 
         try:
             result = await orchestrator.analyze(video_id)
         except Exception as e:
-            logger.error(f"API: Analysis failed for {video_id}: {e}")
-            raise HTTPException(status_code=500, detail=str(e))
+            logger.error("API: Analysis failed for %s: %s", video_id, e)
+            raise HTTPException(status_code=500, detail="Analysis failed due to an internal error")
 
         if result is None:
             raise HTTPException(status_code=404, detail="Analysis failed")
@@ -88,6 +113,9 @@ def create_api(settings: Any, orchestrator: Any, supabase_client: Any) -> FastAP
     @app.get("/api/analysis/{video_id}", response_model=AnalysisResponse)
     async def get_analysis(video_id: str, authorization: str | None = Header(None)):
         _verify_key(authorization)
+
+        if not re.fullmatch(r'[a-zA-Z0-9_-]{11}', video_id):
+            raise HTTPException(status_code=400, detail="Invalid video_id format")
 
         result = (
             supabase_client.table("video_analyses")
@@ -123,10 +151,16 @@ def create_api(settings: Any, orchestrator: Any, supabase_client: Any) -> FastAP
     @app.get("/api/recommendations/{child_id}")
     async def get_recommendations(
         child_id: str,
-        limit: int = 20,
+        limit: int = Query(default=20, ge=1, le=100),
         authorization: str | None = Header(None),
     ):
         _verify_key(authorization)
+
+        # Validate child_id as UUID
+        try:
+            uuid.UUID(child_id)
+        except ValueError:
+            raise HTTPException(status_code=400, detail="Invalid child_id format")
 
         from discovery.recommendation_engine import RecommendationEngine
 

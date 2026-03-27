@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../routing/route_names.dart';
+import '../../../utils/validators.dart';
 import '../providers/auth_provider.dart';
 
 class SignupScreen extends ConsumerStatefulWidget {
@@ -77,15 +78,7 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                   ),
                   keyboardType: TextInputType.emailAddress,
                   textInputAction: TextInputAction.next,
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Please enter your email';
-                    }
-                    if (!value.contains('@')) {
-                      return 'Please enter a valid email';
-                    }
-                    return null;
-                  },
+                  validator: Validators.email,
                 ),
                 const SizedBox(height: 16),
                 TextFormField(
@@ -96,12 +89,7 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                   ),
                   obscureText: true,
                   textInputAction: TextInputAction.next,
-                  validator: (value) {
-                    if (value == null || value.length < 6) {
-                      return 'Password must be at least 6 characters';
-                    }
-                    return null;
-                  },
+                  validator: Validators.password,
                 ),
                 const SizedBox(height: 16),
                 TextFormField(

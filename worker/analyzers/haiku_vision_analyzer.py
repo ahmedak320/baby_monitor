@@ -148,7 +148,7 @@ class HaikuVisionAnalyzer:
 
         except json.JSONDecodeError as e:
             logger.error("Haiku vision JSON parse error: %s", e)
-            return HaikuVisionResult(reasoning=f"JSON parse error: {e}")
+            return HaikuVisionResult(reasoning="Vision analysis encountered a parsing error")
         except Exception as e:
             logger.error("Haiku vision analysis failed: %s", e)
-            return HaikuVisionResult(reasoning=f"Vision error: {e}")
+            return HaikuVisionResult(reasoning="Vision analysis encountered an error")

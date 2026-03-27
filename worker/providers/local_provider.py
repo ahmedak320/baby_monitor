@@ -22,6 +22,11 @@ class LocalProvider(AnalysisProvider):
         self._base_url = os.getenv("LOCAL_MODEL_URL", "http://localhost:11434")
         self._model = os.getenv("LOCAL_MODEL_NAME", "llama3.2")
 
+        from urllib.parse import urlparse
+        parsed = urlparse(self._base_url)
+        if parsed.hostname not in ("localhost", "127.0.0.1", "::1"):
+            raise ValueError(f"LOCAL_MODEL_URL must point to localhost, got: {parsed.hostname}")
+
     def analyze_text(
         self,
         title: str,
@@ -83,7 +88,7 @@ class LocalProvider(AnalysisProvider):
             logger.error("Local model analysis failed: %s", e)
             return TextAnalysisResult(
                 overall_verdict="NEEDS_VISUAL_REVIEW",
-                reasoning=f"Local model error: {e}",
+                reasoning="Local model analysis encountered an error",
                 provider_name="local",
             )
 

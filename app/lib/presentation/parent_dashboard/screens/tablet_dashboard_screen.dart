@@ -217,7 +217,7 @@ class _LeftPanel extends StatelessWidget {
           loading: () => const Center(child: CircularProgressIndicator()),
           error: (e, _) => Column(
             children: [
-              Text('Error: $e', style: const TextStyle(color: Colors.red)),
+              const Text('Something went wrong. Please try again.', style: TextStyle(color: Colors.red)),
               const SizedBox(height: 8),
               ElevatedButton.icon(
                 onPressed: () => context.pushNamed(RouteNames.addChild),
@@ -471,7 +471,7 @@ class _RightPanel extends StatelessWidget {
         );
       },
       loading: () => const Center(child: CircularProgressIndicator()),
-      error: (e, _) => Center(child: Text('Error: $e')),
+      error: (e, _) => const Center(child: Text('Something went wrong. Please try again.')),
     );
   }
 }

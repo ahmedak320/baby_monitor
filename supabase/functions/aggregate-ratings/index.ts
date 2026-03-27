@@ -14,8 +14,29 @@ const CONFIDENCE_PENALTY_PER_DISAGREEMENT = 0.05;
 const MAX_CONFIDENCE = 0.98;
 const MIN_CONFIDENCE = 0.1;
 
+const CORS_HEADERS = {
+  "Content-Type": "application/json",
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+  "Access-Control-Allow-Headers": "Authorization, Content-Type",
+};
+
 Deno.serve(async (req: Request) => {
+  // Handle CORS preflight
+  if (req.method === "OPTIONS") {
+    return new Response(null, { status: 204, headers: CORS_HEADERS });
+  }
+
   try {
+    // Authenticate request
+    const functionSecret = Deno.env.get("FUNCTION_SECRET") ?? "";
+    const authHeader = req.headers.get("Authorization") ?? "";
+    if (!functionSecret || authHeader !== `Bearer ${functionSecret}`) {
+      return new Response(
+        JSON.stringify({ error: "Unauthorized" }),
+        { status: 401, headers: CORS_HEADERS }
+      );
+    }
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
@@ -112,12 +133,13 @@ Deno.serve(async (req: Request) => {
         newly_blacklisted: blacklisted,
         channel_trust_updated: !channelError,
       }),
-      { headers: { "Content-Type": "application/json" } }
+      { headers: CORS_HEADERS }
     );
   } catch (error) {
+    console.error("aggregate-ratings error:", (error as Error).message);
     return new Response(
-      JSON.stringify({ error: (error as Error).message }),
-      { status: 500, headers: { "Content-Type": "application/json" } }
+      JSON.stringify({ error: "Internal server error" }),
+      { status: 500, headers: CORS_HEADERS }
     );
   }
 });

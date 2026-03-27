@@ -26,6 +26,11 @@ class AudioExtractor:
         Returns path to WAV file or None if extraction fails.
         Caller must clean up the file.
         """
+        import re
+        if not re.fullmatch(r'[a-zA-Z0-9_-]{11}', video_id):
+            logger.error("Invalid video_id format: %s", video_id[:20])
+            return None
+
         # If no video path, download audio directly via yt-dlp
         if video_path is None:
             return self._download_audio(video_id)
