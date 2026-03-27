@@ -34,11 +34,11 @@ class BiometricHelper {
 
   /// Authenticate the user with biometrics or device PIN.
   /// Returns true if authentication succeeded.
-  /// On web, always returns true (biometrics not available).
+  /// On web, returns false (biometrics not available, forces PIN fallback).
   static Future<bool> authenticate({
     String reason = 'Verify your identity to continue',
   }) async {
-    if (kIsWeb) return true;
+    if (kIsWeb) return false;
     try {
       return await _auth.authenticate(
         localizedReason: reason,

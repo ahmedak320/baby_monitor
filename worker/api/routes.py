@@ -36,6 +36,10 @@ def create_api(settings: Any, orchestrator: Any, supabase_client: Any) -> FastAP
     """Create the FastAPI app with analysis routes."""
     app = FastAPI(title="Baby Monitor Worker API", version="1.0.0")
 
+    # Rate limiting: max 10 requests/minute per user
+    from api.rate_limiter import RateLimiter
+    app.add_middleware(RateLimiter, max_requests=10, window_seconds=60)
+
     api_key = settings.worker_api_key or ""
 
     def _verify_key(authorization: str | None = Header(None)) -> None:
