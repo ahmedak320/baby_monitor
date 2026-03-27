@@ -1,13 +1,37 @@
 # Baby Monitor
 
+[![Download Latest APK](https://img.shields.io/github/v/release/ahmedak320/baby_monitor?label=Download%20APK&logo=android&color=3DDC84&style=for-the-badge)](https://github.com/ahmedak320/baby_monitor/releases/latest)
+[![CI](https://img.shields.io/github/actions/workflow/status/ahmedak320/baby_monitor/ci.yml?label=CI&logo=github&style=for-the-badge)](https://github.com/ahmedak320/baby_monitor/actions/workflows/ci.yml)
+
 **AI-powered parental control app for safe YouTube viewing.** Kids get a familiar YouTube-like experience with vertical Shorts, video feeds, and dark mode — while every video is screened by a multi-tier AI pipeline before it ever reaches their screen.
 
 Built with Flutter (iOS + Android + Web), a Python AI analysis worker, and Supabase (PostgreSQL + Auth + Realtime).
 
 ---
 
+## Download & Install (Testers)
+
+### Android (Samsung, Google Pixel, OnePlus, etc.)
+
+1. **Download the APK** from the [latest release](https://github.com/ahmedak320/baby_monitor/releases/latest)
+2. Open the downloaded `.apk` file on your phone
+3. If prompted, tap **Settings** and enable "Allow from this source" (one-time)
+4. Tap **Install**
+5. Open **Baby Monitor** from your app drawer
+
+> **Requirements:** Android 6.0 or higher. Works on Samsung Galaxy, Google Pixel, OnePlus, Xiaomi, and all other Android phones.
+
+### iOS (iPhone)
+
+iOS builds are not yet available for direct download. An Apple Developer account ($99/year) is required to distribute builds via TestFlight. This is planned for a future release.
+
+For now, iOS testers can run the app on the **iOS Simulator** (requires a Mac with Xcode). See [Running on iOS Simulator](#running-on-ios-simulator) below.
+
+---
+
 ## Table of Contents
 
+- [Download & Install (Testers)](#download--install-testers)
 - [Why Baby Monitor](#why-baby-monitor)
 - [Features](#features)
 - [Architecture](#architecture)
@@ -623,6 +647,21 @@ GitHub Actions pipeline (`.github/workflows/ci.yml`) runs on every push/PR to `m
 | **python-worker-test** | Python 3.12 → `pip install` → `pytest tests/ -v` | — |
 
 The Android build job depends on analyze+test passing first. Python tests run in parallel.
+
+### Release Builds (Downloadable APK for Testers)
+
+A separate workflow (`.github/workflows/release.yml`) builds a **signed release APK** whenever a version tag is pushed:
+
+```bash
+git tag v1.0.1
+git push origin v1.0.1
+```
+
+Within ~5 minutes, a new [GitHub Release](https://github.com/ahmedak320/baby_monitor/releases) appears with the APK attached. Testers download it directly — no build tools needed.
+
+**How it works:** The workflow decodes the signing keystore from GitHub Secrets, creates `key.properties`, builds with ProGuard minification, and publishes via `softprops/action-gh-release`.
+
+**Required GitHub Secrets:** `KEYSTORE_BASE64`, `KEYSTORE_PASSWORD`, `KEY_PASSWORD`, `KEY_ALIAS`, `ENV_FILE`
 
 ---
 
