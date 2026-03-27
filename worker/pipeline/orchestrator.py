@@ -7,9 +7,11 @@ from models.analysis_result import AnalysisResult, Verdict
 from models.video_metadata import VideoMetadata
 from pipeline.result_writer import ResultWriter
 from pipeline.tier0_cache import Tier0Cache
+from pipeline.tier05_embedding import Tier05Embedding
 from pipeline.tier1_text import Tier1TextPipeline
 from pipeline.tier2_visual import Tier2VisualPipeline
 from pipeline.tier3_audio import Tier3AudioPipeline
+from providers.provider_factory import get_provider
 from utils.cost_tracker import AnalysisCost
 from utils.supabase_client import get_supabase_client
 
@@ -20,20 +22,25 @@ class PipelineOrchestrator:
     """Run videos through the tiered analysis funnel.
 
     Tier execution order:
-    0. Community cache lookup ($0) — skip if already analyzed
-    1. Metadata + transcript text analysis (~$0.003)
-    2. Visual frame analysis (~$0.015) — only if Tier 1 can't decide
-    3. Audio analysis (~$0.005) — only if flagged for audio review
+    0.  Community cache lookup ($0) — skip if already analyzed
+    0.5 Embedding similarity pre-filter (~$0.0001) — fast-track similar videos
+    1.  Metadata + transcript text analysis (~$0.001-0.003)
+    2.  Visual frame analysis (~$0.005-0.015) — only if Tier 1 can't decide
+    3.  Audio analysis (~$0.005) — only if flagged for audio review
 
     Stops early when confidence is high enough.
+    AI provider is configurable via AI_PROVIDER env var.
     """
 
-    def __init__(self):
+    def __init__(self, provider_name: str | None = None):
         self._tier0 = Tier0Cache()
+        self._tier05 = Tier05Embedding()
         self._tier1 = Tier1TextPipeline()
         self._tier2 = Tier2VisualPipeline()
         self._tier3 = Tier3AudioPipeline()
         self._writer = ResultWriter()
+        self._provider = get_provider(provider_name or settings.ai_provider)
+        logger.info("Pipeline using AI provider: %s", self._provider.get_provider_name())
 
     def analyze(self, video_id: str) -> AnalysisResult:
         """Run full analysis pipeline on a video."""
@@ -55,6 +62,30 @@ class PipelineOrchestrator:
                 verdict=Verdict.PENDING,
                 analysis_reasoning="Metadata not found",
             )
+
+        # Tier 0.5: Embedding pre-filter
+        if self._tier05.is_available:
+            fast_track = self._tier05.fast_track(metadata)
+            if fast_track is not None:
+                logger.info(
+                    "Tier 0.5 fast-track: verdict=%s, confidence=%.2f",
+                    fast_track["verdict"],
+                    fast_track["confidence"],
+                )
+                verdict = (
+                    Verdict.APPROVE
+                    if fast_track["verdict"] == "approve"
+                    else Verdict.REJECT
+                )
+                result = AnalysisResult(
+                    video_id=video_id,
+                    verdict=verdict,
+                    confidence=fast_track["confidence"],
+                    analysis_reasoning="Fast-tracked via embedding similarity",
+                    tiers_completed=["0.5"],
+                )
+                self._writer.write(result)
+                return result
 
         # Tier 1: Text analysis
         result = self._tier1.analyze(metadata)
@@ -103,9 +134,10 @@ class PipelineOrchestrator:
         cost.log_summary()
 
         logger.info(
-            "=== Pipeline complete for %s: verdict=%s, tiers=%s ===",
+            "=== Pipeline complete for %s: verdict=%s, provider=%s, tiers=%s ===",
             video_id,
             result.verdict.value,
+            self._provider.get_provider_name(),
             result.tiers_completed,
         )
 

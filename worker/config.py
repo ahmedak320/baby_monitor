@@ -35,9 +35,21 @@ class Settings:
         )
     )
 
-    # Claude API
+    # AI Providers
     anthropic_api_key: str = field(
         default_factory=lambda: os.getenv("ANTHROPIC_API_KEY", "")
+    )
+    gemini_api_key: str = field(
+        default_factory=lambda: os.getenv("GEMINI_API_KEY", "")
+    )
+    openai_api_key: str = field(
+        default_factory=lambda: os.getenv("OPENAI_API_KEY", "")
+    )
+    ai_provider: str = field(
+        default_factory=lambda: os.getenv("AI_PROVIDER", "claude")
+    )
+    local_model_url: str = field(
+        default_factory=lambda: os.getenv("LOCAL_MODEL_URL", "http://localhost:11434")
     )
 
     # Worker settings
