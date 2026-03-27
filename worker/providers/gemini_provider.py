@@ -10,8 +10,12 @@ from providers.base_provider import (
     ImageAnalysisResult,
     TextAnalysisResult,
 )
+from utils.provider_rate_limiter import get_rate_limiter
 
 logger = logging.getLogger(__name__)
+
+# Rate limiter for Gemini free tier (10 RPM, 1400 RPD)
+_rate_limiter = get_rate_limiter("gemini")
 
 ANALYSIS_PROMPT = """Analyze this YouTube video for child safety. Rate each dimension 1-10.
 
@@ -85,7 +89,10 @@ class GeminiProvider(AnalysisProvider):
         )
 
         try:
+            _rate_limiter.wait_if_needed()
             response = self._model.generate_content(prompt)
+            _rate_limiter.record_request()
+            logger.info("Gemini text analysis complete. %d requests remaining today.", _rate_limiter.remaining_today)
             raw_text = response.text.strip()
 
             # Parse JSON from response
@@ -146,7 +153,10 @@ class GeminiProvider(AnalysisProvider):
                 img = PIL.Image.open(io.BytesIO(frame_data))
                 parts.append(img)
 
+            _rate_limiter.wait_if_needed()
             response = self._model.generate_content(parts)
+            _rate_limiter.record_request()
+            logger.info("Gemini vision analysis complete. %d requests remaining today.", _rate_limiter.remaining_today)
             raw_text = response.text.strip()
             if raw_text.startswith("```"):
                 raw_text = raw_text.split("```")[1]
