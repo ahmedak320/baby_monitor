@@ -330,6 +330,23 @@ class VideoRepository {
   }
 
   // ==========================================
+  // PARENT-APPROVED CHANNELS
+  // ==========================================
+
+  /// Get list of channel IDs approved by a parent.
+  Future<List<String>> getApprovedChannels(String parentId) async {
+    final rows = await _client
+        .from('parent_channel_prefs')
+        .select('channel_id')
+        .eq('parent_id', parentId)
+        .eq('preference', 'approved');
+
+    return (rows as List)
+        .map((r) => r['channel_id'] as String)
+        .toList();
+  }
+
+  // ==========================================
   // INTERNAL HELPERS
   // ==========================================
 

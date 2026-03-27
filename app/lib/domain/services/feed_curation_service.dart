@@ -171,6 +171,51 @@ class FeedCurationService {
     return suggestions.take(count).toList();
   }
 
+  /// Get videos from parent-approved channels.
+  Future<List<FeedItem>> getApprovedChannelVideos({
+    required ChildProfile child,
+    int limit = 15,
+  }) async {
+    try {
+      final childAge = AgeCalculator.yearsFromDob(child.dateOfBirth);
+
+      // Fetch parent's approved channels
+      final approvedChannels = await _videoRepo.getApprovedChannels(child.parentId);
+      if (approvedChannels.isEmpty) return [];
+
+      // Fetch all approved videos and filter to approved channels
+      final allVideos = await _videoRepo.getApprovedVideos(
+        childId: child.id,
+        childAge: childAge,
+        limit: limit * 3,
+        includeMetadataApproved: true,
+      );
+
+      final channelSet = approvedChannels.toSet();
+      final channelVideos = allVideos
+          .where((v) => channelSet.contains(v.channelId))
+          .toList();
+
+      final items = <FeedItem>[];
+      for (final video in channelVideos) {
+        if (items.length >= limit) break;
+        final analysis = await _videoRepo.getAnalysis(video.videoId);
+        if (analysis != null) {
+          final result = _filterService.filterForChild(analysis: analysis, child: child);
+          if (!result.isApproved) continue;
+        }
+        items.add(FeedItem(
+          video: video,
+          analysis: analysis,
+          contentLabels: analysis?.contentLabels ?? [],
+        ));
+      }
+      return items;
+    } catch (e) {
+      return [];
+    }
+  }
+
   /// Sort feed items for engagement — mix preferred and variety.
   void _sortForEngagement(
     List<FeedItem> items,

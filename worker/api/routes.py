@@ -116,4 +116,18 @@ def create_api(settings: Any, orchestrator: Any, supabase_client: Any) -> FastAP
             is_globally_blacklisted=data.get("is_globally_blacklisted", False),
         )
 
+    @app.get("/api/recommendations/{child_id}")
+    async def get_recommendations(
+        child_id: str,
+        limit: int = 20,
+        authorization: str | None = Header(None),
+    ):
+        _verify_key(authorization)
+
+        from discovery.recommendation_engine import RecommendationEngine
+
+        engine = RecommendationEngine()
+        recommendations = engine.get_recommendations(child_id=child_id, limit=limit)
+        return {"child_id": child_id, "recommendations": recommendations}
+
     return app
