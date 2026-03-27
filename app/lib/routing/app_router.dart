@@ -116,19 +116,21 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             builder: (context, state) => const FilterSettingsScreen(),
           ),
           GoRoute(
-            path: 'screen-time',
+            path: 'screen-time/:childId',
             name: RouteNames.screenTimeSettings,
-            builder: (context, state) => const ScreenTimeSettingsScreen(
-              childId: '', // TODO: pass from parent
-              childName: 'Child',
+            builder: (context, state) => ScreenTimeSettingsScreen(
+              childId: state.pathParameters['childId'] ?? '',
+              childName:
+                  state.uri.queryParameters['childName'] ?? 'Child',
             ),
           ),
           GoRoute(
-            path: 'content-schedule',
+            path: 'content-schedule/:childId',
             name: RouteNames.contentSchedule,
-            builder: (context, state) => const ContentScheduleScreen(
-              childId: '', // TODO: pass from parent
-              childName: 'Child',
+            builder: (context, state) => ContentScheduleScreen(
+              childId: state.pathParameters['childId'] ?? '',
+              childName:
+                  state.uri.queryParameters['childName'] ?? 'Child',
             ),
           ),
           GoRoute(

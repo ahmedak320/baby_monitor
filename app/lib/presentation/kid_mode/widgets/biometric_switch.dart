@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../domain/services/parental_control_service.dart';
 import '../../../utils/biometric_helper.dart';
 
 /// Widget that triggers biometric/PIN authentication for switching children.
@@ -62,9 +63,21 @@ class BiometricSwitch extends StatelessWidget {
             child: const Text('Cancel'),
           ),
           ElevatedButton(
-            onPressed: () {
-              // TODO: Verify against stored PIN hash
-              Navigator.pop(context, controller.text.length == 4);
+            onPressed: () async {
+              final pin = controller.text;
+              if (pin.length != 4) {
+                return;
+              }
+              final verified = await ParentalControlService.verifyPin(pin);
+              if (context.mounted) {
+                if (verified) {
+                  Navigator.pop(context, true);
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Incorrect PIN')),
+                  );
+                }
+              }
             },
             child: const Text('Verify'),
           ),

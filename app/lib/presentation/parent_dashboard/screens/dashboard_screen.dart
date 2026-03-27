@@ -244,7 +244,17 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                 _QuickAction(
                   icon: Icons.timer,
                   label: 'Screen Time',
-                  onTap: () => context.pushNamed(RouteNames.screenTimeSettings),
+                  onTap: () {
+                    final stats = ref.read(dashboardStatsProvider).valueOrNull;
+                    final firstChild = stats?.firstOrNull?.child;
+                    if (firstChild != null) {
+                      context.pushNamed(
+                        RouteNames.screenTimeSettings,
+                        pathParameters: {'childId': firstChild.id},
+                        queryParameters: {'childName': firstChild.name},
+                      );
+                    }
+                  },
                 ),
                 _QuickAction(
                   icon: Icons.link,
@@ -438,7 +448,7 @@ class _NotificationsSection extends ConsumerWidget {
                 NotificationService().markShown(n.type);
                 ref.invalidate(pendingNotificationsProvider);
               },
-              onTap: () => _handleNotificationTap(context, n),
+              onTap: () => _handleNotificationTap(context, ref, n),
             );
           }).toList(),
         );
@@ -448,12 +458,20 @@ class _NotificationsSection extends ConsumerWidget {
     );
   }
 
-  void _handleNotificationTap(BuildContext context, AppNotification n) {
+  void _handleNotificationTap(BuildContext context, WidgetRef ref, AppNotification n) {
     switch (n.type) {
       case NotificationType.filteredContentAlert:
         context.pushNamed(RouteNames.filteredContent);
       case NotificationType.screenTimeReport:
-        context.pushNamed(RouteNames.screenTimeSettings);
+        final stats = ref.read(dashboardStatsProvider).valueOrNull;
+        final firstChild = stats?.firstOrNull?.child;
+        if (firstChild != null) {
+          context.pushNamed(
+            RouteNames.screenTimeSettings,
+            pathParameters: {'childId': firstChild.id},
+            queryParameters: {'childName': firstChild.name},
+          );
+        }
       default:
         break;
     }

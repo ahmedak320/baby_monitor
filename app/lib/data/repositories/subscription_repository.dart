@@ -64,4 +64,28 @@ class SubscriptionRepository {
       'user_id': userId,
     });
   }
+
+  /// Update the subscription tier (for dev/testing).
+  Future<void> updateTier(SubscriptionTier tier) async {
+    final userId = SupabaseClientWrapper.currentUserId;
+    if (userId == null) return;
+
+    final tierStr = tier == SubscriptionTier.premium ? 'premium' : 'free';
+    final limit = tier == SubscriptionTier.premium ? 999999 : 50;
+
+    await _client.from('subscriptions').update({
+      'tier': tierStr,
+      'monthly_analyses_limit': limit,
+    }).eq('parent_id', userId);
+  }
+
+  /// Reset the monthly analysis counter (for dev/testing).
+  Future<void> resetAnalysisCount() async {
+    final userId = SupabaseClientWrapper.currentUserId;
+    if (userId == null) return;
+
+    await _client.from('subscriptions').update({
+      'monthly_analyses_used': 0,
+    }).eq('parent_id', userId);
+  }
 }

@@ -1,6 +1,8 @@
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/foundation.dart' show kDebugMode, kIsWeb;
 import 'package:flutter/services.dart';
 import 'package:local_auth/local_auth.dart';
+
+import '../data/datasources/local/preferences_cache.dart';
 
 /// Abstraction over biometric/PIN authentication for adult verification.
 class BiometricHelper {
@@ -8,6 +10,8 @@ class BiometricHelper {
 
   /// Check if biometric authentication is available.
   static Future<bool> get isAvailable async {
+    // Dev mode: skip biometric when flag is set
+    if (kDebugMode && PreferencesCache.skipBiometricAuth) return false;
     if (kIsWeb) return false;
     try {
       final canCheck = await _auth.canCheckBiometrics;

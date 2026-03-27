@@ -43,6 +43,7 @@ class _KidHomeScreenState extends ConsumerState<KidHomeScreen> {
     final feedAsync = ref.watch(kidFeedProvider);
     final categories = ref.watch(kidCategoriesProvider);
     final screenTime = ref.watch(screenTimeProvider);
+    final selectedCategory = ref.watch(selectedCategoryProvider);
 
     // Screen time overlays
     if (screenTime.status == ScreenTimeStatus.breakTime) {
@@ -90,11 +91,14 @@ class _KidHomeScreenState extends ConsumerState<KidHomeScreen> {
                   separatorBuilder: (_, _) => const SizedBox(width: 8),
                   itemBuilder: (context, index) {
                     final cat = categories[index];
+                    final isSelected = selectedCategory == cat.id;
                     return _CategoryBubble(
                       emoji: cat.emoji,
                       label: cat.label,
+                      isSelected: isSelected,
                       onTap: () {
-                        // TODO: Filter feed by category
+                        ref.read(selectedCategoryProvider.notifier).state =
+                            isSelected ? null : cat.id;
                       },
                     );
                   },
@@ -246,11 +250,13 @@ class _KidTopBar extends StatelessWidget {
 class _CategoryBubble extends StatelessWidget {
   final String emoji;
   final String label;
+  final bool isSelected;
   final VoidCallback onTap;
 
   const _CategoryBubble({
     required this.emoji,
     required this.label,
+    this.isSelected = false,
     required this.onTap,
   });
 
@@ -261,7 +267,7 @@ class _CategoryBubble extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: isSelected ? const Color(0xFF6C63FF) : Colors.white,
           borderRadius: BorderRadius.circular(24),
           boxShadow: [
             BoxShadow(
@@ -278,9 +284,10 @@ class _CategoryBubble extends StatelessWidget {
             const SizedBox(width: 6),
             Text(
               label,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
+                color: isSelected ? Colors.white : null,
               ),
             ),
           ],

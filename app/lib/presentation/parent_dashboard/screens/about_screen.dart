@@ -1,11 +1,37 @@
+import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter/material.dart';
 
 import '../../../config/app_metadata.dart';
 import '../../../config/legal_content.dart';
 import '../../common/widgets/legal_text_screen.dart';
+import 'dev_settings_screen.dart';
 
-class AboutScreen extends StatelessWidget {
+class AboutScreen extends StatefulWidget {
   const AboutScreen({super.key});
+
+  @override
+  State<AboutScreen> createState() => _AboutScreenState();
+}
+
+class _AboutScreenState extends State<AboutScreen> {
+  int _versionTapCount = 0;
+
+  void _onVersionTap() {
+    _versionTapCount++;
+    if (_versionTapCount >= 7 && kDebugMode) {
+      _versionTapCount = 0;
+      Navigator.of(context).push(
+        MaterialPageRoute(builder: (_) => const DevSettingsScreen()),
+      );
+    } else if (_versionTapCount >= 4 && _versionTapCount < 7 && kDebugMode) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('${7 - _versionTapCount} taps to developer settings'),
+          duration: const Duration(milliseconds: 800),
+        ),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -15,22 +41,25 @@ class AboutScreen extends StatelessWidget {
         padding: const EdgeInsets.all(16),
         children: [
           // App info
-          const Center(
+          Center(
             child: Column(
               children: [
-                Icon(Icons.shield, size: 64, color: Color(0xFF6C63FF)),
-                SizedBox(height: 12),
-                Text(
+                const Icon(Icons.shield, size: 64, color: Color(0xFF6C63FF)),
+                const SizedBox(height: 12),
+                const Text(
                   AppMetadata.appName,
                   style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
                 ),
-                SizedBox(height: 4),
-                Text(
-                  'Version ${AppMetadata.appVersion}',
-                  style: TextStyle(color: Colors.grey),
+                const SizedBox(height: 4),
+                GestureDetector(
+                  onTap: _onVersionTap,
+                  child: Text(
+                    'Version ${AppMetadata.appVersion}',
+                    style: const TextStyle(color: Colors.grey),
+                  ),
                 ),
-                SizedBox(height: 8),
-                Text(
+                const SizedBox(height: 8),
+                const Text(
                   AppMetadata.shortDescription,
                   style: TextStyle(fontSize: 14, color: Colors.grey),
                 ),

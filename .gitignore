@@ -36,3 +36,4 @@ supabase/.temp/
 # Claude
 .claude/
 PROMPT.md
+.superpowers/

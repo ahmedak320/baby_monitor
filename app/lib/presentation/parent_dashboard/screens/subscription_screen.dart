@@ -104,11 +104,10 @@ class SubscriptionScreen extends ConsumerWidget {
                   height: 56,
                   child: ElevatedButton(
                     onPressed: () {
-                      // TODO: Launch RevenueCat paywall
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
                           content: Text(
-                              'In-app purchase coming soon! \$4.99/month'),
+                              'Payments coming soon. Use Dev Settings to test premium features.'),
                         ),
                       );
                     },

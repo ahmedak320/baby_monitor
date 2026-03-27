@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../domain/services/feed_curation_service.dart';
@@ -18,6 +19,7 @@ final videoDiscoveryProvider = Provider<VideoDiscoveryService>((ref) {
 /// Also triggers background discovery of trending content.
 final kidFeedProvider = FutureProvider<List<FeedItem>>((ref) async {
   final child = ref.watch(currentChildProvider);
+  final selectedCategory = ref.watch(selectedCategoryProvider);
   if (child == null) return [];
 
   // Trigger trending discovery in background (rate-limited to 1x/hour)
@@ -30,10 +32,21 @@ final kidFeedProvider = FutureProvider<List<FeedItem>>((ref) async {
       child: child,
       includeMetadataApproved: true,
     );
+
+    // Client-side category filter
+    if (selectedCategory != null) {
+      return feed
+          .where((item) =>
+              item.contentLabels.contains(selectedCategory) ||
+              (selectedCategory == 'shorts' &&
+                  item.video.detectedAsShort))
+          .toList();
+    }
+
     return feed;
   } catch (e) {
     // Log and return empty on error
-    print('Feed build error: $e');
+    debugPrint('Feed build error: $e');
     return [];
   }
 });
@@ -57,6 +70,9 @@ final upNextProvider =
     );
   },
 );
+
+/// Currently selected category filter (null = "All").
+final selectedCategoryProvider = StateProvider<String?>((ref) => null);
 
 /// Available content categories for the kid home screen.
 final kidCategoriesProvider = Provider<List<ContentCategory>>((ref) {

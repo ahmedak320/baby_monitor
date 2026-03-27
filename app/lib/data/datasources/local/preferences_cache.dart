@@ -83,4 +83,24 @@ class PreferencesCache {
   static Future<void> setQuotaResetDate(String date) async {
     await LocalCache.preferences.put('quota_reset_date', date);
   }
+
+  // --- Dev/Test Mode settings ---
+
+  /// Whether to skip biometric auth during testing.
+  static bool get skipBiometricAuth =>
+      LocalCache.preferences.get('dev_skip_biometric') as bool? ?? false;
+
+  /// Set skip biometric auth flag.
+  static Future<void> setSkipBiometricAuth(bool skip) async {
+    await LocalCache.preferences.put('dev_skip_biometric', skip);
+  }
+
+  /// Get the selected AI provider name.
+  static String get aiProvider =>
+      LocalCache.preferences.get('dev_ai_provider') as String? ?? 'claude';
+
+  /// Set the AI provider name.
+  static Future<void> setAiProvider(String provider) async {
+    await LocalCache.preferences.put('dev_ai_provider', provider);
+  }
 }

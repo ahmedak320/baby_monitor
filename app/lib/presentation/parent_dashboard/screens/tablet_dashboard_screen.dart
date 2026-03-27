@@ -256,7 +256,17 @@ class _LeftPanel extends StatelessWidget {
         _SidebarAction(
           icon: Icons.timer,
           label: 'Screen Time',
-          onTap: () => context.pushNamed(RouteNames.screenTimeSettings),
+          onTap: () {
+            final stats = ref.read(dashboardStatsProvider).valueOrNull;
+            final firstChild = stats?.firstOrNull?.child;
+            if (firstChild != null) {
+              context.pushNamed(
+                RouteNames.screenTimeSettings,
+                pathParameters: {'childId': firstChild.id},
+                queryParameters: {'childName': firstChild.name},
+              );
+            }
+          },
         ),
         _SidebarAction(
           icon: Icons.star,
