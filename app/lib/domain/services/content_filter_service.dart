@@ -33,6 +33,7 @@ class ContentFilterService {
   FilterResult filterForChild({
     required VideoAnalysis analysis,
     required ChildProfile child,
+    String? channelId,
     Map<String, String>? channelPrefs, // channelId -> 'approved'/'blocked'
     Map<String, String>? videoOverrides, // videoId -> 'approved'/'blocked'
   }) {
@@ -55,7 +56,26 @@ class ContentFilterService {
       }
     }
 
-    // 2. Check global blacklist
+    // 2. Check channel preferences
+    if (channelPrefs != null && channelId != null) {
+      final channelPref = channelPrefs[channelId];
+      if (channelPref == 'approved') {
+        return const FilterResult(
+          decision: FilterDecision.approved,
+          reason: 'Channel approved by parent',
+          confidenceScore: 1.0,
+        );
+      }
+      if (channelPref == 'blocked') {
+        return const FilterResult(
+          decision: FilterDecision.rejected,
+          reason: 'Channel blocked by parent',
+          confidenceScore: 1.0,
+        );
+      }
+    }
+
+    // 3. Check global blacklist
     if (analysis.isGloballyBlacklisted) {
       return const FilterResult(
         decision: FilterDecision.rejected,

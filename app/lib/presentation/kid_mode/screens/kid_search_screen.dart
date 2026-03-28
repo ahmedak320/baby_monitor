@@ -11,6 +11,7 @@ import '../../../data/datasources/remote/youtube_api_client.dart';
 import '../../../data/models/video_metadata.dart';
 import '../../../data/datasources/remote/analysis_api.dart';
 import '../../../data/repositories/video_repository.dart';
+import '../../../data/repositories/channel_repository.dart';
 import '../../../domain/services/content_filter_service.dart';
 import '../../../domain/services/metadata_gate_service.dart';
 import '../../../domain/services/subscription_service.dart';
@@ -80,9 +81,13 @@ class _KidSearchScreenState extends ConsumerState<KidSearchScreen> {
       bool isApproved;
       if (child != null) {
         final filterService = ContentFilterService();
+        final channelPrefs = await ChannelRepository().getChannelPrefsMap(child.parentId);
+        final video = _liveResults.where((v) => v.videoId == videoId).firstOrNull;
         final result = filterService.filterForChild(
           analysis: analysis,
           child: child,
+          channelId: video?.channelId,
+          channelPrefs: channelPrefs,
         );
         isApproved = result.isApproved;
       } else {
@@ -273,6 +278,9 @@ class _KidSearchScreenState extends ConsumerState<KidSearchScreen> {
       final child = ref.read(currentChildProvider);
       final filterService = ContentFilterService();
       final videoRepo = VideoRepository();
+      final channelPrefs = child != null
+          ? await ChannelRepository().getChannelPrefsMap(child.parentId)
+          : <String, String>{};
       final filtered = <VideoMetadata>[];
       for (final video in videos) {
         final analysis = await videoRepo.getAnalysis(video.videoId);
@@ -280,6 +288,8 @@ class _KidSearchScreenState extends ConsumerState<KidSearchScreen> {
           final result = filterService.filterForChild(
             analysis: analysis,
             child: child,
+            channelId: video.channelId,
+            channelPrefs: channelPrefs,
           );
           if (result.isApproved) {
             filtered.add(video);

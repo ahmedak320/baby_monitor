@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:local_auth/local_auth.dart';
 
 import '../data/datasources/local/preferences_cache.dart';
+import 'platform_info.dart';
 
 /// Abstraction over biometric/PIN authentication for adult verification.
 class BiometricHelper {
@@ -13,6 +14,8 @@ class BiometricHelper {
     // Dev mode: skip biometric when flag is set
     if (kDebugMode && PreferencesCache.skipBiometricAuth) return false;
     if (kIsWeb) return false;
+    // TV devices don't have biometrics — force PIN fallback
+    if (PlatformInfo.isTV) return false;
     try {
       final canCheck = await _auth.canCheckBiometrics;
       final isDeviceSupported = await _auth.isDeviceSupported();

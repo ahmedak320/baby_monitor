@@ -109,6 +109,17 @@ class ChannelMetadata {
         'subscriber_count': subscriberCount,
         'is_kids_channel': isKidsChannel,
       };
+
+  factory ChannelMetadata.fromSupabaseRow(Map<String, dynamic> row) {
+    return ChannelMetadata(
+      channelId: row['channel_id'] as String,
+      title: row['title'] as String? ?? '',
+      description: row['description'] as String? ?? '',
+      thumbnailUrl: row['thumbnail_url'] as String? ?? '',
+      subscriberCount: (row['subscriber_count'] as int?) ?? 0,
+      isKidsChannel: row['is_kids_channel'] as bool? ?? false,
+    );
+  }
 }
 
 /// Search result container.

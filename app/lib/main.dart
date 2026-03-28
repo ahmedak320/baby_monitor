@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
@@ -7,6 +8,7 @@ import 'app.dart';
 import 'config/supabase_config.dart';
 import 'data/datasources/local/local_cache.dart';
 import 'domain/services/background_sync_service.dart';
+import 'utils/platform_info.dart';
 
 final _backgroundSync = BackgroundSyncService();
 
@@ -16,6 +18,17 @@ Future<void> main() async {
   // Initialize Hive for local caching
   await Hive.initFlutter();
   await LocalCache.initialize();
+
+  // Detect TV platform
+  await PlatformInfo.initialize();
+
+  // Force landscape on TV
+  if (PlatformInfo.isTV) {
+    await SystemChrome.setPreferredOrientations([
+      DeviceOrientation.landscapeLeft,
+      DeviceOrientation.landscapeRight,
+    ]);
+  }
 
   // Initialize Supabase
   await Supabase.initialize(

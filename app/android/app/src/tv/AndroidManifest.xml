@@ -1,0 +1,6 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+    <!-- TV flavor: leanback is required -->
+    <uses-feature android:name="android.software.leanback" android:required="true"
+        tools:replace="android:required"/>
+</manifest>

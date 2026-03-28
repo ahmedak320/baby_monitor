@@ -1,5 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../data/datasources/remote/supabase_client.dart';
+import '../../../data/repositories/channel_repository.dart';
 import '../../../data/repositories/profile_repository.dart';
 
 /// Tracks onboarding state across the multi-step flow.
@@ -123,6 +125,21 @@ class OnboardingNotifier extends StateNotifier<OnboardingState> {
           'max_video_duration_minutes': 30,
         },
       );
+
+      // Persist approved channels from onboarding
+      if (state.approvedChannelIds.isNotEmpty) {
+        final userId = SupabaseClientWrapper.currentUserId;
+        if (userId != null) {
+          final channelRepo = ChannelRepository();
+          for (final channelId in state.approvedChannelIds) {
+            await channelRepo.setChannelPref(
+              parentId: userId,
+              channelId: channelId,
+              status: 'approved',
+            );
+          }
+        }
+      }
 
       // Mark parent setup as completed
       await _profileRepo.completeSetup();

@@ -8,8 +8,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **Analyze**: `cd app && flutter analyze`
 - **Run all tests**: `cd app && flutter test`
 - **Run single test**: `cd app && flutter test test/path/to_test.dart`
-- **Run app**: `cd app && flutter run`
+- **Run app (mobile)**: `cd app && flutter run --flavor mobile`
+- **Run app (TV)**: `cd app && flutter run --flavor tv` (use Android TV emulator)
+- **Build mobile APK**: `cd app && flutter build apk --debug --flavor mobile`
+- **Build TV APK**: `cd app && flutter build apk --debug --flavor tv`
 - **Code generation** (freezed/json_serializable/riverpod): `cd app && dart run build_runner build --delete-conflicting-outputs`
+- **Bump version**: `./scripts/bump_version.sh [major|minor|patch]`
 
 ### Python worker (worker/)
 - **Run worker**: `cd worker && python main.py` (starts queue consumer, auto-discovery, and FastAPI server concurrently)

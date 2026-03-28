@@ -1,6 +1,7 @@
 import 'dart:math';
 
 import '../../data/models/video_metadata.dart';
+import '../../data/repositories/channel_repository.dart';
 import '../../data/repositories/profile_repository.dart';
 import '../../data/repositories/video_repository.dart';
 import '../../utils/age_calculator.dart';
@@ -23,12 +24,15 @@ class FeedItem {
 class FeedCurationService {
   final VideoRepository _videoRepo;
   final ContentFilterService _filterService;
+  final ChannelRepository _channelRepo;
 
   FeedCurationService({
     VideoRepository? videoRepo,
     ContentFilterService? filterService,
+    ChannelRepository? channelRepo,
   })  : _videoRepo = videoRepo ?? VideoRepository(),
-        _filterService = filterService ?? ContentFilterService();
+        _filterService = filterService ?? ContentFilterService(),
+        _channelRepo = channelRepo ?? ChannelRepository();
 
   /// Build a curated feed for a child.
   ///
@@ -43,6 +47,9 @@ class FeedCurationService {
     bool includeMetadataApproved = false,
   }) async {
     final childAge = AgeCalculator.yearsFromDob(child.dateOfBirth);
+
+    // Fetch parent's channel preferences for filtering
+    final channelPrefs = await _channelRepo.getChannelPrefsMap(child.parentId);
 
     // Fetch approved videos (optionally including metadata-approved)
     List<VideoMetadata> videos;
@@ -86,6 +93,8 @@ class FeedCurationService {
         final result = _filterService.filterForChild(
           analysis: analysis,
           child: child,
+          channelId: video.channelId,
+          channelPrefs: channelPrefs,
         );
         if (!result.isApproved) {
           // Log the filtered video for parent dashboard visibility
@@ -139,6 +148,7 @@ class FeedCurationService {
     int count = 3,
   }) async {
     final childAge = AgeCalculator.yearsFromDob(child.dateOfBirth);
+    final channelPrefs = await _channelRepo.getChannelPrefsMap(child.parentId);
     final videos = await _videoRepo.getApprovedVideos(
       childId: child.id,
       childAge: childAge,
@@ -157,6 +167,8 @@ class FeedCurationService {
       final result = _filterService.filterForChild(
         analysis: analysis,
         child: child,
+        channelId: video.channelId,
+        channelPrefs: channelPrefs,
       );
       if (!result.isApproved) {
         _videoRepo.logFiltered(
@@ -206,6 +218,7 @@ class FeedCurationService {
         includeMetadataApproved: false,
       );
 
+      final channelPrefs = await _channelRepo.getChannelPrefsMap(child.parentId);
       final channelSet = approvedChannels.toSet();
       final channelVideos = allVideos
           .where((v) => channelSet.contains(v.channelId))
@@ -216,7 +229,12 @@ class FeedCurationService {
         if (items.length >= limit) break;
         final analysis = await _videoRepo.getAnalysis(video.videoId);
         if (analysis != null) {
-          final result = _filterService.filterForChild(analysis: analysis, child: child);
+          final result = _filterService.filterForChild(
+            analysis: analysis,
+            child: child,
+            channelId: video.channelId,
+            channelPrefs: channelPrefs,
+          );
           if (!result.isApproved) {
             _videoRepo.logFiltered(
               childId: child.id,

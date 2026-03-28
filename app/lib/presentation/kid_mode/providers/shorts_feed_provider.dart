@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../data/repositories/channel_repository.dart';
 import '../../../data/repositories/video_repository.dart';
 import '../../../domain/services/content_filter_service.dart';
 import '../../../domain/services/feed_curation_service.dart';
@@ -14,6 +15,7 @@ final shortsFeedProvider = FutureProvider<List<FeedItem>>((ref) async {
 
   final videoRepo = VideoRepository();
   final filterService = ContentFilterService();
+  final channelRepo = ChannelRepository();
   final childAge = AgeCalculator.yearsFromDob(child.dateOfBirth);
 
   try {
@@ -27,6 +29,7 @@ final shortsFeedProvider = FutureProvider<List<FeedItem>>((ref) async {
 
     // Filter for shorts only
     final shorts = videos.where((v) => v.detectedAsShort).toList();
+    final channelPrefs = await channelRepo.getChannelPrefsMap(child.parentId);
 
     final feedItems = <FeedItem>[];
     for (final video in shorts) {
@@ -37,6 +40,8 @@ final shortsFeedProvider = FutureProvider<List<FeedItem>>((ref) async {
         final result = filterService.filterForChild(
           analysis: analysis,
           child: child,
+          channelId: video.channelId,
+          channelPrefs: channelPrefs,
         );
         if (!result.isApproved) {
           videoRepo.logFiltered(

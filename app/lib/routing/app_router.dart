@@ -17,7 +17,9 @@ import '../presentation/kid_mode/screens/child_select_screen.dart';
 import '../presentation/kid_mode/screens/kid_search_screen.dart';
 import 'package:flutter/foundation.dart' show kDebugMode;
 
+import '../presentation/kid_mode/tv/tv_kid_shell.dart';
 import '../presentation/parent_dashboard/screens/about_screen.dart';
+import '../utils/platform_info.dart';
 import '../presentation/parent_dashboard/screens/dev_analysis_screen.dart';
 import '../presentation/parent_dashboard/screens/feedback_screen.dart';
 import '../presentation/parent_dashboard/screens/link_submission_screen.dart';
@@ -54,6 +56,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         PreferencesCache.isKidModeActive,
       );
       if (kidModeRedirect != null) return kidModeRedirect;
+
+      // 2b. TV guard — redirect dashboard to kid select on TV
+      if (PlatformInfo.isTV &&
+          state.matchedLocation.startsWith('/dashboard')) {
+        return '/kid/select';
+      }
 
       // 3. Setup guard — redirect to onboarding if setup is incomplete
       //    Only applies to non-auth and non-kid routes
@@ -217,7 +225,9 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/kid/home',
         name: RouteNames.kidHome,
-        builder: (context, state) => const KidHomeScreen(),
+        builder: (context, state) => PlatformInfo.isTV
+            ? const TvKidShell()
+            : const KidHomeScreen(),
       ),
       GoRoute(
         path: '/kid/player/:videoId',

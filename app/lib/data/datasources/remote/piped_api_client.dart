@@ -60,6 +60,25 @@ class PipedApiClient {
     );
   }
 
+  /// Search for channels by name.
+  Future<List<ChannelMetadata>> searchChannels(String query) async {
+    final response = await _dio.get(
+      '$_baseUrl/search',
+      queryParameters: {
+        'q': query,
+        'filter': 'channels',
+      },
+    );
+
+    final data = response.data;
+    final items = (data['items'] as List?) ?? [];
+
+    return items
+        .where((item) => item['type'] == 'channel')
+        .map((item) => _parseChannelItem(item as Map<String, dynamic>))
+        .toList();
+  }
+
   /// Get channel info.
   Future<ChannelMetadata> getChannelInfo(String channelId) async {
     final response = await _dio.get('$_baseUrl/channel/$channelId');
@@ -142,6 +161,19 @@ class PipedApiClient {
   String _extractChannelId(String url) {
     // /channel/CHANNEL_ID
     return url.split('/').last;
+  }
+
+  ChannelMetadata _parseChannelItem(Map<String, dynamic> item) {
+    final url = item['url'] as String? ?? '';
+    final channelId = _extractChannelId(url);
+
+    return ChannelMetadata(
+      channelId: channelId,
+      title: item['name'] as String? ?? '',
+      description: item['description'] as String? ?? '',
+      thumbnailUrl: item['thumbnail'] as String? ?? '',
+      subscriberCount: item['subscribers'] as int? ?? 0,
+    );
   }
 
   DateTime? _parseRelativeDate(String relative) {

@@ -14,6 +14,11 @@ class KidTheme {
   static const textSecondary = Color(0xFFAAAAAA);
   static const bottomNav = Color(0xFF212121);
 
+  // TV focus constants
+  static const tvFocusBorderColor = Color(0xFFFFFFFF);
+  static const tvFocusBorderWidth = 3.0;
+  static const tvFocusScaleFactor = 1.05;
+
   static ThemeData get theme => ThemeData(
         useMaterial3: true,
         brightness: Brightness.dark,

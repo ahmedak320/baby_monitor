@@ -8,6 +8,8 @@ import 'package:youtube_player_iframe/youtube_player_iframe.dart';
 import '../../../data/datasources/remote/analysis_api.dart';
 import '../../../data/repositories/video_repository.dart';
 import '../../../providers/current_child_provider.dart';
+import '../../../utils/platform_info.dart';
+import '../tv/dpad_handler.dart';
 
 class KidVideoPlayerScreen extends ConsumerStatefulWidget {
   final String videoId;
@@ -45,8 +47,8 @@ class _KidVideoPlayerScreenState extends ConsumerState<KidVideoPlayerScreen> {
   void initState() {
     super.initState();
 
-    // Shorts: lock to portrait
-    if (widget.isShort) {
+    // Shorts: lock to portrait (mobile only — TV is always landscape)
+    if (widget.isShort && !PlatformInfo.isTV) {
       SystemChrome.setPreferredOrientations([
         DeviceOrientation.portraitUp,
       ]);
@@ -229,12 +231,43 @@ class _KidVideoPlayerScreenState extends ConsumerState<KidVideoPlayerScreen> {
     } catch (_) {}
   }
 
+  KeyEventResult _handleTvKey(FocusNode node, KeyEvent event) {
+    if (!PlatformInfo.isTV || event is! KeyDownEvent) {
+      return KeyEventResult.ignored;
+    }
+    final action = TvMediaKeyHandler.fromKeyEvent(event);
+    if (action == null) return KeyEventResult.ignored;
+
+    switch (action) {
+      case TvMediaAction.playPause:
+        if (_isPlaying) {
+          _controller.pauseVideo();
+        } else {
+          _controller.playVideo();
+        }
+        return KeyEventResult.handled;
+      case TvMediaAction.seekBack:
+        _controller.currentTime.then((t) {
+          _controller.seekTo(seconds: (t - 10).clamp(0, double.infinity));
+        });
+        return KeyEventResult.handled;
+      case TvMediaAction.seekForward:
+        _controller.currentTime.then((t) {
+          _controller.seekTo(seconds: t + 10);
+        });
+        return KeyEventResult.handled;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.black,
       body: SafeArea(
-        child: Stack(
+        child: Focus(
+          autofocus: PlatformInfo.isTV,
+          onKeyEvent: _handleTvKey,
+          child: Stack(
           children: [
             // Main player
             Column(
@@ -285,6 +318,7 @@ class _KidVideoPlayerScreenState extends ConsumerState<KidVideoPlayerScreen> {
                 ),
               ),
           ],
+        ),
         ),
       ),
     );

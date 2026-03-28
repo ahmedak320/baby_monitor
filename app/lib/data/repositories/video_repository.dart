@@ -356,7 +356,7 @@ class VideoRepository {
         .from('parent_channel_prefs')
         .select('channel_id')
         .eq('parent_id', parentId)
-        .eq('preference', 'approved');
+        .eq('status', 'approved');
 
     return (rows as List)
         .map((r) => r['channel_id'] as String)

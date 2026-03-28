@@ -32,6 +32,18 @@ android {
         versionName = flutter.versionName
     }
 
+    flavorDimensions += "platform"
+
+    productFlavors {
+        create("mobile") {
+            dimension = "platform"
+        }
+        create("tv") {
+            dimension = "platform"
+            applicationIdSuffix = ".tv"
+        }
+    }
+
     signingConfigs {
         if (keystorePropertiesFile.exists()) {
             create("release") {
