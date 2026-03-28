@@ -33,14 +33,14 @@ class PipelineOrchestrator:
     """
 
     def __init__(self, provider_name: str | None = None):
-        self._tier0 = Tier0Cache()
-        self._tier05 = Tier05Embedding()
-        self._tier1 = Tier1TextPipeline()
-        self._tier2 = Tier2VisualPipeline()
-        self._tier3 = Tier3AudioPipeline()
-        self._writer = ResultWriter()
         self._provider = get_provider(provider_name or settings.ai_provider)
         logger.info("Pipeline using AI provider: %s", self._provider.get_provider_name())
+        self._tier0 = Tier0Cache()
+        self._tier05 = Tier05Embedding()
+        self._tier1 = Tier1TextPipeline(self._provider)
+        self._tier2 = Tier2VisualPipeline(self._provider)
+        self._tier3 = Tier3AudioPipeline()
+        self._writer = ResultWriter()
 
     def analyze(self, video_id: str) -> AnalysisResult:
         """Run full analysis pipeline on a video."""
@@ -165,17 +165,17 @@ class PipelineOrchestrator:
 
             return VideoMetadata(
                 video_id=data["video_id"],
-                title=data.get("title", ""),
-                description=data.get("description", ""),
-                channel_id=data.get("channel_id", ""),
+                title=data.get("title") or "",
+                description=data.get("description") or "",
+                channel_id=data.get("channel_id") or "",
                 channel_title=channel_title,
-                thumbnail_url=data.get("thumbnail_url", ""),
-                duration_seconds=data.get("duration_seconds", 0),
+                thumbnail_url=data.get("thumbnail_url") or "",
+                duration_seconds=data.get("duration_seconds") or 0,
                 tags=data.get("tags") or [],
-                category_id=data.get("category_id", 0),
-                has_captions=data.get("has_captions", False),
-                view_count=data.get("view_count", 0),
-                like_count=data.get("like_count", 0),
+                category_id=data.get("category_id") or 0,
+                has_captions=bool(data.get("has_captions")),
+                view_count=data.get("view_count") or 0,
+                like_count=data.get("like_count") or 0,
             )
 
         except Exception as e:

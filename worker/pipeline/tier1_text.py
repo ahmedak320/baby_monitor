@@ -6,11 +6,11 @@ Resolves: ~40% of videos (clear approve/reject from text alone)
 
 import logging
 
-from analyzers.haiku_text_analyzer import HaikuTextAnalyzer, HaikuTextResult
 from analyzers.toxicity_analyzer import ToxicityAnalyzer, ToxicityResult
 from extractors.caption_extractor import CaptionExtractor
 from models.analysis_result import AnalysisResult, AnalysisScores, Verdict
 from models.video_metadata import VideoMetadata
+from providers.base_provider import AnalysisProvider, TextAnalysisResult
 
 logger = logging.getLogger(__name__)
 
@@ -21,14 +21,14 @@ class Tier1TextPipeline:
     Pipeline:
     1. Extract transcript via youtube-transcript-api
     2. Run transcript through Detoxify + HateSonar
-    3. Send metadata + toxicity scores + transcript to Claude Haiku
+    3. Send metadata + toxicity scores + transcript to configured AI provider
     4. Return structured result with verdict
     """
 
-    def __init__(self):
+    def __init__(self, provider: AnalysisProvider):
         self._caption_extractor = CaptionExtractor()
         self._toxicity_analyzer = ToxicityAnalyzer()
-        self._haiku_analyzer = HaikuTextAnalyzer()
+        self._provider = provider
 
     def analyze(self, metadata: VideoMetadata) -> AnalysisResult:
         """Run Tier 1 analysis on a video."""
@@ -55,7 +55,7 @@ class Tier1TextPipeline:
             f"hate_speech={toxicity.hate_speech_score:.2f}"
         )
 
-        # Quick reject: if toxicity is extremely high, skip Haiku
+        # Quick reject: if toxicity is extremely high, skip AI provider
         if toxicity.severe_toxicity > 0.8 or toxicity.hate_speech_score > 0.8:
             logger.info("Quick reject: extreme toxicity for %s", metadata.video_id)
             return AnalysisResult(
@@ -70,8 +70,8 @@ class Tier1TextPipeline:
                 confidence=0.95,
             )
 
-        # Step 3: Claude Haiku text analysis
-        haiku_result: HaikuTextResult = self._haiku_analyzer.analyze(
+        # Step 3: AI provider text analysis
+        text_result: TextAnalysisResult = self._provider.analyze_text(
             title=metadata.title,
             channel=metadata.channel_title or metadata.channel_id,
             description=metadata.description,
@@ -82,21 +82,21 @@ class Tier1TextPipeline:
         )
 
         # Build result
-        verdict = self._map_verdict(haiku_result.overall_verdict)
-        confidence = self._calculate_confidence(haiku_result, toxicity, transcript_text)
+        verdict = self._map_verdict(text_result.overall_verdict)
+        confidence = self._calculate_confidence(text_result, toxicity, transcript_text)
 
         scores = AnalysisScores(
-            age_min_appropriate=haiku_result.age_min_appropriate,
-            age_max_appropriate=haiku_result.age_max_appropriate,
-            overstimulation_score=haiku_result.overstimulation_score,
-            educational_score=haiku_result.educational_score,
-            scariness_score=haiku_result.scariness_score,
-            brainrot_score=haiku_result.brainrot_score,
+            age_min_appropriate=text_result.age_min_appropriate,
+            age_max_appropriate=text_result.age_max_appropriate,
+            overstimulation_score=text_result.overstimulation_score,
+            educational_score=text_result.educational_score,
+            scariness_score=text_result.scariness_score,
+            brainrot_score=text_result.brainrot_score,
             language_safety_score=min(
-                haiku_result.language_safety_score,
+                text_result.language_safety_score,
                 toxicity.safety_score_1_10,
             ),
-            ad_commercial_score=haiku_result.ad_commercial_score,
+            ad_commercial_score=text_result.ad_commercial_score,
         )
 
         result = AnalysisResult(
@@ -104,9 +104,9 @@ class Tier1TextPipeline:
             verdict=verdict,
             scores=scores,
             tiers_completed=[1],
-            content_labels=haiku_result.content_labels,
-            detected_issues=haiku_result.detected_issues + toxicity.concerns,
-            analysis_reasoning=haiku_result.reasoning,
+            content_labels=text_result.content_labels,
+            detected_issues=text_result.detected_issues + toxicity.concerns,
+            analysis_reasoning=text_result.reasoning,
             confidence=confidence,
         )
 
@@ -119,8 +119,8 @@ class Tier1TextPipeline:
 
         return result
 
-    def _map_verdict(self, haiku_verdict: str) -> Verdict:
-        v = haiku_verdict.upper()
+    def _map_verdict(self, provider_verdict: str) -> Verdict:
+        v = provider_verdict.upper()
         if v == "APPROVE":
             return Verdict.APPROVE
         if v == "REJECT":
@@ -131,7 +131,7 @@ class Tier1TextPipeline:
 
     def _calculate_confidence(
         self,
-        haiku: HaikuTextResult,
+        text_result: TextAnalysisResult,
         toxicity: ToxicityResult,
         transcript: str,
     ) -> float:
@@ -144,14 +144,14 @@ class Tier1TextPipeline:
         elif len(transcript) > 100:
             confidence += 0.08
 
-        # Boost if toxicity and Haiku agree
-        both_safe = toxicity.is_safe and haiku.overall_verdict == "APPROVE"
-        both_unsafe = not toxicity.is_safe and haiku.overall_verdict == "REJECT"
+        # Boost if provider and toxicity agree
+        both_safe = toxicity.is_safe and text_result.overall_verdict == "APPROVE"
+        both_unsafe = not toxicity.is_safe and text_result.overall_verdict == "REJECT"
         if both_safe or both_unsafe:
             confidence += 0.10
 
-        # Reduce if Haiku says needs review
-        if haiku.overall_verdict == "NEEDS_VISUAL_REVIEW":
+        # Reduce if provider says needs review
+        if text_result.overall_verdict == "NEEDS_VISUAL_REVIEW":
             confidence -= 0.20
 
         return max(0.1, min(0.95, confidence))

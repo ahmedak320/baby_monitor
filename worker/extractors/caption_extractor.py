@@ -1,7 +1,6 @@
 """Extract video captions/transcripts using youtube-transcript-api."""
 
 import logging
-from typing import Optional
 
 from youtube_transcript_api import YouTubeTranscriptApi
 from youtube_transcript_api._errors import (
@@ -18,7 +17,7 @@ logger = logging.getLogger(__name__)
 class CaptionExtractor:
     """Extract video transcripts from YouTube."""
 
-    def extract(self, video_id: str, preferred_lang: str = "en") -> Optional[VideoTranscript]:
+    def extract(self, video_id: str, preferred_lang: str = "en") -> VideoTranscript | None:
         """Extract transcript for a video.
 
         Tries preferred language first, then falls back to auto-generated,
@@ -43,6 +42,8 @@ class CaptionExtractor:
             return self._parse_transcript(video_id, transcript.fetch(), preferred_lang)
         except NoTranscriptFound:
             pass
+        except Exception as e:
+            logger.warning("Failed to fetch manual transcript for %s: %s", video_id, e)
 
         # Try auto-generated in preferred language
         try:
@@ -52,6 +53,8 @@ class CaptionExtractor:
             return self._parse_transcript(video_id, transcript.fetch(), preferred_lang)
         except NoTranscriptFound:
             pass
+        except Exception as e:
+            logger.warning("Failed to fetch generated transcript for %s: %s", video_id, e)
 
         # Try any available transcript and translate
         try:
@@ -74,7 +77,7 @@ class CaptionExtractor:
         logger.info("No usable transcript found for %s", video_id)
         return None
 
-    def extract_text_only(self, video_id: str) -> Optional[str]:
+    def extract_text_only(self, video_id: str) -> str | None:
         """Extract just the full text of the transcript."""
         transcript = self.extract(video_id)
         if transcript is None:

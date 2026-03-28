@@ -5,15 +5,40 @@ Resolves: videos that Tier 1 couldn't confidently classify
 """
 
 import logging
+from dataclasses import dataclass, field
 
-from analyzers.haiku_vision_analyzer import HaikuVisionAnalyzer
 from analyzers.nsfw_classifier import NSFWClassifier
 from analyzers.violence_classifier import ViolenceClassifier
 from extractors.frame_extractor import FrameExtractor
 from models.analysis_result import AnalysisResult, AnalysisScores, Verdict
 from models.video_metadata import VideoMetadata
+from providers.base_provider import AnalysisProvider, ImageAnalysisResult
 
 logger = logging.getLogger(__name__)
+
+
+@dataclass
+class VisionResult:
+    """Adapter mapping ImageAnalysisResult to the fields _merge_results expects."""
+
+    visual_overstimulation: float = 5.0
+    visual_scariness: float = 5.0
+    visual_violence: float = 1.0
+    visual_quality: float = 5.0
+    visual_concerns: list[str] = field(default_factory=list)
+    visual_verdict: str = "APPROVE"
+    reasoning: str = ""
+
+
+def _adapt_image_result(result: ImageAnalysisResult) -> VisionResult:
+    """Convert a provider's ImageAnalysisResult to the format Tier 2 merger expects."""
+    return VisionResult(
+        visual_overstimulation=result.overstimulation_score,
+        visual_scariness=result.scariness_score,
+        visual_violence=result.violence_score,
+        visual_verdict=result.overall_verdict,
+        reasoning=result.reasoning,
+    )
 
 
 class Tier2VisualPipeline:
@@ -23,15 +48,15 @@ class Tier2VisualPipeline:
     1. Download video and extract frames (yt-dlp + OpenCV)
     2. Run NSFW classifier on all frames
     3. Run violence/overstimulation detector
-    4. If concerns or borderline: send frames to Claude Haiku vision
+    4. If concerns or borderline: send frames to AI provider vision
     5. Merge visual scores with Tier 1 scores
     """
 
-    def __init__(self):
+    def __init__(self, provider: AnalysisProvider):
         self._frame_extractor = FrameExtractor()
         self._nsfw_classifier = NSFWClassifier()
         self._violence_classifier = ViolenceClassifier()
-        self._haiku_vision = HaikuVisionAnalyzer()
+        self._provider = provider
 
     def analyze(
         self,
@@ -76,9 +101,8 @@ class Tier2VisualPipeline:
                 return AnalysisResult(
                     video_id=metadata.video_id,
                     verdict=Verdict.REJECT,
-                    scores=AnalysisScores(
-                        **{**tier1_result.scores.__dict__},
-                        violence_score=10.0,
+                    scores=tier1_result.scores.model_copy(
+                        update={"violence_score": 10.0}
                     ),
                     tiers_completed=tier1_result.tiers_completed + [2],
                     content_labels=tier1_result.content_labels,
@@ -99,41 +123,50 @@ class Tier2VisualPipeline:
                 (r.violence_score for r in violence_results), default=0.0
             )
 
-            # Step 4: Claude Haiku vision (if borderline or concerns found)
-            needs_haiku = (
+            # Step 4: AI provider vision (if borderline or concerns found)
+            needs_vision = (
                 self._nsfw_classifier.has_concerning_content(nsfw_results)
                 or worst_violence > 0.3
                 or overstim_score > 0.4
                 or tier1_result.verdict == Verdict.NEEDS_VISUAL_REVIEW
             )
 
-            haiku_result = None
-            if needs_haiku:
-                logger.info("Sending frames to Haiku vision for %s", metadata.video_id)
-                # Select diverse frames (first, middle, last + highest concern)
+            vision_result = None
+            if needs_vision:
+                logger.info("Sending frames to AI provider for %s", metadata.video_id)
                 selected_paths = self._select_representative_frames(
                     frames.frame_paths, violence_results
                 )
 
-                haiku_result = self._haiku_vision.analyze(
-                    frame_paths=selected_paths,
-                    total_duration_minutes=frames.total_duration / 60,
-                    sample_interval_seconds=15,
-                    text_scores={
-                        "overstimulation_score": tier1_result.scores.overstimulation_score,
-                        "brainrot_score": tier1_result.scores.brainrot_score,
-                        "scariness_score": tier1_result.scores.scariness_score,
-                        "verdict": tier1_result.verdict.value,
-                    },
-                )
+                # Read frames to bytes for the provider API
+                frame_bytes = []
+                for path in selected_paths:
+                    try:
+                        with open(path, "rb") as f:
+                            frame_bytes.append(f.read())
+                    except Exception as e:
+                        logger.warning("Failed to read frame %s: %s", path, e)
+
+                if frame_bytes:
+                    context = (
+                        f"Duration: {frames.total_duration / 60:.1f}min, "
+                        f"sampled every 15s. "
+                        f"Tier 1 scores: overstimulation="
+                        f"{tier1_result.scores.overstimulation_score}, "
+                        f"brainrot={tier1_result.scores.brainrot_score}, "
+                        f"scariness={tier1_result.scores.scariness_score}, "
+                        f"verdict={tier1_result.verdict.value}"
+                    )
+                    image_result = self._provider.analyze_image(
+                        frame_bytes, title=metadata.title, context=context
+                    )
+                    vision_result = _adapt_image_result(image_result)
 
             # Step 5: Merge results
-            result = self._merge_results(
+            return self._merge_results(
                 metadata, tier1_result, nsfw_results,
-                worst_violence, overstim_score, haiku_result,
+                worst_violence, overstim_score, vision_result,
             )
-
-            return result
 
         finally:
             frames.cleanup()
@@ -179,7 +212,7 @@ class Tier2VisualPipeline:
         nsfw_results,
         worst_violence: float,
         overstim_score: float,
-        haiku_result,
+        vision_result: VisionResult | None,
     ) -> AnalysisResult:
         """Merge Tier 1 + Tier 2 analysis results."""
 
@@ -202,29 +235,29 @@ class Tier2VisualPipeline:
         issues = list(tier1.detected_issues)
         reasoning = tier1.analysis_reasoning
 
-        # Update with Haiku vision results
-        if haiku_result:
+        # Update with AI provider vision results
+        if vision_result:
             scores.overstimulation_score = max(
                 scores.overstimulation_score,
-                haiku_result.visual_overstimulation,
+                vision_result.visual_overstimulation,
             )
             scores.scariness_score = max(
                 scores.scariness_score,
-                haiku_result.visual_scariness,
+                vision_result.visual_scariness,
             )
             scores.violence_score = max(
                 scores.violence_score,
-                haiku_result.visual_violence,
+                vision_result.visual_violence,
             )
-            issues.extend(haiku_result.visual_concerns)
-            reasoning += f" | Tier 2 vision: {haiku_result.reasoning}"
+            issues.extend(vision_result.visual_concerns)
+            reasoning += f" | Tier 2 vision: {vision_result.reasoning}"
 
         # Determine verdict
-        if haiku_result and haiku_result.visual_verdict == "REJECT":
+        if vision_result and vision_result.visual_verdict == "REJECT":
             verdict = Verdict.REJECT
         elif worst_violence > 0.7:
             verdict = Verdict.REJECT
-        elif haiku_result and haiku_result.visual_verdict == "APPROVE":
+        elif vision_result and vision_result.visual_verdict == "APPROVE":
             verdict = Verdict.APPROVE
         elif tier1.verdict == Verdict.APPROVE:
             verdict = Verdict.APPROVE

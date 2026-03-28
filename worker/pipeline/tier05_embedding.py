@@ -6,11 +6,9 @@ using cosine similarity. Cheaper than Tier 1 text analysis (~10x).
 
 import logging
 import os
-from typing import Optional
-
-import numpy as np
 
 from models.video_metadata import VideoMetadata
+from utils.provider_rate_limiter import get_rate_limiter
 from utils.supabase_client import get_supabase_client
 
 logger = logging.getLogger(__name__)
@@ -26,7 +24,8 @@ class Tier05Embedding:
 
     def __init__(self):
         self._client = None
-        self._model = "models/gemini-embedding-exp-03-07"
+        self._model = "models/gemini-embedding-001"
+        self._rate_limiter = get_rate_limiter("gemini_embedding")
         try:
             from google import genai
 
@@ -42,7 +41,7 @@ class Tier05Embedding:
     def is_available(self) -> bool:
         return self._client is not None
 
-    def compute_embedding(self, metadata: VideoMetadata) -> Optional[list[float]]:
+    def compute_embedding(self, metadata: VideoMetadata) -> list[float] | None:
         """Compute embedding vector for a video's text content."""
         if not self.is_available:
             return None
@@ -53,6 +52,7 @@ class Tier05Embedding:
         try:
             from google.genai import types
 
+            self._rate_limiter.acquire()
             result = self._client.models.embed_content(
                 model=self._model,
                 contents=text,
@@ -91,7 +91,7 @@ class Tier05Embedding:
 
     def fast_track(
         self, metadata: VideoMetadata
-    ) -> Optional[dict]:
+    ) -> dict | None:
         """Try to fast-track a video based on embedding similarity.
 
         Returns:
@@ -105,38 +105,33 @@ class Tier05Embedding:
         if embedding is None:
             return None
 
+        result = None
         similar = self.find_similar(embedding, limit=3)
-        if not similar:
-            # Store embedding for future comparisons even if no match
-            self._store_embedding(metadata.video_id, embedding)
-            return None
 
-        # Check if the most similar video is safe or unsafe
-        best_match = similar[0]
-        similarity = best_match.get("similarity", 0.0)
-        verdict = best_match.get("verdict", "")
+        if similar:
+            best_match = similar[0]
+            similarity = best_match.get("similarity", 0.0)
+            matched_verdict = best_match.get("verdict", "")
 
-        if similarity >= SAFE_SIMILARITY_THRESHOLD and verdict == "approve":
-            logger.info(
-                "Tier 0.5: fast-track SAFE (similarity=%.3f to %s)",
-                similarity,
-                best_match.get("video_id", "?"),
-            )
-            self._store_embedding(metadata.video_id, embedding)
-            return {"verdict": "approve", "confidence": FAST_TRACK_CONFIDENCE}
+            if similarity >= SAFE_SIMILARITY_THRESHOLD and matched_verdict == "approve":
+                logger.info(
+                    "Tier 0.5: fast-track SAFE (similarity=%.3f to %s)",
+                    similarity,
+                    best_match.get("video_id", "?"),
+                )
+                result = {"verdict": "approve", "confidence": FAST_TRACK_CONFIDENCE}
 
-        if similarity >= UNSAFE_SIMILARITY_THRESHOLD and verdict == "reject":
-            logger.info(
-                "Tier 0.5: fast-track REJECT (similarity=%.3f to %s)",
-                similarity,
-                best_match.get("video_id", "?"),
-            )
-            self._store_embedding(metadata.video_id, embedding)
-            return {"verdict": "reject", "confidence": FAST_TRACK_CONFIDENCE}
+            elif similarity >= UNSAFE_SIMILARITY_THRESHOLD and matched_verdict == "reject":
+                logger.info(
+                    "Tier 0.5: fast-track REJECT (similarity=%.3f to %s)",
+                    similarity,
+                    best_match.get("video_id", "?"),
+                )
+                result = {"verdict": "reject", "confidence": FAST_TRACK_CONFIDENCE}
 
-        # No strong match — store embedding and continue to Tier 1
+        # Always store the embedding for future comparisons
         self._store_embedding(metadata.video_id, embedding)
-        return None
+        return result
 
     def _store_embedding(self, video_id: str, embedding: list[float]) -> None:
         """Store the computed embedding for future similarity comparisons."""

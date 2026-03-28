@@ -7,6 +7,8 @@ from providers.base_provider import AnalysisProvider
 
 logger = logging.getLogger(__name__)
 
+_AVAILABLE_PROVIDERS = ["claude", "gemini", "openai", "local"]
+
 
 def get_provider(name: str | None = None) -> AnalysisProvider:
     """Create an analysis provider by name.
@@ -18,22 +20,25 @@ def get_provider(name: str | None = None) -> AnalysisProvider:
     Returns:
         An AnalysisProvider instance.
     """
-    provider_name = name or os.getenv("AI_PROVIDER", "claude")
-    provider_name = provider_name.lower().strip()
+    provider_name = (name or os.getenv("AI_PROVIDER", "claude")).lower().strip()
 
     if provider_name == "claude":
         from providers.claude_provider import ClaudeProvider
         return ClaudeProvider()
-    elif provider_name == "gemini":
+
+    if provider_name == "gemini":
         from providers.gemini_provider import GeminiProvider
         return GeminiProvider()
-    elif provider_name == "openai":
+
+    if provider_name == "openai":
         from providers.openai_provider import OpenAIProvider
         return OpenAIProvider()
-    elif provider_name == "local":
+
+    if provider_name == "local":
         from providers.local_provider import LocalProvider
         return LocalProvider()
-    else:
-        logger.warning("Unknown provider '%s', falling back to Claude", provider_name)
-        from providers.claude_provider import ClaudeProvider
-        return ClaudeProvider()
+
+    raise ValueError(
+        f"Unknown AI provider '{provider_name}'. "
+        f"Set AI_PROVIDER to one of: {_AVAILABLE_PROVIDERS}"
+    )

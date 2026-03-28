@@ -1,9 +1,12 @@
-"""Claude (Anthropic) provider — wraps existing Haiku analyzers."""
+"""Claude (Anthropic) provider for content analysis."""
 
+import base64
+import json
 import logging
 
-from analyzers.haiku_text_analyzer import HaikuTextAnalyzer
-from analyzers.haiku_vision_analyzer import HaikuVisionAnalyzer
+import anthropic
+
+from config import settings
 from providers.base_provider import (
     AnalysisProvider,
     ImageAnalysisResult,
@@ -12,13 +15,22 @@ from providers.base_provider import (
 
 logger = logging.getLogger(__name__)
 
+VISION_PROMPT = """Analyze these video frames from a children's YouTube video for safety.
+{context}
+
+Rate violence, nudity, scariness, and overstimulation 1-10 (1=safest, 10=worst).
+Return valid JSON only:
+{{"violence_score": 1.0, "nudity_score": 1.0, "scariness_score": 1.0, "overstimulation_score": 1.0, "overall_verdict": "APPROVE", "reasoning": "..."}}"""
+
 
 class ClaudeProvider(AnalysisProvider):
-    """Claude-based content analysis using Haiku for text and Sonnet for vision."""
+    """Claude-based content analysis using Haiku."""
 
     def __init__(self):
+        from analyzers.haiku_text_analyzer import HaikuTextAnalyzer
+
         self._text_analyzer = HaikuTextAnalyzer()
-        self._vision_analyzer = HaikuVisionAnalyzer()
+        self._client = anthropic.Anthropic(api_key=settings.anthropic_api_key)
 
     def analyze_text(
         self,
@@ -66,25 +78,59 @@ class ClaudeProvider(AnalysisProvider):
         title: str = "",
         context: str = "",
     ) -> ImageAnalysisResult:
-        vision_result = self._vision_analyzer.analyze(
-            frames=frames,
-            title=title,
-            context=context,
-        )
+        content = []
+        for frame_data in frames[:12]:
+            try:
+                img_data = base64.standard_b64encode(frame_data).decode("utf-8")
+                content.append({
+                    "type": "image",
+                    "source": {
+                        "type": "base64",
+                        "media_type": "image/jpeg",
+                        "data": img_data,
+                    },
+                })
+            except Exception as e:
+                logger.warning("Failed to encode frame: %s", e)
 
-        return ImageAnalysisResult(
-            violence_score=getattr(vision_result, "violence_score", 1.0),
-            nudity_score=getattr(vision_result, "nudity_score", 1.0),
-            scariness_score=getattr(vision_result, "scariness_score", 1.0),
-            overstimulation_score=getattr(
-                vision_result, "overstimulation_score", 1.0
-            ),
-            overall_verdict=getattr(vision_result, "overall_verdict", "APPROVE"),
-            reasoning=getattr(vision_result, "reasoning", ""),
-            confidence=0.90,
-            cost_usd=getattr(vision_result, "estimated_cost", 0.015),
-            provider_name="claude",
-        )
+        if not content:
+            return ImageAnalysisResult(
+                reasoning="No frames available for analysis",
+                provider_name="claude",
+            )
+
+        ctx = f"Title: '{title}'"
+        if context:
+            ctx += f"\n{context}"
+        content.append({"type": "text", "text": VISION_PROMPT.format(context=ctx)})
+
+        try:
+            response = self._client.messages.create(
+                model="claude-haiku-4-5-20251001",
+                max_tokens=500,
+                messages=[{"role": "user", "content": content}],
+            )
+            raw_text = response.content[0].text.strip()
+            data = json.loads(raw_text)
+
+            return ImageAnalysisResult(
+                violence_score=float(data.get("violence_score", 1.0)),
+                nudity_score=float(data.get("nudity_score", 1.0)),
+                scariness_score=float(data.get("scariness_score", 1.0)),
+                overstimulation_score=float(data.get("overstimulation_score", 1.0)),
+                overall_verdict=data.get("overall_verdict", "APPROVE"),
+                reasoning=data.get("reasoning", ""),
+                confidence=0.90,
+                cost_usd=(response.usage.input_tokens * 0.25
+                          + response.usage.output_tokens * 1.25) / 1_000_000,
+                provider_name="claude",
+            )
+        except Exception as e:
+            logger.error("Claude vision analysis failed: %s", e)
+            return ImageAnalysisResult(
+                reasoning="Vision analysis encountered an error",
+                provider_name="claude",
+            )
 
     def get_provider_name(self) -> str:
         return "claude"

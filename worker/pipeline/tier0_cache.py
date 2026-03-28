@@ -5,7 +5,6 @@ Resolves: 60-80% of popular kids content (already analyzed by another user)
 """
 
 import logging
-from typing import Optional
 
 from models.analysis_result import AnalysisResult, AnalysisScores, Verdict
 from utils.supabase_client import get_supabase_client
@@ -19,45 +18,46 @@ class Tier0Cache:
     def __init__(self):
         self._client = get_supabase_client()
 
-    def lookup(self, video_id: str) -> Optional[AnalysisResult]:
+    def lookup(self, video_id: str) -> AnalysisResult | None:
         """Check if this video has already been analyzed.
 
         Returns cached AnalysisResult if found with sufficient confidence,
         otherwise None.
         """
         try:
-            row = (
+            result = (
                 self._client.table("video_analyses")
                 .select("*")
                 .eq("video_id", video_id)
                 .gte("confidence", 0.7)
-                .maybe_single()
+                .limit(1)
                 .execute()
             )
 
-            if row.data is None:
+            if not result.data:
                 logger.info("Cache miss for %s", video_id)
                 return None
 
-            data = row.data
+            data = result.data[0]
             logger.info(
                 "Cache hit for %s: confidence=%.2f",
                 video_id,
                 data.get("confidence", 0),
             )
 
-            # Map verdict
             tiers = data.get("tiers_completed", [])
             confidence = data.get("confidence", 0)
 
-            # Determine verdict from scores
+            # Determine verdict from stored analysis
             is_blacklisted = data.get("is_globally_blacklisted", False)
-            if is_blacklisted:
+            stored_verdict = data.get("verdict", "").upper()
+
+            if is_blacklisted or stored_verdict == "REJECT":
                 verdict = Verdict.REJECT
-            elif confidence >= 0.7:
+            elif stored_verdict == "APPROVE":
                 verdict = Verdict.APPROVE
             else:
-                return None  # Not confident enough
+                return None  # Inconclusive cached result
 
             return AnalysisResult(
                 video_id=video_id,

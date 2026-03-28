@@ -23,9 +23,9 @@ class TestProviderFactory:
         provider = get_provider("local")
         assert provider.get_provider_name() == "local"
 
-    def test_unknown_provider_falls_back_to_claude(self):
-        provider = get_provider("unknown_provider")
-        assert provider.get_provider_name() == "claude"
+    def test_unknown_provider_raises_error(self):
+        with pytest.raises(ValueError, match="Unknown AI provider"):
+            get_provider("unknown_provider")
 
     def test_case_insensitive_provider_name(self):
         provider = get_provider("CLAUDE")
