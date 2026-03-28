@@ -7,7 +7,7 @@ class SubscriptionService {
   final SubscriptionRepository _repo;
 
   SubscriptionService({SubscriptionRepository? repo})
-      : _repo = repo ?? SubscriptionRepository();
+    : _repo = repo ?? SubscriptionRepository();
 
   /// Check if user can perform an analysis (respects free tier limits).
   Future<bool> canAnalyze() async {

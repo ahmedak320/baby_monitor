@@ -68,8 +68,7 @@ class QuotaManagerService {
   static int _getBucketUsage(QuotaBucket bucket) =>
       PreferencesCache.getQuotaUsage(bucket.name);
 
-  static int _getTotalUsage() =>
-      PreferencesCache.getQuotaUsage('total');
+  static int _getTotalUsage() => PreferencesCache.getQuotaUsage('total');
 
   static void _resetIfNewDay() {
     final today = DateTime.now().toIso8601String().split('T').first;

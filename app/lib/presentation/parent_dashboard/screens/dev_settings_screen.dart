@@ -70,8 +70,7 @@ class _DevSettingsScreenState extends ConsumerState<DevSettingsScreen> {
                   _DevSettingsTile(
                     icon: Icons.star,
                     title: 'Subscription Tier',
-                    subtitle:
-                        'Current: ${isPremium ? "Premium" : "Free"}',
+                    subtitle: 'Current: ${isPremium ? "Premium" : "Free"}',
                     trailing: Switch(
                       value: isPremium,
                       onChanged: _isLoading
@@ -202,11 +201,14 @@ class _DevSettingsTile extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(title,
-                    style: const TextStyle(fontWeight: FontWeight.w600)),
-                Text(subtitle,
-                    style:
-                        const TextStyle(fontSize: 12, color: Colors.grey)),
+                Text(
+                  title,
+                  style: const TextStyle(fontWeight: FontWeight.w600),
+                ),
+                Text(
+                  subtitle,
+                  style: const TextStyle(fontSize: 12, color: Colors.grey),
+                ),
               ],
             ),
           ),

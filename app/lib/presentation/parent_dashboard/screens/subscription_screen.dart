@@ -61,10 +61,7 @@ class SubscriptionScreen extends ConsumerWidget {
               if (!isPremium) ...[
                 const Text(
                   'Upgrade to Premium',
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 16),
                 _FeatureCompare(
@@ -111,7 +108,9 @@ class SubscriptionScreen extends ConsumerWidget {
                       if (context.mounted) {
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(
-                            content: Text('Upgraded to Premium! Enjoy all features.'),
+                            content: Text(
+                              'Upgraded to Premium! Enjoy all features.',
+                            ),
                           ),
                         );
                       }
@@ -144,8 +143,7 @@ class SubscriptionScreen extends ConsumerWidget {
                     padding: EdgeInsets.all(20),
                     child: Column(
                       children: [
-                        Icon(Icons.check_circle,
-                            size: 48, color: Colors.green),
+                        Icon(Icons.check_circle, size: 48, color: Colors.green),
                         SizedBox(height: 12),
                         Text(
                           'You have full access to all features!',
@@ -161,7 +159,9 @@ class SubscriptionScreen extends ConsumerWidget {
           );
         },
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => const Center(child: Text('Something went wrong. Please try again.')),
+        error: (e, _) => const Center(
+          child: Text('Something went wrong. Please try again.'),
+        ),
       ),
     );
   }

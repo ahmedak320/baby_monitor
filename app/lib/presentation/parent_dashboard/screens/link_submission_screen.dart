@@ -180,14 +180,16 @@ class _LinkSubmissionScreenState extends ConsumerState<LinkSubmissionScreen> {
             const SizedBox(height: 16),
             Card(
               shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12)),
+                borderRadius: BorderRadius.circular(12),
+              ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   if (_video!.thumbnailUrl.isNotEmpty)
                     ClipRRect(
                       borderRadius: const BorderRadius.vertical(
-                          top: Radius.circular(12)),
+                        top: Radius.circular(12),
+                      ),
                       child: AspectRatio(
                         aspectRatio: 16 / 9,
                         child: CachedNetworkImage(
@@ -219,7 +221,9 @@ class _LinkSubmissionScreenState extends ConsumerState<LinkSubmissionScreen> {
                             '${_video!.durationSeconds ~/ 60}m ${_video!.durationSeconds % 60}s'
                             '${_video!.detectedAsShort ? ' (Short)' : ''}',
                             style: TextStyle(
-                                color: Colors.grey[500], fontSize: 13),
+                              color: Colors.grey[500],
+                              fontSize: 13,
+                            ),
                           ),
                         ],
                       ],

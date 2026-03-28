@@ -41,9 +41,7 @@ class _AccountSettingsScreenState extends ConsumerState<AccountSettingsScreen> {
             obscureText: true,
             maxLength: 4,
             keyboardType: TextInputType.number,
-            decoration: const InputDecoration(
-              hintText: '4-digit PIN',
-            ),
+            decoration: const InputDecoration(hintText: '4-digit PIN'),
           ),
           actions: [
             TextButton(
@@ -120,7 +118,9 @@ class _AccountSettingsScreenState extends ConsumerState<AccountSettingsScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Failed to delete profile. Please try again.')),
+          const SnackBar(
+            content: Text('Failed to delete profile. Please try again.'),
+          ),
         );
       }
     } finally {
@@ -176,7 +176,9 @@ class _AccountSettingsScreenState extends ConsumerState<AccountSettingsScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Failed to delete account. Please try again.')),
+          const SnackBar(
+            content: Text('Failed to delete account. Please try again.'),
+          ),
         );
         setState(() => _isDeletingAccount = false);
       }
@@ -241,20 +243,26 @@ class _AccountSettingsScreenState extends ConsumerState<AccountSettingsScreen> {
                     return Card(
                       child: ListTile(
                         leading: CircleAvatar(
-                          child: Text(child.name.isNotEmpty
-                              ? child.name[0].toUpperCase()
-                              : '?'),
+                          child: Text(
+                            child.name.isNotEmpty
+                                ? child.name[0].toUpperCase()
+                                : '?',
+                          ),
                         ),
                         title: Text(child.name),
                         trailing: _isDeletingChild
                             ? const SizedBox(
                                 width: 20,
                                 height: 20,
-                                child: CircularProgressIndicator(strokeWidth: 2),
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
                               )
                             : IconButton(
-                                icon: const Icon(Icons.delete_outline,
-                                    color: Colors.red),
+                                icon: const Icon(
+                                  Icons.delete_outline,
+                                  color: Colors.red,
+                                ),
                                 onPressed: () =>
                                     _deleteChildProfile(child.id, child.name),
                               ),
@@ -305,7 +313,8 @@ class _AccountSettingsScreenState extends ConsumerState<AccountSettingsScreen> {
                     )
                   : const Icon(Icons.delete_forever),
               label: Text(
-                  _isDeletingAccount ? 'Deleting...' : 'Delete My Account'),
+                _isDeletingAccount ? 'Deleting...' : 'Delete My Account',
+              ),
             ),
           ),
           const SizedBox(height: 32),

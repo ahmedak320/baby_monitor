@@ -119,10 +119,7 @@ class _BracketTransitionRow extends StatelessWidget {
           ),
           child: Text(
             bracket,
-            style: TextStyle(
-              color: color,
-              fontWeight: FontWeight.w600,
-            ),
+            style: TextStyle(color: color, fontWeight: FontWeight.w600),
           ),
         ),
       ],
@@ -150,11 +147,13 @@ class _ChangePreview extends StatelessWidget {
           spacing: 6,
           runSpacing: 4,
           children: items
-              .map((t) => Chip(
-                    label: Text(t, style: const TextStyle(fontSize: 12)),
-                    materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                    visualDensity: VisualDensity.compact,
-                  ))
+              .map(
+                (t) => Chip(
+                  label: Text(t, style: const TextStyle(fontSize: 12)),
+                  materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  visualDensity: VisualDensity.compact,
+                ),
+              )
               .toList(),
         ),
       ],

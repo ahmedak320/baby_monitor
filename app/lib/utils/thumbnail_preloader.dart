@@ -19,10 +19,7 @@ class ThumbnailPreloader {
 
     for (final url in urls) {
       try {
-        await precacheImage(
-          CachedNetworkImageProvider(url),
-          context,
-        );
+        await precacheImage(CachedNetworkImageProvider(url), context);
       } catch (_) {
         // Skip failed preloads — they'll load normally when visible
       }

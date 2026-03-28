@@ -29,15 +29,15 @@ class SetupCompleteScreen extends ConsumerWidget {
               Text(
                 'All Set!',
                 style: Theme.of(context).textTheme.headlineLarge?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
+                  fontWeight: FontWeight.bold,
+                ),
               ),
               const SizedBox(height: 12),
               Text(
                 'Here\'s what we\'ll do for ${state.childName}:',
-                style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                      color: Colors.grey[600],
-                    ),
+                style: Theme.of(
+                  context,
+                ).textTheme.bodyLarge?.copyWith(color: Colors.grey[600]),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 32),
@@ -60,7 +60,8 @@ class SetupCompleteScreen extends ConsumerWidget {
                         icon: Icons.shield,
                         label: 'Top concern',
                         value: _formatPriority(
-                            state.filterPriorities.firstOrNull ?? ''),
+                          state.filterPriorities.firstOrNull ?? '',
+                        ),
                       ),
                       const Divider(),
                       _SummaryRow(
@@ -82,9 +83,9 @@ class SetupCompleteScreen extends ConsumerWidget {
               const SizedBox(height: 16),
               Text(
                 'We\'re preparing a safe feed now.\nThis may take a moment.',
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: Colors.grey[600],
-                    ),
+                style: Theme.of(
+                  context,
+                ).textTheme.bodySmall?.copyWith(color: Colors.grey[600]),
                 textAlign: TextAlign.center,
               ),
               const Spacer(flex: 3),
@@ -109,8 +110,9 @@ class SetupCompleteScreen extends ConsumerWidget {
   }
 
   Future<void> _finishSetup(BuildContext context, WidgetRef ref) async {
-    final success =
-        await ref.read(onboardingProvider.notifier).completeOnboarding();
+    final success = await ref
+        .read(onboardingProvider.notifier)
+        .completeOnboarding();
     if (success && context.mounted) {
       context.goNamed(RouteNames.dashboard);
     } else if (context.mounted) {

@@ -1,5 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:baby_monitor/domain/services/content_filter_service.dart';
+import 'package:baby_monitor/domain/services/feed_curation_service.dart';
+import 'package:baby_monitor/data/models/video_metadata.dart';
 import 'package:baby_monitor/data/repositories/profile_repository.dart';
 import 'package:baby_monitor/data/repositories/video_repository.dart';
 
@@ -8,6 +10,44 @@ void main() {
 
   setUp(() {
     service = ContentFilterService();
+  });
+
+  group('FeedItem pending analysis', () {
+    test('unchecked video creates FeedItem with isPendingAnalysis true', () {
+      final video = VideoMetadata(
+        videoId: 'pending1',
+        title: 'A Cool Video',
+        analysisStatus: 'pending',
+      );
+
+      final item = FeedItem(
+        video: video,
+        analysis: null,
+        isPendingAnalysis: true,
+      );
+
+      expect(item.isPendingAnalysis, isTrue);
+      expect(item.analysis, isNull);
+    });
+
+    test('analyzed video creates FeedItem with isPendingAnalysis false', () {
+      final video = VideoMetadata(
+        videoId: 'analyzed1',
+        title: 'Analyzed Video',
+        analysisStatus: 'completed',
+      );
+
+      final analysis = VideoAnalysis(videoId: 'analyzed1', confidence: 0.9);
+
+      final item = FeedItem(
+        video: video,
+        analysis: analysis,
+        isPendingAnalysis: false,
+      );
+
+      expect(item.isPendingAnalysis, isFalse);
+      expect(item.analysis, isNotNull);
+    });
   });
 
   group('ContentFilterService', () {

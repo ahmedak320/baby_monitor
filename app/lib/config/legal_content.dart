@@ -6,7 +6,8 @@ class LegalContent {
   static const String privacyPolicyLastUpdated = '2026-03-24';
   static const String termsLastUpdated = '2026-03-24';
 
-  static const String privacyPolicy = '''
+  static const String privacyPolicy =
+      '''
 PRIVACY POLICY
 
 Last Updated: $privacyPolicyLastUpdated
@@ -83,7 +84,8 @@ For privacy questions or data deletion requests:
 Email: support@babymonitor.app
 ''';
 
-  static const String termsOfService = '''
+  static const String termsOfService =
+      '''
 TERMS OF SERVICE
 
 Last Updated: $termsLastUpdated

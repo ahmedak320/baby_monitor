@@ -36,10 +36,7 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
     ref.listen(authNotifierProvider, (prev, next) {
       if (next.error != null) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(next.error!),
-            backgroundColor: Colors.red,
-          ),
+          SnackBar(content: Text(next.error!), backgroundColor: Colors.red),
         );
       }
     });
@@ -135,7 +132,9 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
   Future<void> _handleSignup() async {
     if (!_formKey.currentState!.validate()) return;
 
-    final success = await ref.read(authNotifierProvider.notifier).signUp(
+    final success = await ref
+        .read(authNotifierProvider.notifier)
+        .signUp(
           email: _emailController.text.trim(),
           password: _passwordController.text,
           displayName: _nameController.text.trim(),

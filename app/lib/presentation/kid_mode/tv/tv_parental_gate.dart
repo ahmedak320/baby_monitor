@@ -51,7 +51,9 @@ class TvParentalGate extends StatefulWidget {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Too many attempts. Try again in $remaining minutes.'),
+            content: Text(
+              'Too many attempts. Try again in $remaining minutes.',
+            ),
             duration: const Duration(seconds: 3),
           ),
         );
@@ -146,7 +148,8 @@ class _TvParentalGateState extends State<TvParentalGate> {
             ],
             const SizedBox(height: 24),
             TvPinPad(
-              pinLength: 3, // Fixed length — never reveals the answer digit count
+              pinLength:
+                  3, // Fixed length — never reveals the answer digit count
               onSubmit: _checkAnswer,
               onCancel: () => Navigator.of(context).pop(false),
             ),

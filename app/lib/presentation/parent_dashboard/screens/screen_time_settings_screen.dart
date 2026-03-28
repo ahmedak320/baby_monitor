@@ -94,7 +94,8 @@ class _ScreenTimeSettingsScreenState
             onPressed: _isSaving ? null : _saveRules,
             child: _isSaving
                 ? const SizedBox(
-                    width: 16, height: 16,
+                    width: 16,
+                    height: 16,
                     child: CircularProgressIndicator(strokeWidth: 2),
                   )
                 : const Text('Save'),
@@ -119,7 +120,9 @@ class _ScreenTimeSettingsScreenState
             _SectionHeader('Time Limits'),
             SwitchListTile(
               title: const Text('Use weekly budget'),
-              subtitle: const Text('Set a total weekly allowance instead of daily'),
+              subtitle: const Text(
+                'Set a total weekly allowance instead of daily',
+              ),
               value: _useWeeklyBudget,
               onChanged: (v) => setState(() => _useWeeklyBudget = v),
             ),
@@ -127,27 +130,39 @@ class _ScreenTimeSettingsScreenState
             if (_useWeeklyBudget) ...[
               ListTile(
                 title: const Text('Weekly budget'),
-                subtitle: Text('${_weeklyBudget ?? 840} minutes (${((_weeklyBudget ?? 840) / 60).toStringAsFixed(1)} hours)'),
+                subtitle: Text(
+                  '${_weeklyBudget ?? 840} minutes (${((_weeklyBudget ?? 840) / 60).toStringAsFixed(1)} hours)',
+                ),
                 trailing: const Icon(Icons.chevron_right),
-                onTap: () => _showMinutesPicker('Weekly Budget', _weeklyBudget ?? 840, (v) {
-                  setState(() => _weeklyBudget = v);
-                }),
+                onTap: () => _showMinutesPicker(
+                  'Weekly Budget',
+                  _weeklyBudget ?? 840,
+                  (v) {
+                    setState(() => _weeklyBudget = v);
+                  },
+                ),
               ),
             ] else ...[
               // Per-day limits
               for (int day = 1; day <= 7; day++)
                 ListTile(
                   title: Text(_dayNames[day - 1]),
-                  subtitle: Text(_dailyLimits[day] != null
-                      ? '${_dailyLimits[day]} min (${(_dailyLimits[day]! / 60).toStringAsFixed(1)}h)'
-                      : 'No limit'),
+                  subtitle: Text(
+                    _dailyLimits[day] != null
+                        ? '${_dailyLimits[day]} min (${(_dailyLimits[day]! / 60).toStringAsFixed(1)}h)'
+                        : 'No limit',
+                  ),
                   trailing: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       if (_dailyLimits[day] != null)
                         IconButton(
-                          icon: const Icon(Icons.remove_circle_outline, size: 20),
-                          onPressed: () => setState(() => _dailyLimits[day] = null),
+                          icon: const Icon(
+                            Icons.remove_circle_outline,
+                            size: 20,
+                          ),
+                          onPressed: () =>
+                              setState(() => _dailyLimits[day] = null),
                         ),
                       const Icon(Icons.chevron_right),
                     ],
@@ -167,16 +182,18 @@ class _ScreenTimeSettingsScreenState
             ListTile(
               title: const Text('Break every'),
               subtitle: Text('$_breakInterval minutes'),
-              onTap: () => _showMinutesPicker('Break Interval', _breakInterval, (v) {
-                setState(() => _breakInterval = v);
-              }, max: 120),
+              onTap: () =>
+                  _showMinutesPicker('Break Interval', _breakInterval, (v) {
+                    setState(() => _breakInterval = v);
+                  }, max: 120),
             ),
             ListTile(
               title: const Text('Break duration'),
               subtitle: Text('$_breakDuration minutes'),
-              onTap: () => _showMinutesPicker('Break Duration', _breakDuration, (v) {
-                setState(() => _breakDuration = v);
-              }, max: 30),
+              onTap: () =>
+                  _showMinutesPicker('Break Duration', _breakDuration, (v) {
+                    setState(() => _breakDuration = v);
+                  }, max: 30),
             ),
 
             const Divider(height: 32),
@@ -185,9 +202,11 @@ class _ScreenTimeSettingsScreenState
             _SectionHeader('Bedtime'),
             ListTile(
               title: const Text('Bedtime'),
-              subtitle: Text(_bedtimeHour != null
-                  ? _formatTime(_bedtimeHour!, _bedtimeMinute ?? 0)
-                  : 'Not set'),
+              subtitle: Text(
+                _bedtimeHour != null
+                    ? _formatTime(_bedtimeHour!, _bedtimeMinute ?? 0)
+                    : 'Not set',
+              ),
               trailing: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -215,9 +234,11 @@ class _ScreenTimeSettingsScreenState
             ),
             ListTile(
               title: const Text('Wake-up time'),
-              subtitle: Text(_wakeupHour != null
-                  ? _formatTime(_wakeupHour!, _wakeupMinute ?? 0)
-                  : 'Not set'),
+              subtitle: Text(
+                _wakeupHour != null
+                    ? _formatTime(_wakeupHour!, _wakeupMinute ?? 0)
+                    : 'Not set',
+              ),
               trailing: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -282,9 +303,9 @@ class _ScreenTimeSettingsScreenState
 
     if (mounted) {
       setState(() => _isSaving = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Screen time rules saved')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Screen time rules saved')));
       Navigator.of(context).pop();
     }
   }
@@ -305,8 +326,13 @@ class _ScreenTimeSettingsScreenState
             content: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text('$value minutes',
-                    style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+                Text(
+                  '$value minutes',
+                  style: const TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
                 Slider(
                   value: value.toDouble(),
                   min: 5,
@@ -340,10 +366,7 @@ class _ScreenTimeSettingsScreenState
     required TimeOfDay initial,
     required ValueChanged<TimeOfDay> onPicked,
   }) async {
-    final picked = await showTimePicker(
-      context: context,
-      initialTime: initial,
-    );
+    final picked = await showTimePicker(context: context, initialTime: initial);
     if (picked != null) onPicked(picked);
   }
 

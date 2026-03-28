@@ -121,30 +121,43 @@ class ContentFilterService {
     final overstimThreshold = (11.0 - (sensitivity['overstimulation'] ?? 5.0))
         .clamp(3.0, 10.0);
     if (analysis.overstimulationScore > overstimThreshold) {
-      issues.add('Overstimulation: ${analysis.overstimulationScore.toStringAsFixed(1)} '
-          '(max ${overstimThreshold.toStringAsFixed(1)})');
+      issues.add(
+        'Overstimulation: ${analysis.overstimulationScore.toStringAsFixed(1)} '
+        '(max ${overstimThreshold.toStringAsFixed(1)})',
+      );
     }
 
-    final scarinessThreshold = (11.0 - (sensitivity['scariness'] ?? 3.0))
-        .clamp(3.0, 10.0);
+    final scarinessThreshold = (11.0 - (sensitivity['scariness'] ?? 3.0)).clamp(
+      3.0,
+      10.0,
+    );
     if (analysis.scarinessScore > scarinessThreshold) {
-      issues.add('Scariness: ${analysis.scarinessScore.toStringAsFixed(1)} '
-          '(max ${scarinessThreshold.toStringAsFixed(1)})');
+      issues.add(
+        'Scariness: ${analysis.scarinessScore.toStringAsFixed(1)} '
+        '(max ${scarinessThreshold.toStringAsFixed(1)})',
+      );
     }
 
-    final brainrotThreshold = (11.0 - (sensitivity['brainrot_tolerance'] ??
-            sensitivity['brainrot'] ?? 3.0))
-        .clamp(3.0, 10.0);
+    final brainrotThreshold =
+        (11.0 -
+                (sensitivity['brainrot_tolerance'] ??
+                    sensitivity['brainrot'] ??
+                    3.0))
+            .clamp(3.0, 10.0);
     if (analysis.brainrotScore > brainrotThreshold) {
-      issues.add('Brainrot: ${analysis.brainrotScore.toStringAsFixed(1)} '
-          '(max ${brainrotThreshold.toStringAsFixed(1)})');
+      issues.add(
+        'Brainrot: ${analysis.brainrotScore.toStringAsFixed(1)} '
+        '(max ${brainrotThreshold.toStringAsFixed(1)})',
+      );
     }
 
-    final languageThreshold = (11.0 - (sensitivity['language_strictness'] ?? 8.0))
-        .clamp(2.0, 10.0);
+    final languageThreshold =
+        (11.0 - (sensitivity['language_strictness'] ?? 8.0)).clamp(2.0, 10.0);
     if (analysis.languageSafetyScore < languageThreshold) {
-      issues.add('Language safety: ${analysis.languageSafetyScore.toStringAsFixed(1)} '
-          '(min ${languageThreshold.toStringAsFixed(1)})');
+      issues.add(
+        'Language safety: ${analysis.languageSafetyScore.toStringAsFixed(1)} '
+        '(min ${languageThreshold.toStringAsFixed(1)})',
+      );
     }
 
     // Violence is always strict for all kids
@@ -154,7 +167,9 @@ class ContentFilterService {
 
     // Audio safety
     if (analysis.audioSafetyScore < 4.0) {
-      issues.add('Audio safety: ${analysis.audioSafetyScore.toStringAsFixed(1)}');
+      issues.add(
+        'Audio safety: ${analysis.audioSafetyScore.toStringAsFixed(1)}',
+      );
     }
 
     if (issues.isNotEmpty) {

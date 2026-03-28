@@ -47,9 +47,7 @@ class ContentPrefsScreen extends ConsumerWidget {
     final state = ref.watch(onboardingProvider);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Content Types'),
-      ),
+      appBar: AppBar(title: const Text('Content Types')),
       body: SafeArea(
         child: Column(
           children: [
@@ -61,16 +59,16 @@ class ContentPrefsScreen extends ConsumerWidget {
                   Text(
                     'What should ${state.childName} watch?',
                     style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                   const SizedBox(height: 4),
                   Text(
                     'Tap to cycle: preferred (green) > allowed (blue) > blocked (red). '
                     'Preferred content appears more often.',
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: Colors.grey[600],
-                        ),
+                    style: Theme.of(
+                      context,
+                    ).textTheme.bodySmall?.copyWith(color: Colors.grey[600]),
                   ),
                 ],
               ),

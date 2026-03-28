@@ -22,9 +22,9 @@ class _AboutScreenState extends State<AboutScreen> {
     _versionTapCount++;
     if (_versionTapCount >= 7 && kDebugMode) {
       _versionTapCount = 0;
-      Navigator.of(context).push(
-        MaterialPageRoute(builder: (_) => const DevSettingsScreen()),
-      );
+      Navigator.of(
+        context,
+      ).push(MaterialPageRoute(builder: (_) => const DevSettingsScreen()));
     } else if (_versionTapCount >= 4 && _versionTapCount < 7 && kDebugMode) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(

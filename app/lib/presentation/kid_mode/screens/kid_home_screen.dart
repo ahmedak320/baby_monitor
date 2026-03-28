@@ -175,7 +175,8 @@ class _HomeTabContentState extends ConsumerState<_HomeTabContent> {
         // Shorts preview row
         shortsAsync.when(
           data: (shorts) {
-            if (shorts.isEmpty) return const SliverToBoxAdapter(child: SizedBox.shrink());
+            if (shorts.isEmpty)
+              return const SliverToBoxAdapter(child: SizedBox.shrink());
             return SliverToBoxAdapter(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -184,8 +185,11 @@ class _HomeTabContentState extends ConsumerState<_HomeTabContent> {
                     padding: const EdgeInsets.symmetric(horizontal: 16),
                     child: Row(
                       children: [
-                        Icon(Icons.electric_bolt,
-                            color: KidTheme.youtubeRed, size: 18),
+                        Icon(
+                          Icons.electric_bolt,
+                          color: KidTheme.youtubeRed,
+                          size: 18,
+                        ),
                         const SizedBox(width: 4),
                         const Text(
                           'Shorts',
@@ -213,9 +217,7 @@ class _HomeTabContentState extends ConsumerState<_HomeTabContent> {
                           onTap: () {
                             context.pushNamed(
                               RouteNames.kidPlayer,
-                              pathParameters: {
-                                'videoId': item.video.videoId,
-                              },
+                              pathParameters: {'videoId': item.video.videoId},
                               queryParameters: {
                                 'title': item.video.title,
                                 'isShort': 'true',
@@ -274,13 +276,18 @@ class _HomeTabContentState extends ConsumerState<_HomeTabContent> {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(Icons.video_library_outlined,
-                          size: 64, color: KidTheme.textSecondary),
+                      Icon(
+                        Icons.video_library_outlined,
+                        size: 64,
+                        color: KidTheme.textSecondary,
+                      ),
                       const SizedBox(height: 16),
                       Text(
                         'Preparing your videos...',
                         style: TextStyle(
-                            fontSize: 16, color: KidTheme.textSecondary),
+                          fontSize: 16,
+                          color: KidTheme.textSecondary,
+                        ),
                       ),
                     ],
                   ),
@@ -289,22 +296,19 @@ class _HomeTabContentState extends ConsumerState<_HomeTabContent> {
             }
 
             return SliverList(
-              delegate: SliverChildBuilderDelegate(
-                (context, index) {
-                  final item = items[index];
-                  return _YouTubeVideoCard(
-                    item: item,
-                    onTap: () {
-                      context.pushNamed(
-                        RouteNames.kidPlayer,
-                        pathParameters: {'videoId': item.video.videoId},
-                        queryParameters: {'title': item.video.title},
-                      );
-                    },
-                  );
-                },
-                childCount: items.length,
-              ),
+              delegate: SliverChildBuilderDelegate((context, index) {
+                final item = items[index];
+                return _YouTubeVideoCard(
+                  item: item,
+                  onTap: () {
+                    context.pushNamed(
+                      RouteNames.kidPlayer,
+                      pathParameters: {'videoId': item.video.videoId},
+                      queryParameters: {'title': item.video.title},
+                    );
+                  },
+                );
+              }, childCount: items.length),
             );
           },
           loading: () => const SliverFillRemaining(
@@ -312,8 +316,10 @@ class _HomeTabContentState extends ConsumerState<_HomeTabContent> {
           ),
           error: (e, _) => SliverFillRemaining(
             child: Center(
-              child: Text('Something went wrong',
-                  style: TextStyle(color: KidTheme.textSecondary)),
+              child: Text(
+                'Something went wrong',
+                style: TextStyle(color: KidTheme.textSecondary),
+              ),
             ),
           ),
         ),
@@ -345,13 +351,13 @@ class _ShortsPreviewCard extends StatelessWidget {
           children: [
             if (item.video.thumbnailUrl.isNotEmpty)
               CachedNetworkImage(
-                imageUrl:
-                    item.video.thumbnailUrl.replaceAll('_live.jpg', '.jpg'),
+                imageUrl: item.video.thumbnailUrl.replaceAll(
+                  '_live.jpg',
+                  '.jpg',
+                ),
                 fit: BoxFit.cover,
-                placeholder: (_, _) =>
-                    Container(color: KidTheme.surface),
-                errorWidget: (_, _, _) =>
-                    Container(color: KidTheme.surface),
+                placeholder: (_, _) => Container(color: KidTheme.surface),
+                errorWidget: (_, _, _) => Container(color: KidTheme.surface),
               ),
             // Gradient overlay at bottom
             Positioned(
@@ -453,15 +459,19 @@ class _YouTubeVideoCard extends StatelessWidget {
                   children: [
                     if (item.video.thumbnailUrl.isNotEmpty)
                       CachedNetworkImage(
-                        imageUrl: item.video.thumbnailUrl
-                            .replaceAll('_live.jpg', '.jpg'),
+                        imageUrl: item.video.thumbnailUrl.replaceAll(
+                          '_live.jpg',
+                          '.jpg',
+                        ),
                         fit: BoxFit.cover,
                         placeholder: (_, _) =>
                             Container(color: KidTheme.surface),
                         errorWidget: (_, _, _) => Container(
                           color: KidTheme.surface,
-                          child: const Icon(Icons.broken_image,
-                              color: Colors.grey),
+                          child: const Icon(
+                            Icons.broken_image,
+                            color: Colors.grey,
+                          ),
                         ),
                       ),
                     // Duration badge
@@ -471,19 +481,59 @@ class _YouTubeVideoCard extends StatelessWidget {
                         right: 8,
                         child: Container(
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 6, vertical: 2),
+                            horizontal: 6,
+                            vertical: 2,
+                          ),
                           decoration: BoxDecoration(
                             color: Colors.black87,
                             borderRadius: BorderRadius.circular(4),
                           ),
                           child: Text(
                             DurationFormatter.videoLength(
-                                item.video.durationSeconds),
+                              item.video.durationSeconds,
+                            ),
                             style: const TextStyle(
                               color: Colors.white,
                               fontSize: 12,
                               fontWeight: FontWeight.w500,
                             ),
+                          ),
+                        ),
+                      ),
+                    // Analyzing badge for unchecked videos
+                    if (item.isPendingAnalysis)
+                      Positioned(
+                        top: 8,
+                        left: 8,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 3,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.black54,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: const Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              SizedBox(
+                                width: 10,
+                                height: 10,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 1.5,
+                                  color: Colors.amber,
+                                ),
+                              ),
+                              SizedBox(width: 4),
+                              Text(
+                                'Checking...',
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  color: Colors.amber,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                       ),

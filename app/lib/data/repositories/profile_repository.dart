@@ -55,12 +55,12 @@ class ChildProfile {
   }
 
   Map<String, dynamic> toJson() => {
-        'parent_id': parentId,
-        'name': name,
-        'date_of_birth': dateOfBirth.toIso8601String().split('T').first,
-        'avatar_url': avatarUrl,
-        'filter_sensitivity': filterSensitivity,
-      };
+    'parent_id': parentId,
+    'name': name,
+    'date_of_birth': dateOfBirth.toIso8601String().split('T').first,
+    'avatar_url': avatarUrl,
+    'filter_sensitivity': filterSensitivity,
+  };
 }
 
 /// Repository for managing parent and child profiles.
@@ -89,7 +89,8 @@ class ProfileRepository {
 
     await _client
         .from('parent_profiles')
-        .update({'setup_completed': true}).eq('id', userId);
+        .update({'setup_completed': true})
+        .eq('id', userId);
   }
 
   /// Fetch all children for the current parent.
@@ -137,10 +138,7 @@ class ProfileRepository {
 
   /// Update a child profile.
   Future<void> updateChild(String childId, Map<String, dynamic> updates) async {
-    await _client
-        .from('child_profiles')
-        .update(updates)
-        .eq('id', childId);
+    await _client.from('child_profiles').update(updates).eq('id', childId);
   }
 
   /// Delete a child profile.

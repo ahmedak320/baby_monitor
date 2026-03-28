@@ -75,7 +75,9 @@ class _TvPinPadState extends State<TvPinPad> {
                   shape: BoxShape.circle,
                   color: filled ? KidTheme.youtubeRed : Colors.transparent,
                   border: Border.all(
-                    color: filled ? KidTheme.youtubeRed : KidTheme.textSecondary,
+                    color: filled
+                        ? KidTheme.youtubeRed
+                        : KidTheme.textSecondary,
                     width: 2,
                   ),
                 ),
@@ -113,10 +115,7 @@ class _TvPinPadState extends State<TvPinPad> {
               ),
               child: const Text(
                 'Cancel',
-                style: TextStyle(
-                  fontSize: 16,
-                  color: KidTheme.textSecondary,
-                ),
+                style: TextStyle(fontSize: 16, color: KidTheme.textSecondary),
               ),
             ),
           ),

@@ -40,10 +40,16 @@ void main() {
       for (final age in [0, 1, 3, 5, 8, 12]) {
         final defaults = AgeRecommendationService.getDefaultSensitivity(age);
         for (final entry in defaults.entries) {
-          expect(entry.value, greaterThanOrEqualTo(1),
-              reason: '${entry.key} for age $age should be >= 1');
-          expect(entry.value, lessThanOrEqualTo(10),
-              reason: '${entry.key} for age $age should be <= 10');
+          expect(
+            entry.value,
+            greaterThanOrEqualTo(1),
+            reason: '${entry.key} for age $age should be >= 1',
+          );
+          expect(
+            entry.value,
+            lessThanOrEqualTo(10),
+            reason: '${entry.key} for age $age should be <= 10',
+          );
         }
       }
     });

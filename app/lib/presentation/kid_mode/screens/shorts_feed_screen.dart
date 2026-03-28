@@ -60,23 +60,20 @@ class _ShortsFeedScreenState extends ConsumerState<ShortsFeedScreen> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(Icons.electric_bolt,
-                    size: 64, color: KidTheme.textSecondary),
+                Icon(
+                  Icons.electric_bolt,
+                  size: 64,
+                  color: KidTheme.textSecondary,
+                ),
                 const SizedBox(height: 16),
                 Text(
                   'No Shorts available yet',
-                  style: TextStyle(
-                    fontSize: 18,
-                    color: KidTheme.textSecondary,
-                  ),
+                  style: TextStyle(fontSize: 18, color: KidTheme.textSecondary),
                 ),
                 const SizedBox(height: 8),
                 Text(
                   'Check back soon!',
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: KidTheme.textSecondary,
-                  ),
+                  style: TextStyle(fontSize: 14, color: KidTheme.textSecondary),
                 ),
               ],
             ),
@@ -87,59 +84,62 @@ class _ShortsFeedScreenState extends ConsumerState<ShortsFeedScreen> {
           autofocus: PlatformInfo.isTV,
           onKeyEvent: _handleTvKey,
           child: PageView.builder(
-          controller: _pageController,
-          scrollDirection: Axis.vertical,
-          itemCount: shorts.length + 1, // +1 for end card
-          itemBuilder: (context, index) {
-            if (index >= shorts.length) {
-              // End card
-              return Container(
-                color: KidTheme.background,
-                child: Center(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(Icons.check_circle_outline,
-                          size: 64, color: KidTheme.textSecondary),
-                      const SizedBox(height: 16),
-                      Text(
-                        'You\'re all caught up!',
-                        style: TextStyle(
-                          fontSize: 18,
+            controller: _pageController,
+            scrollDirection: Axis.vertical,
+            itemCount: shorts.length + 1, // +1 for end card
+            itemBuilder: (context, index) {
+              if (index >= shorts.length) {
+                // End card
+                return Container(
+                  color: KidTheme.background,
+                  child: Center(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.check_circle_outline,
+                          size: 64,
                           color: KidTheme.textSecondary,
                         ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        'More Shorts coming soon',
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: KidTheme.textSecondary,
+                        const SizedBox(height: 16),
+                        Text(
+                          'You\'re all caught up!',
+                          style: TextStyle(
+                            fontSize: 18,
+                            color: KidTheme.textSecondary,
+                          ),
                         ),
-                      ),
-                    ],
+                        const SizedBox(height: 8),
+                        Text(
+                          'More Shorts coming soon',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: KidTheme.textSecondary,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-              );
-            }
-
-            final item = shorts[index];
-            return ShortsPlayerWidget(
-              item: item,
-              remainingMinutes: screenTime.remainingMinutes,
-              onTap: () {
-                context.pushNamed(
-                  RouteNames.kidPlayer,
-                  pathParameters: {'videoId': item.video.videoId},
-                  queryParameters: {
-                    'title': item.video.title,
-                    'isShort': 'true',
-                  },
                 );
-              },
-            );
-          },
-        ),
+              }
+
+              final item = shorts[index];
+              return ShortsPlayerWidget(
+                item: item,
+                remainingMinutes: screenTime.remainingMinutes,
+                onTap: () {
+                  context.pushNamed(
+                    RouteNames.kidPlayer,
+                    pathParameters: {'videoId': item.video.videoId},
+                    queryParameters: {
+                      'title': item.video.title,
+                      'isShort': 'true',
+                    },
+                  );
+                },
+              );
+            },
+          ),
         );
       },
       loading: () => const Center(child: CircularProgressIndicator()),

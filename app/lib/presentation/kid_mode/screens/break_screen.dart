@@ -71,10 +71,7 @@ class _BreakScreenState extends ConsumerState<BreakScreen> {
                 const SizedBox(height: 16),
                 const Text(
                   'Stand up, stretch, and move around.',
-                  style: TextStyle(
-                    fontSize: 18,
-                    color: Colors.white70,
-                  ),
+                  style: TextStyle(fontSize: 18, color: Colors.white70),
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 48),
@@ -103,10 +100,7 @@ class _BreakScreenState extends ConsumerState<BreakScreen> {
                   _remaining > 0
                       ? 'Back in ${minutes > 0 ? '$minutes min ' : ''}${seconds}s'
                       : 'Break over! Resuming...',
-                  style: const TextStyle(
-                    fontSize: 16,
-                    color: Colors.white70,
-                  ),
+                  style: const TextStyle(fontSize: 16, color: Colors.white70),
                 ),
               ],
             ),

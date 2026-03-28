@@ -46,9 +46,7 @@ class _AddChildScreenState extends ConsumerState<AddChildScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Add Your Child'),
-      ),
+      appBar: AppBar(title: const Text('Add Your Child')),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24),
@@ -58,15 +56,15 @@ class _AddChildScreenState extends ConsumerState<AddChildScreen> {
               Text(
                 'Tell us about your child',
                 style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
+                  fontWeight: FontWeight.bold,
+                ),
               ),
               const SizedBox(height: 8),
               Text(
                 'We\'ll personalize content based on their age.',
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: Colors.grey[600],
-                    ),
+                style: Theme.of(
+                  context,
+                ).textTheme.bodyMedium?.copyWith(color: Colors.grey[600]),
               ),
               const SizedBox(height: 32),
 
@@ -85,15 +83,15 @@ class _AddChildScreenState extends ConsumerState<AddChildScreen> {
                   itemBuilder: (context, index) {
                     final isSelected = index == _selectedAvatarIndex;
                     return GestureDetector(
-                      onTap: () =>
-                          setState(() => _selectedAvatarIndex = index),
+                      onTap: () => setState(() => _selectedAvatarIndex = index),
                       child: AnimatedContainer(
                         duration: const Duration(milliseconds: 200),
                         width: 70,
                         height: 70,
                         decoration: BoxDecoration(
-                          color: _avatarColors[index]
-                              .withValues(alpha: isSelected ? 1.0 : 0.3),
+                          color: _avatarColors[index].withValues(
+                            alpha: isSelected ? 1.0 : 0.3,
+                          ),
                           shape: BoxShape.circle,
                           border: isSelected
                               ? Border.all(color: Colors.white, width: 3)
@@ -101,11 +99,12 @@ class _AddChildScreenState extends ConsumerState<AddChildScreen> {
                           boxShadow: isSelected
                               ? [
                                   BoxShadow(
-                                    color: _avatarColors[index]
-                                        .withValues(alpha: 0.4),
+                                    color: _avatarColors[index].withValues(
+                                      alpha: 0.4,
+                                    ),
                                     blurRadius: 8,
                                     offset: const Offset(0, 2),
-                                  )
+                                  ),
                                 ]
                               : null,
                         ),
@@ -144,8 +143,10 @@ class _AddChildScreenState extends ConsumerState<AddChildScreen> {
                 onTap: _pickDate,
                 borderRadius: BorderRadius.circular(12),
                 child: Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 16,
+                  ),
                   decoration: BoxDecoration(
                     border: Border.all(color: Colors.grey[400]!),
                     borderRadius: BorderRadius.circular(12),
@@ -156,8 +157,7 @@ class _AddChildScreenState extends ConsumerState<AddChildScreen> {
                       const SizedBox(width: 12),
                       Text(
                         _selectedDate != null
-                            ? DateFormat('MMMM d, yyyy')
-                                .format(_selectedDate!)
+                            ? DateFormat('MMMM d, yyyy').format(_selectedDate!)
                             : 'Tap to select date of birth',
                         style: TextStyle(
                           fontSize: 16,
@@ -176,9 +176,9 @@ class _AddChildScreenState extends ConsumerState<AddChildScreen> {
                   'Age: ${AgeCalculator.yearsFromDob(_selectedDate!)} years old '
                   '(${AgeCalculator.ageBracket(_selectedDate!)})',
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: const Color(0xFF6C63FF),
-                        fontWeight: FontWeight.w500,
-                      ),
+                    color: const Color(0xFF6C63FF),
+                    fontWeight: FontWeight.w500,
+                  ),
                 ),
               ],
               const SizedBox(height: 40),

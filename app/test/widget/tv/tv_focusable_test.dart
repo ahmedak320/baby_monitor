@@ -19,10 +19,7 @@ void main() {
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
-            body: TvFocusable(
-              child: const Text('Test'),
-              onSelect: () {},
-            ),
+            body: TvFocusable(child: const Text('Test'), onSelect: () {}),
           ),
         ),
       );
@@ -68,16 +65,15 @@ void main() {
       expect(selected, isTrue);
     });
 
-    testWidgets('on mobile, wraps with GestureDetector instead', (tester) async {
+    testWidgets('on mobile, wraps with GestureDetector instead', (
+      tester,
+    ) async {
       PlatformInfo.overrideForTest(isTV: false);
 
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
-            body: TvFocusable(
-              child: const Text('Mobile'),
-              onSelect: () {},
-            ),
+            body: TvFocusable(child: const Text('Mobile'), onSelect: () {}),
           ),
         ),
       );

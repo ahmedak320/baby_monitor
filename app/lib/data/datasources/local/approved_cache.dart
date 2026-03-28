@@ -19,22 +19,29 @@ class ApprovedCache {
     String childId,
     List<String> videoIds,
   ) async {
-    await LocalCache.approvedVideos.put(
-      '$_keyPrefix$childId',
-      {'video_ids': videoIds, 'cached_at': DateTime.now().toIso8601String()},
-    );
+    await LocalCache.approvedVideos.put('$_keyPrefix$childId', {
+      'video_ids': videoIds,
+      'cached_at': DateTime.now().toIso8601String(),
+    });
   }
 
   /// Add a single video ID to the approved cache.
-  static Future<void> addApprovedVideoId(
-    String childId,
-    String videoId,
-  ) async {
+  static Future<void> addApprovedVideoId(String childId, String videoId) async {
     final current = getApprovedVideoIds(childId);
     if (!current.contains(videoId)) {
       current.add(videoId);
       await setApprovedVideoIds(childId, current);
     }
+  }
+
+  /// Remove a single video ID from the approved cache.
+  static Future<void> removeApprovedVideoId(
+    String childId,
+    String videoId,
+  ) async {
+    final current = getApprovedVideoIds(childId);
+    current.remove(videoId);
+    await setApprovedVideoIds(childId, current);
   }
 
   /// Check if a video is in the approved cache.

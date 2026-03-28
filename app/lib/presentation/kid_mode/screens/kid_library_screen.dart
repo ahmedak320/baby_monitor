@@ -10,8 +10,9 @@ import '../../../routing/route_names.dart';
 import '../../../utils/duration_formatter.dart';
 
 /// Provider for the child's watch history.
-final watchHistoryProvider =
-    FutureProvider<List<WatchHistoryEntry>>((ref) async {
+final watchHistoryProvider = FutureProvider<List<WatchHistoryEntry>>((
+  ref,
+) async {
   final child = ref.watch(currentChildProvider);
   if (child == null) return [];
 
@@ -74,8 +75,11 @@ class KidLibraryScreen extends ConsumerWidget {
                   child: Center(
                     child: Column(
                       children: [
-                        Icon(Icons.play_circle_outline,
-                            size: 48, color: KidTheme.textSecondary),
+                        Icon(
+                          Icons.play_circle_outline,
+                          size: 48,
+                          color: KidTheme.textSecondary,
+                        ),
                         const SizedBox(height: 12),
                         Text(
                           'No videos watched yet',
@@ -89,29 +93,26 @@ class KidLibraryScreen extends ConsumerWidget {
             }
 
             return SliverList(
-              delegate: SliverChildBuilderDelegate(
-                (context, index) {
-                  final entry = entries[index];
-                  final video = entry.video;
-                  if (video == null) return const SizedBox.shrink();
+              delegate: SliverChildBuilderDelegate((context, index) {
+                final entry = entries[index];
+                final video = entry.video;
+                if (video == null) return const SizedBox.shrink();
 
-                  return _HistoryVideoTile(
-                    title: video.title,
-                    channelTitle: video.channelTitle,
-                    thumbnailUrl: video.thumbnailUrl,
-                    duration: video.durationSeconds,
-                    watchedAt: entry.watchedAt,
-                    onTap: () {
-                      context.pushNamed(
-                        RouteNames.kidPlayer,
-                        pathParameters: {'videoId': video.videoId},
-                        queryParameters: {'title': video.title},
-                      );
-                    },
-                  );
-                },
-                childCount: entries.length,
-              ),
+                return _HistoryVideoTile(
+                  title: video.title,
+                  channelTitle: video.channelTitle,
+                  thumbnailUrl: video.thumbnailUrl,
+                  duration: video.durationSeconds,
+                  watchedAt: entry.watchedAt,
+                  onTap: () {
+                    context.pushNamed(
+                      RouteNames.kidPlayer,
+                      pathParameters: {'videoId': video.videoId},
+                      queryParameters: {'title': video.title},
+                    );
+                  },
+                );
+              }, childCount: entries.length),
             );
           },
           loading: () => const SliverFillRemaining(
@@ -175,8 +176,7 @@ class _HistoryVideoTile extends StatelessWidget {
                     CachedNetworkImage(
                       imageUrl: thumbnailUrl.replaceAll('_live.jpg', '.jpg'),
                       fit: BoxFit.cover,
-                      placeholder: (_, _) =>
-                          Container(color: KidTheme.surface),
+                      placeholder: (_, _) => Container(color: KidTheme.surface),
                       errorWidget: (_, _, _) =>
                           Container(color: KidTheme.surface),
                     ),
@@ -186,7 +186,9 @@ class _HistoryVideoTile extends StatelessWidget {
                       right: 4,
                       child: Container(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 4, vertical: 1),
+                          horizontal: 4,
+                          vertical: 1,
+                        ),
                         decoration: BoxDecoration(
                           color: Colors.black87,
                           borderRadius: BorderRadius.circular(3),
@@ -194,7 +196,9 @@ class _HistoryVideoTile extends StatelessWidget {
                         child: Text(
                           DurationFormatter.videoLength(duration),
                           style: const TextStyle(
-                              color: Colors.white, fontSize: 11),
+                            color: Colors.white,
+                            fontSize: 11,
+                          ),
                         ),
                       ),
                     ),
@@ -221,13 +225,17 @@ class _HistoryVideoTile extends StatelessWidget {
                   Text(
                     channelTitle,
                     style: TextStyle(
-                        color: KidTheme.textSecondary, fontSize: 12),
+                      color: KidTheme.textSecondary,
+                      fontSize: 12,
+                    ),
                   ),
                   const SizedBox(height: 2),
                   Text(
                     _timeAgo(watchedAt),
                     style: TextStyle(
-                        color: KidTheme.textSecondary, fontSize: 11),
+                      color: KidTheme.textSecondary,
+                      fontSize: 11,
+                    ),
                   ),
                 ],
               ),

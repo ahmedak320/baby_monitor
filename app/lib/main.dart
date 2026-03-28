@@ -53,9 +53,5 @@ Future<void> main() async {
   // Start background sync for approved video cache
   _backgroundSync.startPeriodicSync();
 
-  runApp(
-    const ProviderScope(
-      child: BabyMonitorApp(),
-    ),
-  );
+  runApp(const ProviderScope(child: BabyMonitorApp()));
 }

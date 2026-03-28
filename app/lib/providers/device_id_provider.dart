@@ -27,22 +27,19 @@ Future<void> registerDevice(String deviceId) async {
   final platform = Platform.isIOS ? 'ios' : 'android';
   final deviceName = '${Platform.isIOS ? "iOS" : "Android"} Device';
 
-  await SupabaseClientWrapper.client.from('devices').upsert(
-    {
-      'device_id': deviceId,
-      'parent_id': userId,
-      'device_name': deviceName,
-      'platform': platform,
-      'last_seen_at': DateTime.now().toIso8601String(),
-    },
-    onConflict: 'device_id',
-  );
+  await SupabaseClientWrapper.client.from('devices').upsert({
+    'device_id': deviceId,
+    'parent_id': userId,
+    'device_name': deviceName,
+    'platform': platform,
+    'last_seen_at': DateTime.now().toIso8601String(),
+  }, onConflict: 'device_id');
 }
 
 /// Updates the last_seen_at timestamp for this device.
 Future<void> updateDeviceLastSeen(String deviceId) async {
   await SupabaseClientWrapper.client
       .from('devices')
-      .update({'last_seen_at': DateTime.now().toIso8601String()}).eq(
-          'device_id', deviceId);
+      .update({'last_seen_at': DateTime.now().toIso8601String()})
+      .eq('device_id', deviceId);
 }

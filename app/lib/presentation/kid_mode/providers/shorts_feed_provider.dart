@@ -7,10 +7,13 @@ import '../../../domain/services/content_filter_service.dart';
 import '../../../domain/services/feed_curation_service.dart';
 import '../../../providers/current_child_provider.dart';
 import '../../../utils/age_calculator.dart';
+import 'kid_feed_provider.dart';
 
 /// Provides pre-filtered Shorts for the vertical swipe feed.
 final shortsFeedProvider = FutureProvider<List<FeedItem>>((ref) async {
   final child = ref.watch(currentChildProvider);
+  // Rebuild when analysis completes (reactive filtering)
+  ref.watch(analysisRefreshCounterProvider);
   if (child == null) return [];
 
   final videoRepo = VideoRepository();
@@ -25,6 +28,7 @@ final shortsFeedProvider = FutureProvider<List<FeedItem>>((ref) async {
       childAge: childAge,
       limit: 100,
       includeMetadataApproved: true,
+      includePending: true,
     );
 
     // Filter for shorts only
@@ -51,15 +55,17 @@ final shortsFeedProvider = FutureProvider<List<FeedItem>>((ref) async {
           );
           continue;
         }
-      } else if (video.analysisStatus != 'metadata_approved') {
-        continue;
       }
+      // No analysis yet — show the video (whitelist-until-checked)
 
-      feedItems.add(FeedItem(
-        video: video,
-        analysis: analysis,
-        contentLabels: analysis?.contentLabels ?? [],
-      ));
+      feedItems.add(
+        FeedItem(
+          video: video,
+          analysis: analysis,
+          contentLabels: analysis?.contentLabels ?? [],
+          isPendingAnalysis: analysis == null,
+        ),
+      );
     }
 
     return feedItems;

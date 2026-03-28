@@ -46,10 +46,7 @@ class _ContentScheduleScreenState extends ConsumerState<ContentScheduleScreen> {
       appBar: AppBar(
         title: Text('${widget.childName} - Schedule'),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.add),
-            onPressed: _addBlock,
-          ),
+          IconButton(icon: const Icon(Icons.add), onPressed: _addBlock),
         ],
       ),
       body: _isLoading
@@ -61,8 +58,10 @@ class _ContentScheduleScreenState extends ConsumerState<ContentScheduleScreen> {
                   padding: const EdgeInsets.all(12),
                   child: Row(
                     children: [
-                      const Text('Templates: ',
-                          style: TextStyle(fontWeight: FontWeight.w600)),
+                      const Text(
+                        'Templates: ',
+                        style: TextStyle(fontWeight: FontWeight.w600),
+                      ),
                       const SizedBox(width: 8),
                       for (final name in ContentScheduleService.templateNames)
                         Padding(
@@ -71,7 +70,9 @@ class _ContentScheduleScreenState extends ConsumerState<ContentScheduleScreen> {
                             label: Text(_formatTemplateName(name)),
                             onPressed: () async {
                               await _service.applyTemplate(
-                                  widget.childId, name);
+                                widget.childId,
+                                name,
+                              );
                               _loadSchedule();
                             },
                           ),
@@ -89,8 +90,11 @@ class _ContentScheduleScreenState extends ConsumerState<ContentScheduleScreen> {
                           child: Column(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              Icon(Icons.schedule,
-                                  size: 64, color: Colors.grey),
+                              Icon(
+                                Icons.schedule,
+                                size: 64,
+                                color: Colors.grey,
+                              ),
                               SizedBox(height: 16),
                               Text('No schedule set'),
                               SizedBox(height: 8),
@@ -134,18 +138,23 @@ class _ContentScheduleScreenState extends ConsumerState<ContentScheduleScreen> {
     );
     if (result == null) return;
 
-    await _service.addBlock(ContentScheduleBlock(
-      id: '',
-      childId: widget.childId,
-      startHour: result['start_hour'] as int,
-      endHour: result['end_hour'] as int,
-      allowedContentTypes: result['types'] as List<String>,
-    ));
+    await _service.addBlock(
+      ContentScheduleBlock(
+        id: '',
+        childId: widget.childId,
+        startHour: result['start_hour'] as int,
+        endHour: result['end_hour'] as int,
+        allowedContentTypes: result['types'] as List<String>,
+      ),
+    );
     _loadSchedule();
   }
 
   String _formatTemplateName(String name) {
-    return name.split('_').map((w) => w[0].toUpperCase() + w.substring(1)).join(' ');
+    return name
+        .split('_')
+        .map((w) => w[0].toUpperCase() + w.substring(1))
+        .join(' ');
   }
 }
 
@@ -186,10 +195,7 @@ class _ScheduleBlockCard extends StatelessWidget {
                   ),
                 ),
                 const Spacer(),
-                Switch(
-                  value: block.isEnabled,
-                  onChanged: (_) => onToggle(),
-                ),
+                Switch(value: block.isEnabled, onChanged: (_) => onToggle()),
                 IconButton(
                   icon: const Icon(Icons.delete_outline, size: 20),
                   onPressed: onDelete,
@@ -247,10 +253,13 @@ class _AddBlockDialogState extends State<_AddBlockDialog> {
                   child: DropdownButton<int>(
                     value: _startHour,
                     isExpanded: true,
-                    items: List.generate(24, (i) => DropdownMenuItem(
-                      value: i,
-                      child: Text(_formatHour(i)),
-                    )),
+                    items: List.generate(
+                      24,
+                      (i) => DropdownMenuItem(
+                        value: i,
+                        child: Text(_formatHour(i)),
+                      ),
+                    ),
                     onChanged: (v) => setState(() => _startHour = v!),
                   ),
                 ),
@@ -262,10 +271,13 @@ class _AddBlockDialogState extends State<_AddBlockDialog> {
                   child: DropdownButton<int>(
                     value: _endHour,
                     isExpanded: true,
-                    items: List.generate(24, (i) => DropdownMenuItem(
-                      value: i,
-                      child: Text(_formatHour(i)),
-                    )),
+                    items: List.generate(
+                      24,
+                      (i) => DropdownMenuItem(
+                        value: i,
+                        child: Text(_formatHour(i)),
+                      ),
+                    ),
                     onChanged: (v) => setState(() => _endHour = v!),
                   ),
                 ),
@@ -305,10 +317,10 @@ class _AddBlockDialogState extends State<_AddBlockDialog> {
         ElevatedButton(
           onPressed: _selectedTypes.isNotEmpty
               ? () => Navigator.pop(context, {
-                    'start_hour': _startHour,
-                    'end_hour': _endHour,
-                    'types': _selectedTypes.toList(),
-                  })
+                  'start_hour': _startHour,
+                  'end_hour': _endHour,
+                  'types': _selectedTypes.toList(),
+                })
               : null,
           child: const Text('Add'),
         ),

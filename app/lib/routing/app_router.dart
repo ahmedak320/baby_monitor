@@ -58,14 +58,14 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       if (kidModeRedirect != null) return kidModeRedirect;
 
       // 2b. TV guard — redirect dashboard to kid select on TV
-      if (PlatformInfo.isTV &&
-          state.matchedLocation.startsWith('/dashboard')) {
+      if (PlatformInfo.isTV && state.matchedLocation.startsWith('/dashboard')) {
         return '/kid/select';
       }
 
       // 3. Setup guard — redirect to onboarding if setup is incomplete
       //    Only applies to non-auth and non-kid routes
-      final isAuthRoute = state.matchedLocation == '/login' ||
+      final isAuthRoute =
+          state.matchedLocation == '/login' ||
           state.matchedLocation == '/signup';
       final isKidRoute = state.matchedLocation.startsWith('/kid');
       if (!isAuthRoute && !isKidRoute) {
@@ -158,8 +158,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             name: RouteNames.screenTimeSettings,
             builder: (context, state) => ScreenTimeSettingsScreen(
               childId: state.pathParameters['childId'] ?? '',
-              childName:
-                  state.uri.queryParameters['childName'] ?? 'Child',
+              childName: state.uri.queryParameters['childName'] ?? 'Child',
             ),
           ),
           GoRoute(
@@ -167,8 +166,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             name: RouteNames.contentSchedule,
             builder: (context, state) => ContentScheduleScreen(
               childId: state.pathParameters['childId'] ?? '',
-              childName:
-                  state.uri.queryParameters['childName'] ?? 'Child',
+              childName: state.uri.queryParameters['childName'] ?? 'Child',
             ),
           ),
           GoRoute(
@@ -225,9 +223,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/kid/home',
         name: RouteNames.kidHome,
-        builder: (context, state) => PlatformInfo.isTV
-            ? const TvKidShell()
-            : const KidHomeScreen(),
+        builder: (context, state) =>
+            PlatformInfo.isTV ? const TvKidShell() : const KidHomeScreen(),
       ),
       GoRoute(
         path: '/kid/player/:videoId',

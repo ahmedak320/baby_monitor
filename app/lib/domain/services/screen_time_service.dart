@@ -6,11 +6,11 @@ import '../../data/repositories/screen_time_repository.dart';
 
 /// Current screen time state for a child.
 enum ScreenTimeStatus {
-  active,       // Normal watching
-  winddown,     // Warning: time almost up
-  breakTime,    // Mandatory break
-  timeUp,       // Daily limit reached
-  bedtime,      // It's bedtime
+  active, // Normal watching
+  winddown, // Warning: time almost up
+  breakTime, // Mandatory break
+  timeUp, // Daily limit reached
+  bedtime, // It's bedtime
   beforeWakeup, // Before allowed start time
 }
 
@@ -64,8 +64,7 @@ class ScreenTimeState {
       limitSecondsToday: limitSecondsToday ?? this.limitSecondsToday,
       secondsSinceLastBreak:
           secondsSinceLastBreak ?? this.secondsSinceLastBreak,
-      breakDurationSeconds:
-          breakDurationSeconds ?? this.breakDurationSeconds,
+      breakDurationSeconds: breakDurationSeconds ?? this.breakDurationSeconds,
       winddownWarningSeconds:
           winddownWarningSeconds ?? this.winddownWarningSeconds,
       sessionId: sessionId ?? this.sessionId,
@@ -85,7 +84,6 @@ class ScreenTimeNotifier extends StateNotifier<ScreenTimeState> {
     required String childId,
     required String deviceId,
   }) async {
-
     // Load rules
     _rules = await _repo.getRules(childId);
 
@@ -102,7 +100,10 @@ class ScreenTimeNotifier extends StateNotifier<ScreenTimeState> {
         // Weekly budget: calculate remaining
         final weekUsed = await _repo.getWeekUsageSeconds(childId);
         final weekBudgetSeconds = _rules!.weeklyBudgetMinutes! * 60;
-        limitSeconds = (weekBudgetSeconds - weekUsed).clamp(0, weekBudgetSeconds);
+        limitSeconds = (weekBudgetSeconds - weekUsed).clamp(
+          0,
+          weekBudgetSeconds,
+        );
       }
     }
 
@@ -226,8 +227,11 @@ class ScreenTimeNotifier extends StateNotifier<ScreenTimeState> {
     if (_rules?.bedtimeHour == null) return false;
     final now = DateTime.now();
     final bedtime = DateTime(
-      now.year, now.month, now.day,
-      _rules!.bedtimeHour!, _rules!.bedtimeMinute ?? 0,
+      now.year,
+      now.month,
+      now.day,
+      _rules!.bedtimeHour!,
+      _rules!.bedtimeMinute ?? 0,
     );
     return now.isAfter(bedtime);
   }
@@ -236,8 +240,11 @@ class ScreenTimeNotifier extends StateNotifier<ScreenTimeState> {
     if (_rules?.wakeupHour == null) return false;
     final now = DateTime.now();
     final wakeup = DateTime(
-      now.year, now.month, now.day,
-      _rules!.wakeupHour!, _rules!.wakeupMinute ?? 0,
+      now.year,
+      now.month,
+      now.day,
+      _rules!.wakeupHour!,
+      _rules!.wakeupMinute ?? 0,
     );
     return now.isBefore(wakeup);
   }
@@ -252,5 +259,5 @@ class ScreenTimeNotifier extends StateNotifier<ScreenTimeState> {
 /// Provides the screen time state notifier.
 final screenTimeProvider =
     StateNotifierProvider<ScreenTimeNotifier, ScreenTimeState>((ref) {
-  return ScreenTimeNotifier(ScreenTimeRepository());
-});
+      return ScreenTimeNotifier(ScreenTimeRepository());
+    });

@@ -31,17 +31,19 @@ class PipedPool {
     List<String>? instances,
     CircuitBreaker? circuitBreaker,
     Duration unhealthyCooldown = const Duration(minutes: 5),
-  })  : _instanceUrls = (instances?.isNotEmpty == true
-                ? instances!
-                : RemoteConfigService.instance.pipedInstances)
-            .where((u) => u.isNotEmpty)
-            .toList(),
-        _circuitBreaker = circuitBreaker ??
-            CircuitBreaker(
-              failureThreshold: 3,
-              cooldownDuration: const Duration(minutes: 15),
-            ),
-        _unhealthyCooldown = unhealthyCooldown {
+  }) : _instanceUrls =
+           (instances?.isNotEmpty == true
+                   ? instances!
+                   : RemoteConfigService.instance.pipedInstances)
+               .where((u) => u.isNotEmpty)
+               .toList(),
+       _circuitBreaker =
+           circuitBreaker ??
+           CircuitBreaker(
+             failureThreshold: 3,
+             cooldownDuration: const Duration(minutes: 15),
+           ),
+       _unhealthyCooldown = unhealthyCooldown {
     for (final url in _instanceUrls) {
       _health[url] = _InstanceHealth(url: url);
     }
@@ -56,7 +58,8 @@ class PipedPool {
   ) async {
     if (_circuitBreaker.isOpen) {
       throw PipedPoolExhaustedException(
-          'Piped circuit breaker open — all instances recently failed');
+        'Piped circuit breaker open — all instances recently failed',
+      );
     }
     if (_instanceUrls.isEmpty) {
       throw PipedPoolExhaustedException('No Piped instances configured');
@@ -66,8 +69,10 @@ class PipedPool {
       final url = _nextHealthyUrl();
       if (url == null) break;
 
-      final client =
-          _clients.putIfAbsent(url, () => PipedApiClient(baseUrl: url));
+      final client = _clients.putIfAbsent(
+        url,
+        () => PipedApiClient(baseUrl: url),
+      );
       try {
         final result = await action(client);
         _markHealthy(url);

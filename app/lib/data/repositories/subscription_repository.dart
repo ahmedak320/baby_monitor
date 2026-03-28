@@ -77,8 +77,9 @@ class SubscriptionRepository {
     final userId = SupabaseClientWrapper.currentUserId;
     if (userId == null) return;
 
-    await _client.from('subscriptions').update({
-      'monthly_analyses_used': 0,
-    }).eq('parent_id', userId);
+    await _client
+        .from('subscriptions')
+        .update({'monthly_analyses_used': 0})
+        .eq('parent_id', userId);
   }
 }

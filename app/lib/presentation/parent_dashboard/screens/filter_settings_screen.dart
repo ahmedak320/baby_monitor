@@ -23,11 +23,20 @@ class _FilterSettingsScreenState extends ConsumerState<FilterSettingsScreen> {
   bool _isSaving = false;
 
   static const _sliderLabels = {
-    'overstimulation': ('Overstimulation', 'How strictly to filter rapid/chaotic visuals'),
+    'overstimulation': (
+      'Overstimulation',
+      'How strictly to filter rapid/chaotic visuals',
+    ),
     'scariness': ('Scariness', 'How strictly to filter scary content'),
-    'brainrot_tolerance': ('Brainrot', 'How strictly to filter mindless content'),
+    'brainrot_tolerance': (
+      'Brainrot',
+      'How strictly to filter mindless content',
+    ),
     'language_strictness': ('Language', 'How strictly to filter bad language'),
-    'educational_preference': ('Educational', 'How much to prefer educational content'),
+    'educational_preference': (
+      'Educational',
+      'How much to prefer educational content',
+    ),
   };
 
   @override
@@ -51,9 +60,11 @@ class _FilterSettingsScreenState extends ConsumerState<FilterSettingsScreen> {
 
   void _loadChildSensitivity(int index) {
     final child = _children[index];
-    _sensitivity = Map.from(child.filterSensitivity.map(
-      (key, value) => MapEntry(key, (value as num).toDouble()),
-    ));
+    _sensitivity = Map.from(
+      child.filterSensitivity.map(
+        (key, value) => MapEntry(key, (value as num).toDouble()),
+      ),
+    );
     // Ensure all keys exist
     for (final key in _sliderLabels.keys) {
       _sensitivity.putIfAbsent(key, () => 5.0);
@@ -88,8 +99,10 @@ class _FilterSettingsScreenState extends ConsumerState<FilterSettingsScreen> {
             onPressed: _isSaving ? null : _save,
             child: _isSaving
                 ? const SizedBox(
-                    width: 16, height: 16,
-                    child: CircularProgressIndicator(strokeWidth: 2))
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
                 : const Text('Save'),
           ),
         ],
@@ -101,10 +114,7 @@ class _FilterSettingsScreenState extends ConsumerState<FilterSettingsScreen> {
           if (_children.length > 1)
             SegmentedButton<int>(
               segments: _children.asMap().entries.map((e) {
-                return ButtonSegment(
-                  value: e.key,
-                  label: Text(e.value.name),
-                );
+                return ButtonSegment(value: e.key, label: Text(e.value.name));
               }).toList(),
               selected: {_selectedChildIndex},
               onSelectionChanged: (s) {
@@ -124,8 +134,7 @@ class _FilterSettingsScreenState extends ConsumerState<FilterSettingsScreen> {
               padding: const EdgeInsets.all(12),
               child: Row(
                 children: [
-                  const Icon(Icons.lightbulb_outline,
-                      color: Color(0xFF6C63FF)),
+                  const Icon(Icons.lightbulb_outline, color: Color(0xFF6C63FF)),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Column(
@@ -187,9 +196,9 @@ class _FilterSettingsScreenState extends ConsumerState<FilterSettingsScreen> {
     if (mounted) {
       setState(() => _isSaving = false);
       ref.invalidate(childrenProvider);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Filter settings saved')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Filter settings saved')));
     }
   }
 }
@@ -220,16 +229,19 @@ class _FilterSlider extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(label,
-                        style: const TextStyle(fontWeight: FontWeight.w600)),
-                    Text(description,
-                        style: TextStyle(fontSize: 12, color: Colors.grey[600])),
+                    Text(
+                      label,
+                      style: const TextStyle(fontWeight: FontWeight.w600),
+                    ),
+                    Text(
+                      description,
+                      style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                    ),
                   ],
                 ),
               ),
               Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                 decoration: BoxDecoration(
                   color: _colorForValue(value).withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(8),
@@ -255,8 +267,14 @@ class _FilterSlider extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('Lenient', style: TextStyle(fontSize: 11, color: Colors.grey[500])),
-              Text('Strict', style: TextStyle(fontSize: 11, color: Colors.grey[500])),
+              Text(
+                'Lenient',
+                style: TextStyle(fontSize: 11, color: Colors.grey[500]),
+              ),
+              Text(
+                'Strict',
+                style: TextStyle(fontSize: 11, color: Colors.grey[500]),
+              ),
             ],
           ),
         ],

@@ -52,17 +52,12 @@ class VideoAnalysis {
       languageSafetyScore:
           (json['language_safety_score'] as num?)?.toDouble() ?? 10,
       violenceScore: (json['violence_score'] as num?)?.toDouble() ?? 0,
-      audioSafetyScore:
-          (json['audio_safety_score'] as num?)?.toDouble() ?? 10,
-      contentLabels:
-          (json['content_labels'] as List?)?.cast<String>() ?? [],
-      detectedIssues:
-          (json['detected_issues'] as List?)?.cast<String>() ?? [],
+      audioSafetyScore: (json['audio_safety_score'] as num?)?.toDouble() ?? 10,
+      contentLabels: (json['content_labels'] as List?)?.cast<String>() ?? [],
+      detectedIssues: (json['detected_issues'] as List?)?.cast<String>() ?? [],
       confidence: (json['confidence'] as num?)?.toDouble() ?? 0,
-      isGloballyBlacklisted:
-          json['is_globally_blacklisted'] as bool? ?? false,
-      analysisReasoning:
-          json['analysis_reasoning'] as String? ?? '',
+      isGloballyBlacklisted: json['is_globally_blacklisted'] as bool? ?? false,
+      analysisReasoning: json['analysis_reasoning'] as String? ?? '',
     );
   }
 }
@@ -74,7 +69,7 @@ class VideoRepository {
   final YouTubeDataService _ytService;
 
   VideoRepository({YouTubeDataService? ytService})
-      : _ytService = ytService ?? YouTubeDataService();
+    : _ytService = ytService ?? YouTubeDataService();
 
   // ==========================================
   // VIDEO METADATA
@@ -119,6 +114,7 @@ class VideoRepository {
     required int childAge,
     int limit = 50,
     bool includeMetadataApproved = false,
+    bool includePending = false,
   }) async {
     // Check local cache first for offline support
     final cachedIds = ApprovedCache.getApprovedVideoIds(childId);
@@ -165,7 +161,8 @@ class VideoRepository {
 
         final metadataVideos = (metadataRows as List)
             .map(
-                (r) => VideoMetadata.fromSupabaseRow(r as Map<String, dynamic>))
+              (r) => VideoMetadata.fromSupabaseRow(r as Map<String, dynamic>),
+            )
             .toList();
 
         videos.addAll(metadataVideos);
@@ -174,9 +171,40 @@ class VideoRepository {
       }
     }
 
-    // Update local cache
-    final videoIds = videos.map((v) => v.videoId).toList();
-    await ApprovedCache.setApprovedVideoIds(childId, videoIds);
+    // Optionally include pending/analyzing videos (show before analysis)
+    if (includePending && videos.length < limit) {
+      try {
+        final remaining = limit - videos.length;
+        final existingIds = videos.map((v) => v.videoId).toSet();
+        final pendingRows = await _client
+            .from('yt_videos')
+            .select()
+            .inFilter('analysis_status', ['pending', 'analyzing'])
+            .limit(remaining);
+
+        final pendingVideos = (pendingRows as List)
+            .map(
+              (r) => VideoMetadata.fromSupabaseRow(r as Map<String, dynamic>),
+            )
+            .where((v) => !existingIds.contains(v.videoId))
+            .toList();
+
+        videos.addAll(pendingVideos);
+      } catch (_) {
+        // Graceful fallback if query fails
+      }
+    }
+
+    // Only cache confirmed videos (not pending) for offline safety
+    final confirmedIds = videos
+        .where(
+          (v) =>
+              v.analysisStatus == 'completed' ||
+              v.analysisStatus == 'metadata_approved',
+        )
+        .map((v) => v.videoId)
+        .toList();
+    await ApprovedCache.setApprovedVideoIds(childId, confirmedIds);
 
     return videos;
   }
@@ -255,10 +283,7 @@ class VideoRepository {
       }, onConflict: 'channel_id');
     }
 
-    await _client.from('yt_videos').upsert(
-      row,
-      onConflict: 'video_id',
-    );
+    await _client.from('yt_videos').upsert(row, onConflict: 'video_id');
   }
 
   /// Log a video interruption (when analysis rejects mid-play).
@@ -321,11 +346,14 @@ class VideoRepository {
     required String reason,
   }) async {
     try {
-      await _client.rpc('log_filtered_content', params: {
-        'p_child_id': childId,
-        'p_video_id': videoId,
-        'p_reason': reason,
-      });
+      await _client.rpc(
+        'log_filtered_content',
+        params: {
+          'p_child_id': childId,
+          'p_video_id': videoId,
+          'p_reason': reason,
+        },
+      );
     } catch (_) {
       // Fire-and-forget — don't break feed if logging fails
     }
@@ -358,9 +386,7 @@ class VideoRepository {
         .eq('parent_id', parentId)
         .eq('status', 'approved');
 
-    return (rows as List)
-        .map((r) => r['channel_id'] as String)
-        .toList();
+    return (rows as List).map((r) => r['channel_id'] as String).toList();
   }
 
   // ==========================================
@@ -372,20 +398,16 @@ class VideoRepository {
 
     // Upsert channel first if we have channel data
     if (video.channelId.isNotEmpty) {
-      await _client.from('yt_channels').upsert(
-        {
-          'channel_id': video.channelId,
-          'title': video.channelTitle.isNotEmpty
-              ? video.channelTitle
-              : 'Unknown Channel',
-        },
-        onConflict: 'channel_id',
-      );
+      await _client.from('yt_channels').upsert({
+        'channel_id': video.channelId,
+        'title': video.channelTitle.isNotEmpty
+            ? video.channelTitle
+            : 'Unknown Channel',
+      }, onConflict: 'channel_id');
     }
 
-    await _client.from('yt_videos').upsert(
-      video.toSupabaseRow(),
-      onConflict: 'video_id',
-    );
+    await _client
+        .from('yt_videos')
+        .upsert(video.toSupabaseRow(), onConflict: 'video_id');
   }
 }

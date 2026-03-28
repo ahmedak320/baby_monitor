@@ -13,8 +13,8 @@ class ScreenTimeIndicator extends StatelessWidget {
     final color = minutesRemaining! <= 5
         ? Colors.red
         : minutesRemaining! <= 15
-            ? Colors.orange
-            : Colors.green;
+        ? Colors.orange
+        : Colors.green;
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),

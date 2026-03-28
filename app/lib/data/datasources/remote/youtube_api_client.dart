@@ -32,10 +32,14 @@ class YouTubeApiClient {
     Dio? dio,
     List<String>? apiKeys,
     CircuitBreaker? circuitBreaker,
-  })  : _dio = dio ?? Dio(),
-        _apiKeys = _buildKeyList(apiKeys),
-        _circuitBreaker = circuitBreaker ??
-            CircuitBreaker(failureThreshold: 3, cooldownDuration: const Duration(minutes: 15));
+  }) : _dio = dio ?? Dio(),
+       _apiKeys = _buildKeyList(apiKeys),
+       _circuitBreaker =
+           circuitBreaker ??
+           CircuitBreaker(
+             failureThreshold: 3,
+             cooldownDuration: const Duration(minutes: 15),
+           );
 
   /// Build a deduplicated, non-empty key list from explicit keys, remote config,
   /// and compile-time fallback.
@@ -77,38 +81,65 @@ class YouTubeApiClient {
     int maxResults = 20,
     String? pageToken,
   }) async {
-    return _withKeyRotation(100, (key) => _officialSearch(query,
-        maxResults: maxResults, pageToken: pageToken, apiKey: key));
+    return _withKeyRotation(
+      100,
+      (key) => _officialSearch(
+        query,
+        maxResults: maxResults,
+        pageToken: pageToken,
+        apiKey: key,
+      ),
+    );
   }
 
   /// Get video details.
   Future<VideoMetadata> getVideoDetails(String videoId) async {
-    return _withKeyRotation(1, (key) => _officialGetVideo(videoId, apiKey: key));
+    return _withKeyRotation(
+      1,
+      (key) => _officialGetVideo(videoId, apiKey: key),
+    );
   }
 
   /// Get multiple video details in a batch.
-  Future<List<VideoMetadata>> getVideoDetailsBatch(List<String> videoIds) async {
-    return _withKeyRotation(1, (key) => _officialGetVideoBatch(videoIds, apiKey: key));
+  Future<List<VideoMetadata>> getVideoDetailsBatch(
+    List<String> videoIds,
+  ) async {
+    return _withKeyRotation(
+      1,
+      (key) => _officialGetVideoBatch(videoIds, apiKey: key),
+    );
   }
 
   /// Get channel info.
   Future<ChannelMetadata> getChannelInfo(String channelId) async {
-    return _withKeyRotation(1, (key) => _officialGetChannel(channelId, apiKey: key));
+    return _withKeyRotation(
+      1,
+      (key) => _officialGetChannel(channelId, apiKey: key),
+    );
   }
 
   /// Get recent uploads from a channel.
   Future<List<VideoMetadata>> getChannelVideos(String channelId) async {
-    return _withKeyRotation(2, (key) => _officialGetChannelUploads(channelId, apiKey: key));
+    return _withKeyRotation(
+      2,
+      (key) => _officialGetChannelUploads(channelId, apiKey: key),
+    );
   }
 
   /// Get trending videos.
   Future<List<VideoMetadata>> getTrending({String region = 'US'}) async {
-    return _withKeyRotation(1, (key) => _officialGetTrending(region: region, apiKey: key));
+    return _withKeyRotation(
+      1,
+      (key) => _officialGetTrending(region: region, apiKey: key),
+    );
   }
 
   /// Get related videos via search (expensive — 100 units).
   Future<List<VideoMetadata>> getRelatedVideos(String videoId) async {
-    return _withKeyRotation(100, (key) => _officialRelatedVideos(videoId, apiKey: key));
+    return _withKeyRotation(
+      100,
+      (key) => _officialRelatedVideos(videoId, apiKey: key),
+    );
   }
 
   // ==========================================
@@ -120,7 +151,10 @@ class YouTubeApiClient {
   /// If the current key gets a 403, marks it exhausted and retries with the
   /// next available key (once). If all keys are exhausted or the circuit is
   /// open, throws [QuotaExceededException].
-  Future<T> _withKeyRotation<T>(int cost, Future<T> Function(String key) action) async {
+  Future<T> _withKeyRotation<T>(
+    int cost,
+    Future<T> Function(String key) action,
+  ) async {
     if (_circuitBreaker.isOpen) {
       throw const QuotaExceededException('YouTube API circuit breaker open');
     }
@@ -220,14 +254,17 @@ class YouTubeApiClient {
     String region = 'US',
     required String apiKey,
   }) async {
-    final response = await _dio.get('$_baseUrl/videos', queryParameters: {
-      'part': 'snippet,contentDetails,statistics',
-      'chart': 'mostPopular',
-      'regionCode': region,
-      'videoCategoryId': '24',
-      'maxResults': 20,
-      'key': apiKey,
-    });
+    final response = await _dio.get(
+      '$_baseUrl/videos',
+      queryParameters: {
+        'part': 'snippet,contentDetails,statistics',
+        'chart': 'mostPopular',
+        'regionCode': region,
+        'videoCategoryId': '24',
+        'maxResults': 20,
+        'key': apiKey,
+      },
+    );
 
     if (response.statusCode == 403) {
       throw const QuotaExceededException();
@@ -243,14 +280,17 @@ class YouTubeApiClient {
     String videoId, {
     required String apiKey,
   }) async {
-    final response = await _dio.get('$_baseUrl/search', queryParameters: {
-      'part': 'snippet',
-      'relatedToVideoId': videoId,
-      'type': 'video',
-      'safeSearch': 'strict',
-      'maxResults': 10,
-      'key': apiKey,
-    });
+    final response = await _dio.get(
+      '$_baseUrl/search',
+      queryParameters: {
+        'part': 'snippet',
+        'relatedToVideoId': videoId,
+        'type': 'video',
+        'safeSearch': 'strict',
+        'maxResults': 10,
+        'key': apiKey,
+      },
+    );
 
     if (response.statusCode == 403) {
       throw const QuotaExceededException();
@@ -267,8 +307,7 @@ class YouTubeApiClient {
         channelId: snippet['channelId'] as String? ?? '',
         channelTitle: snippet['channelTitle'] as String? ?? '',
         thumbnailUrl: _bestThumbnail(snippet['thumbnails']),
-        publishedAt:
-            DateTime.tryParse(snippet['publishedAt'] as String? ?? ''),
+        publishedAt: DateTime.tryParse(snippet['publishedAt'] as String? ?? ''),
       );
     }).toList();
   }
@@ -289,8 +328,10 @@ class YouTubeApiClient {
     };
     if (pageToken != null) params['pageToken'] = pageToken;
 
-    final response =
-        await _dio.get('$_baseUrl/search', queryParameters: params);
+    final response = await _dio.get(
+      '$_baseUrl/search',
+      queryParameters: params,
+    );
 
     if (response.statusCode == 403) {
       throw const QuotaExceededException();
@@ -309,8 +350,7 @@ class YouTubeApiClient {
         channelId: snippet['channelId'] as String? ?? '',
         channelTitle: snippet['channelTitle'] as String? ?? '',
         thumbnailUrl: _bestThumbnail(snippet['thumbnails']),
-        publishedAt:
-            DateTime.tryParse(snippet['publishedAt'] as String? ?? ''),
+        publishedAt: DateTime.tryParse(snippet['publishedAt'] as String? ?? ''),
       );
     }).toList();
 
@@ -324,11 +364,14 @@ class YouTubeApiClient {
     String videoId, {
     required String apiKey,
   }) async {
-    final response = await _dio.get('$_baseUrl/videos', queryParameters: {
-      'part': 'snippet,contentDetails,statistics',
-      'id': videoId,
-      'key': apiKey,
-    });
+    final response = await _dio.get(
+      '$_baseUrl/videos',
+      queryParameters: {
+        'part': 'snippet,contentDetails,statistics',
+        'id': videoId,
+        'key': apiKey,
+      },
+    );
 
     if (response.statusCode == 403) {
       throw const QuotaExceededException();
@@ -346,11 +389,14 @@ class YouTubeApiClient {
     List<String> videoIds, {
     required String apiKey,
   }) async {
-    final response = await _dio.get('$_baseUrl/videos', queryParameters: {
-      'part': 'snippet,contentDetails,statistics',
-      'id': videoIds.join(','),
-      'key': apiKey,
-    });
+    final response = await _dio.get(
+      '$_baseUrl/videos',
+      queryParameters: {
+        'part': 'snippet,contentDetails,statistics',
+        'id': videoIds.join(','),
+        'key': apiKey,
+      },
+    );
 
     if (response.statusCode == 403) {
       throw const QuotaExceededException();
@@ -366,11 +412,14 @@ class YouTubeApiClient {
     String channelId, {
     required String apiKey,
   }) async {
-    final response = await _dio.get('$_baseUrl/channels', queryParameters: {
-      'part': 'snippet,statistics',
-      'id': channelId,
-      'key': apiKey,
-    });
+    final response = await _dio.get(
+      '$_baseUrl/channels',
+      queryParameters: {
+        'part': 'snippet,statistics',
+        'id': channelId,
+        'key': apiKey,
+      },
+    );
 
     if (response.statusCode == 403) {
       throw const QuotaExceededException();
@@ -399,12 +448,14 @@ class YouTubeApiClient {
     String channelId, {
     required String apiKey,
   }) async {
-    final channelResponse =
-        await _dio.get('$_baseUrl/channels', queryParameters: {
-      'part': 'contentDetails',
-      'id': channelId,
-      'key': apiKey,
-    });
+    final channelResponse = await _dio.get(
+      '$_baseUrl/channels',
+      queryParameters: {
+        'part': 'contentDetails',
+        'id': channelId,
+        'key': apiKey,
+      },
+    );
 
     final channelItems = (channelResponse.data['items'] as List?) ?? [];
     if (channelItems.isEmpty) return [];
@@ -412,18 +463,20 @@ class YouTubeApiClient {
     final contentDetails =
         channelItems.first['contentDetails'] as Map<String, dynamic>;
     final uploadsPlaylistId =
-        (contentDetails['relatedPlaylists']
-            as Map<String, dynamic>)['uploads'] as String?;
+        (contentDetails['relatedPlaylists'] as Map<String, dynamic>)['uploads']
+            as String?;
 
     if (uploadsPlaylistId == null) return [];
 
-    final response =
-        await _dio.get('$_baseUrl/playlistItems', queryParameters: {
-      'part': 'snippet',
-      'playlistId': uploadsPlaylistId,
-      'maxResults': 50,
-      'key': apiKey,
-    });
+    final response = await _dio.get(
+      '$_baseUrl/playlistItems',
+      queryParameters: {
+        'part': 'snippet',
+        'playlistId': uploadsPlaylistId,
+        'maxResults': 50,
+        'key': apiKey,
+      },
+    );
 
     if (response.statusCode == 403) {
       throw const QuotaExceededException();
@@ -440,8 +493,7 @@ class YouTubeApiClient {
         channelId: snippet['channelId'] as String? ?? '',
         channelTitle: snippet['channelTitle'] as String? ?? '',
         thumbnailUrl: _bestThumbnail(snippet['thumbnails']),
-        publishedAt:
-            DateTime.tryParse(snippet['publishedAt'] as String? ?? ''),
+        publishedAt: DateTime.tryParse(snippet['publishedAt'] as String? ?? ''),
       );
     }).toList();
   }
@@ -463,25 +515,23 @@ class YouTubeApiClient {
       channelId: snippet['channelId'] as String? ?? '',
       channelTitle: snippet['channelTitle'] as String? ?? '',
       thumbnailUrl: _bestThumbnail(snippet['thumbnails']),
-      durationSeconds:
-          _parseDuration(contentDetails['duration'] as String? ?? ''),
-      publishedAt:
-          DateTime.tryParse(snippet['publishedAt'] as String? ?? ''),
+      durationSeconds: _parseDuration(
+        contentDetails['duration'] as String? ?? '',
+      ),
+      publishedAt: DateTime.tryParse(snippet['publishedAt'] as String? ?? ''),
       tags: (snippet['tags'] as List?)?.cast<String>() ?? [],
-      categoryId:
-          int.tryParse(snippet['categoryId'] as String? ?? '0') ?? 0,
+      categoryId: int.tryParse(snippet['categoryId'] as String? ?? '0') ?? 0,
       hasCaptions: contentDetails['caption'] == 'true',
-      viewCount:
-          int.tryParse(stats['viewCount'] as String? ?? '0') ?? 0,
-      likeCount:
-          int.tryParse(stats['likeCount'] as String? ?? '0') ?? 0,
+      viewCount: int.tryParse(stats['viewCount'] as String? ?? '0') ?? 0,
+      likeCount: int.tryParse(stats['likeCount'] as String? ?? '0') ?? 0,
     );
   }
 
   /// Parse ISO 8601 duration (PT1H2M3S) to seconds.
   int _parseDuration(String iso) {
-    final match =
-        RegExp(r'PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?').firstMatch(iso);
+    final match = RegExp(
+      r'PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?',
+    ).firstMatch(iso);
     if (match == null) return 0;
     final hours = int.tryParse(match.group(1) ?? '0') ?? 0;
     final minutes = int.tryParse(match.group(2) ?? '0') ?? 0;

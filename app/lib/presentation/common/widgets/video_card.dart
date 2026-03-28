@@ -58,7 +58,9 @@ class VideoCard extends StatelessWidget {
                           right: 2,
                           child: Container(
                             padding: const EdgeInsets.symmetric(
-                                horizontal: 4, vertical: 1),
+                              horizontal: 4,
+                              vertical: 1,
+                            ),
                             decoration: BoxDecoration(
                               color: Colors.black54,
                               borderRadius: BorderRadius.circular(3),
@@ -95,10 +97,7 @@ class VideoCard extends StatelessWidget {
                       const SizedBox(height: 4),
                       Text(
                         subtitle!,
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.grey[600],
-                        ),
+                        style: TextStyle(fontSize: 12, color: Colors.grey[600]),
                       ),
                     ],
                   ],

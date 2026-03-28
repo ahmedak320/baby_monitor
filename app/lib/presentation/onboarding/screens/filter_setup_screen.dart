@@ -50,9 +50,7 @@ class _FilterSetupScreenState extends ConsumerState<FilterSetupScreen> {
     final state = ref.watch(onboardingProvider);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Safety Priorities'),
-      ),
+      appBar: AppBar(title: const Text('Safety Priorities')),
       body: SafeArea(
         child: Column(
           children: [
@@ -64,15 +62,15 @@ class _FilterSetupScreenState extends ConsumerState<FilterSetupScreen> {
                   Text(
                     'What concerns you most?',
                     style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                   const SizedBox(height: 8),
                   Text(
                     'Drag to reorder by importance. #1 will be filtered most strictly.',
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: Colors.grey[600],
-                        ),
+                    style: Theme.of(
+                      context,
+                    ).textTheme.bodyMedium?.copyWith(color: Colors.grey[600]),
                   ),
                 ],
               ),
@@ -183,10 +181,7 @@ class _PriorityTile extends StatelessWidget {
                       ),
                       Text(
                         description,
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.grey[600],
-                        ),
+                        style: TextStyle(fontSize: 12, color: Colors.grey[600]),
                       ),
                     ],
                   ),

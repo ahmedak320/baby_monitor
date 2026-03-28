@@ -78,16 +78,17 @@ class _ChildActivityScreenState extends ConsumerState<ChildActivityScreen>
                 // Stats summary
                 Container(
                   padding: const EdgeInsets.all(16),
-                  color: Theme.of(context)
-                      .colorScheme
-                      .primaryContainer
-                      .withValues(alpha: 0.3),
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.primaryContainer.withValues(alpha: 0.3),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceAround,
                     children: [
                       _MiniStat(
                         label: 'Today',
-                        value: DurationFormatter.fromSeconds(_todayMinutes * 60),
+                        value: DurationFormatter.fromSeconds(
+                          _todayMinutes * 60,
+                        ),
                       ),
                       _MiniStat(
                         label: 'This Week',
@@ -109,10 +110,7 @@ class _ChildActivityScreenState extends ConsumerState<ChildActivityScreen>
                 Expanded(
                   child: TabBarView(
                     controller: _tabController,
-                    children: [
-                      _buildWatchList(),
-                      _buildFilteredList(),
-                    ],
+                    children: [_buildWatchList(), _buildFilteredList()],
                   ),
                 ),
               ],
@@ -224,10 +222,11 @@ class _MiniStat extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        Text(value,
-            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-        Text(label,
-            style: TextStyle(fontSize: 12, color: Colors.grey[600])),
+        Text(
+          value,
+          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+        ),
+        Text(label, style: TextStyle(fontSize: 12, color: Colors.grey[600])),
       ],
     );
   }

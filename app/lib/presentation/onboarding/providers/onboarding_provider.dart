@@ -18,7 +18,8 @@ class OnboardingState {
   final Set<String> approvedChannelIds;
 
   // Content preferences (Step 12)
-  final Map<String, String> contentPreferences; // type -> preferred/allowed/blocked
+  final Map<String, String>
+  contentPreferences; // type -> preferred/allowed/blocked
 
   final bool isLoading;
   final String? error;
@@ -155,5 +156,5 @@ class OnboardingNotifier extends StateNotifier<OnboardingState> {
 
 final onboardingProvider =
     StateNotifierProvider<OnboardingNotifier, OnboardingState>((ref) {
-  return OnboardingNotifier(ProfileRepository());
-});
+      return OnboardingNotifier(ProfileRepository());
+    });

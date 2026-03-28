@@ -40,15 +40,15 @@ class ContentScheduleBlock {
   }
 
   Map<String, dynamic> toJson() => {
-        'child_id': childId,
-        'day_of_week': dayOfWeek,
-        'start_hour': startHour,
-        'start_minute': startMinute,
-        'end_hour': endHour,
-        'end_minute': endMinute,
-        'allowed_content_types': allowedContentTypes,
-        'is_enabled': isEnabled,
-      };
+    'child_id': childId,
+    'day_of_week': dayOfWeek,
+    'start_hour': startHour,
+    'start_minute': startMinute,
+    'end_hour': endHour,
+    'end_minute': endMinute,
+    'allowed_content_types': allowedContentTypes,
+    'is_enabled': isEnabled,
+  };
 
   /// Check if this block is active right now.
   bool isActiveNow() {
@@ -130,32 +130,44 @@ class ContentScheduleService {
   static const _templates = {
     'balanced_day': [
       {
-        'start_hour': 8, 'end_hour': 12,
+        'start_hour': 8,
+        'end_hour': 12,
         'allowed_content_types': ['educational', 'nature', 'creative'],
       },
       {
-        'start_hour': 12, 'end_hour': 17,
+        'start_hour': 12,
+        'end_hour': 17,
         'allowed_content_types': ['cartoons', 'music', 'fun'],
       },
       {
-        'start_hour': 17, 'end_hour': 19,
+        'start_hour': 17,
+        'end_hour': 19,
         'allowed_content_types': ['storytime', 'soothing', 'nature'],
       },
     ],
     'learning_focus': [
       {
-        'start_hour': 8, 'end_hour': 15,
+        'start_hour': 8,
+        'end_hour': 15,
         'allowed_content_types': ['educational', 'nature', 'creative'],
       },
       {
-        'start_hour': 15, 'end_hour': 19,
+        'start_hour': 15,
+        'end_hour': 19,
         'allowed_content_types': ['cartoons', 'music', 'storytime'],
       },
     ],
     'calm_creative': [
       {
-        'start_hour': 8, 'end_hour': 19,
-        'allowed_content_types': ['soothing', 'nature', 'creative', 'storytime', 'music'],
+        'start_hour': 8,
+        'end_hour': 19,
+        'allowed_content_types': [
+          'soothing',
+          'nature',
+          'creative',
+          'storytime',
+          'music',
+        ],
       },
     ],
   };

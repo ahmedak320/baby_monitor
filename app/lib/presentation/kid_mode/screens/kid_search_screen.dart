@@ -52,7 +52,9 @@ class _KidSearchScreenState extends ConsumerState<KidSearchScreen> {
     super.initState();
     // Listen for analysis completions to promote/remove live results
     final realtimeService = ref.read(analysisRealtimeProvider);
-    _analysisSub = realtimeService.onAnalysisCompleted.listen(_onAnalysisComplete);
+    _analysisSub = realtimeService.onAnalysisCompleted.listen(
+      _onAnalysisComplete,
+    );
   }
 
   @override
@@ -81,8 +83,12 @@ class _KidSearchScreenState extends ConsumerState<KidSearchScreen> {
       bool isApproved;
       if (child != null) {
         final filterService = ContentFilterService();
-        final channelPrefs = await ChannelRepository().getChannelPrefsMap(child.parentId);
-        final video = _liveResults.where((v) => v.videoId == videoId).firstOrNull;
+        final channelPrefs = await ChannelRepository().getChannelPrefsMap(
+          child.parentId,
+        );
+        final video = _liveResults
+            .where((v) => v.videoId == videoId)
+            .firstOrNull;
         final result = filterService.filterForChild(
           analysis: analysis,
           child: child,
@@ -92,13 +98,16 @@ class _KidSearchScreenState extends ConsumerState<KidSearchScreen> {
         isApproved = result.isApproved;
       } else {
         final childAge = 5;
-        isApproved = !analysis.isGloballyBlacklisted &&
+        isApproved =
+            !analysis.isGloballyBlacklisted &&
             analysis.ageMinAppropriate <= childAge &&
             analysis.ageMaxAppropriate >= childAge;
       }
 
       setState(() {
-        final video = _liveResults.where((v) => v.videoId == videoId).firstOrNull;
+        final video = _liveResults
+            .where((v) => v.videoId == videoId)
+            .firstOrNull;
         _liveResults.removeWhere((v) => v.videoId == videoId);
         if (isApproved && video != null) {
           _approvedResults.add(video);
@@ -132,10 +141,16 @@ class _KidSearchScreenState extends ConsumerState<KidSearchScreen> {
                   decoration: InputDecoration(
                     hintText: 'Search videos...',
                     hintStyle: const TextStyle(color: KidTheme.textSecondary),
-                    prefixIcon: const Icon(Icons.search, color: KidTheme.textSecondary),
+                    prefixIcon: const Icon(
+                      Icons.search,
+                      color: KidTheme.textSecondary,
+                    ),
                     suffixIcon: _searchController.text.isNotEmpty
                         ? IconButton(
-                            icon: const Icon(Icons.clear, color: KidTheme.textSecondary),
+                            icon: const Icon(
+                              Icons.clear,
+                              color: KidTheme.textSecondary,
+                            ),
                             onPressed: () {
                               _searchController.clear();
                               setState(() {
@@ -164,63 +179,69 @@ class _KidSearchScreenState extends ConsumerState<KidSearchScreen> {
                 child: _isLoading
                     ? const Center(child: CircularProgressIndicator())
                     : !hasResults
-                        ? Center(
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                const Icon(Icons.search,
-                                    size: 64, color: KidTheme.textSecondary),
-                                const SizedBox(height: 16),
-                                Text(
-                                  _searchController.text.isEmpty
-                                      ? 'Type to search videos'
-                                      : 'No results found',
-                                  style: const TextStyle(
-                                    fontSize: 16,
-                                    color: KidTheme.textSecondary,
+                    ? Center(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(
+                              Icons.search,
+                              size: 64,
+                              color: KidTheme.textSecondary,
+                            ),
+                            const SizedBox(height: 16),
+                            Text(
+                              _searchController.text.isEmpty
+                                  ? 'Type to search videos'
+                                  : 'No results found',
+                              style: const TextStyle(
+                                fontSize: 16,
+                                color: KidTheme.textSecondary,
+                              ),
+                            ),
+                          ],
+                        ),
+                      )
+                    : ListView(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        children: [
+                          // Approved results section
+                          if (_approvedResults.isNotEmpty) ...[
+                            _SectionHeader(
+                              icon: Icons.verified,
+                              color: Colors.green,
+                              label: 'Safe Videos',
+                            ),
+                            ..._approvedResults.map(
+                              (video) => _SearchResultTile(
+                                video: video,
+                                badge: _SafeBadge(),
+                                onTap: () => _playVideo(video),
+                              ),
+                            ),
+                          ],
+
+                          // Live results section
+                          if (_liveResults.isNotEmpty) ...[
+                            const SizedBox(height: 8),
+                            _SectionHeader(
+                              icon: Icons.auto_awesome,
+                              color: Colors.amber,
+                              label: 'New Finds',
+                            ),
+                            ..._liveResults.map(
+                              (video) => _SearchResultTile(
+                                video: video,
+                                badge: _NewBadge(
+                                  analyzing: _pendingAnalysis.contains(
+                                    video.videoId,
                                   ),
                                 ),
-                              ],
+                                onTap: () => _playVideo(video),
+                              ),
                             ),
-                          )
-                        : ListView(
-                            padding: const EdgeInsets.symmetric(horizontal: 16),
-                            children: [
-                              // Approved results section
-                              if (_approvedResults.isNotEmpty) ...[
-                                _SectionHeader(
-                                  icon: Icons.verified,
-                                  color: Colors.green,
-                                  label: 'Safe Videos',
-                                ),
-                                ..._approvedResults.map((video) =>
-                                    _SearchResultTile(
-                                      video: video,
-                                      badge: _SafeBadge(),
-                                      onTap: () => _playVideo(video),
-                                    )),
-                              ],
-
-                              // Live results section
-                              if (_liveResults.isNotEmpty) ...[
-                                const SizedBox(height: 8),
-                                _SectionHeader(
-                                  icon: Icons.auto_awesome,
-                                  color: Colors.amber,
-                                  label: 'New Finds',
-                                ),
-                                ..._liveResults.map((video) =>
-                                    _SearchResultTile(
-                                      video: video,
-                                      badge: _NewBadge(
-                                        analyzing:
-                                            _pendingAnalysis.contains(video.videoId),
-                                      ),
-                                      onTap: () => _playVideo(video),
-                                    )),
-                              ],
-                            ],
-                          ),
+                          ],
+                        ],
+                      ),
               ),
             ],
           ),
@@ -245,14 +266,12 @@ class _KidSearchScreenState extends ConsumerState<KidSearchScreen> {
     setState(() => _isLoading = true);
 
     final child = ref.read(currentChildProvider);
-    final childAge =
-        child != null ? AgeCalculator.yearsFromDob(child.dateOfBirth) : 5;
+    final childAge = child != null
+        ? AgeCalculator.yearsFromDob(child.dateOfBirth)
+        : 5;
 
     // Run both searches in parallel
-    await Future.wait([
-      _searchApproved(query, childAge),
-      _searchLive(query),
-    ]);
+    await Future.wait([_searchApproved(query, childAge), _searchLive(query)]);
 
     setState(() => _isLoading = false);
   }
@@ -270,8 +289,7 @@ class _KidSearchScreenState extends ConsumerState<KidSearchScreen> {
           .limit(20);
 
       final videos = (response as List)
-          .map(
-              (r) => VideoMetadata.fromSupabaseRow(r as Map<String, dynamic>))
+          .map((r) => VideoMetadata.fromSupabaseRow(r as Map<String, dynamic>))
           .toList();
 
       // Apply per-child sensitivity filtering
@@ -337,16 +355,21 @@ class _KidSearchScreenState extends ConsumerState<KidSearchScreen> {
           _pendingAnalysis.add(video.videoId);
 
           // Upsert video metadata regardless of quota
-          videoRepo.upsertVideo(video,
-              source: 'search',
-              analysisStatus: 'metadata_approved',
-              metadataGatePassed: true,
-              metadataGateReason: gate.reason);
+          videoRepo.upsertVideo(
+            video,
+            source: 'search',
+            analysisStatus: 'metadata_approved',
+            metadataGatePassed: true,
+            metadataGateReason: gate.reason,
+          );
 
           // Only queue for analysis if quota allows
           if (canAnalyze) {
-            videoRepo.requestAnalysis(video.videoId,
-                priority: 2, source: 'search');
+            videoRepo.requestAnalysis(
+              video.videoId,
+              priority: 2,
+              source: 'search',
+            );
             subService.recordAnalysisUsage();
             queued++;
           }
@@ -488,14 +511,15 @@ class _SearchResultTile extends StatelessWidget {
                     children: [
                       video.thumbnailUrl.isNotEmpty
                           ? CachedNetworkImage(
-                              imageUrl: video.thumbnailUrl
-                                  .replaceAll('_live.jpg', '.jpg'),
+                              imageUrl: video.thumbnailUrl.replaceAll(
+                                '_live.jpg',
+                                '.jpg',
+                              ),
                               fit: BoxFit.cover,
                             )
                           : Container(
                               color: KidTheme.surface,
-                              child:
-                                  const Icon(Icons.play_circle_outline),
+                              child: const Icon(Icons.play_circle_outline),
                             ),
                       if (video.detectedAsShort)
                         Positioned(
@@ -503,7 +527,9 @@ class _SearchResultTile extends StatelessWidget {
                           left: 4,
                           child: Container(
                             padding: const EdgeInsets.symmetric(
-                                horizontal: 4, vertical: 1),
+                              horizontal: 4,
+                              vertical: 1,
+                            ),
                             decoration: BoxDecoration(
                               color: Colors.red,
                               borderRadius: BorderRadius.circular(4),
@@ -511,7 +537,9 @@ class _SearchResultTile extends StatelessWidget {
                             child: const Text(
                               'Short',
                               style: TextStyle(
-                                  color: Colors.white, fontSize: 9),
+                                color: Colors.white,
+                                fontSize: 9,
+                              ),
                             ),
                           ),
                         ),
@@ -544,7 +572,8 @@ class _SearchResultTile extends StatelessWidget {
                         if (video.durationSeconds > 0)
                           Text(
                             DurationFormatter.videoLength(
-                                video.durationSeconds),
+                              video.durationSeconds,
+                            ),
                             style: const TextStyle(
                               fontSize: 12,
                               color: KidTheme.textSecondary,

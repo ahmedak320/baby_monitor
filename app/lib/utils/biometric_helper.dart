@@ -57,15 +57,11 @@ class BiometricHelper {
 
   /// Authenticate specifically for switching child profiles.
   static Future<bool> authenticateForChildSwitch() {
-    return authenticate(
-      reason: 'Verify to switch child profile',
-    );
+    return authenticate(reason: 'Verify to switch child profile');
   }
 
   /// Authenticate for exiting kid mode.
   static Future<bool> authenticateForExitKidMode() {
-    return authenticate(
-      reason: 'Verify to exit kid mode',
-    );
+    return authenticate(reason: 'Verify to exit kid mode');
   }
 }

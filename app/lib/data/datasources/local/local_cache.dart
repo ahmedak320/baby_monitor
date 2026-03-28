@@ -54,8 +54,10 @@ class LocalCache {
 
     _approvedVideos = await _openEncryptedBox<Map>(_approvedVideosBox, cipher);
     _preferences = await _openEncryptedBox(_preferencesBox, cipher);
-    _thumbnailCache =
-        await _openEncryptedBox<String>(_thumbnailCacheBox, cipher);
+    _thumbnailCache = await _openEncryptedBox<String>(
+      _thumbnailCacheBox,
+      cipher,
+    );
   }
 
   static Box<Map> get approvedVideos => _approvedVideos;

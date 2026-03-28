@@ -38,10 +38,8 @@ class AppMetadata {
     'kid safe videos',
   ];
 
-  static const String privacyPolicyUrl =
-      'https://babymonitor.app/privacy';
-  static const String termsOfServiceUrl =
-      'https://babymonitor.app/terms';
+  static const String privacyPolicyUrl = 'https://babymonitor.app/privacy';
+  static const String termsOfServiceUrl = 'https://babymonitor.app/terms';
   static const String supportEmail = 'support@babymonitor.app';
 
   static const String ageRating = '4+'; // App is for parents, not children

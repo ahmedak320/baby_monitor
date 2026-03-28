@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:youtube_player_iframe/youtube_player_iframe.dart';
 
+import '../../../data/datasources/local/approved_cache.dart';
 import '../../../data/datasources/remote/analysis_api.dart';
 import '../../../data/repositories/video_repository.dart';
 import '../../../providers/current_child_provider.dart';
@@ -49,9 +50,7 @@ class _KidVideoPlayerScreenState extends ConsumerState<KidVideoPlayerScreen> {
 
     // Shorts: lock to portrait (mobile only — TV is always landscape)
     if (widget.isShort && !PlatformInfo.isTV) {
-      SystemChrome.setPreferredOrientations([
-        DeviceOrientation.portraitUp,
-      ]);
+      SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
     }
 
     _controller = YoutubePlayerController.fromVideoId(
@@ -110,8 +109,9 @@ class _KidVideoPlayerScreenState extends ConsumerState<KidVideoPlayerScreen> {
 
   void _startAnalysisListener() {
     final realtimeService = ref.read(analysisRealtimeProvider);
-    _analysisSub =
-        realtimeService.onAnalysisCompleted.listen(_onAnalysisComplete);
+    _analysisSub = realtimeService.onAnalysisCompleted.listen(
+      _onAnalysisComplete,
+    );
   }
 
   Future<void> _onAnalysisComplete(String videoId) async {
@@ -125,13 +125,16 @@ class _KidVideoPlayerScreenState extends ConsumerState<KidVideoPlayerScreen> {
     if (child == null) return;
 
     // Check if video passes content filter
-    final isRejected = analysis.isGloballyBlacklisted ||
+    final isRejected =
+        analysis.isGloballyBlacklisted ||
         analysis.violenceScore > 4.0 ||
         analysis.audioSafetyScore < 4.0 ||
         analysis.scarinessScore > 7.0;
 
     if (isRejected) {
       _interruptVideo('Content flagged by safety analysis');
+      // Evict from approved cache so it doesn't reappear
+      ApprovedCache.removeApprovedVideoId(child.id, videoId);
     }
   }
 
@@ -268,57 +271,60 @@ class _KidVideoPlayerScreenState extends ConsumerState<KidVideoPlayerScreen> {
           autofocus: PlatformInfo.isTV,
           onKeyEvent: _handleTvKey,
           child: Stack(
-          children: [
-            // Main player
-            Column(
-              children: [
-                Expanded(
-                  child: Column(
-                    children: [
-                      if (!widget.isShort)
-                        _TopBar(
-                          title: widget.videoTitle ?? '',
-                          onBack: () => Navigator.of(context).pop(),
+            children: [
+              // Main player
+              Column(
+                children: [
+                  Expanded(
+                    child: Column(
+                      children: [
+                        if (!widget.isShort)
+                          _TopBar(
+                            title: widget.videoTitle ?? '',
+                            onBack: () => Navigator.of(context).pop(),
+                          ),
+                        Expanded(
+                          child: YoutubePlayer(
+                            controller: _controller,
+                            aspectRatio: widget.isShort ? 9 / 16 : 16 / 9,
+                            backgroundColor: Colors.black,
+                          ),
                         ),
-                      Expanded(
-                        child: YoutubePlayer(
-                          controller: _controller,
-                          aspectRatio: widget.isShort ? 9 / 16 : 16 / 9,
-                          backgroundColor: Colors.black,
-                        ),
-                      ),
-                      if (!widget.isShort)
-                        _BottomBar(
-                          watchedSeconds: _watchedSeconds,
-                          isPlaying: _isPlaying,
-                        ),
-                    ],
+                        if (!widget.isShort)
+                          _BottomBar(
+                            watchedSeconds: _watchedSeconds,
+                            isPlaying: _isPlaying,
+                          ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+
+              // Interruption overlay
+              if (_isInterrupted)
+                _InterruptionOverlay(reason: _interruptReason ?? ''),
+
+              // Error overlay
+              if (_hasError)
+                _ErrorOverlay(message: _errorMessage ?? 'Video unavailable'),
+
+              // Shorts: back button overlay
+              if (widget.isShort)
+                Positioned(
+                  top: 8,
+                  left: 8,
+                  child: IconButton(
+                    icon: const Icon(
+                      Icons.arrow_back,
+                      color: Colors.white,
+                      size: 28,
+                    ),
+                    onPressed: () => Navigator.of(context).pop(),
                   ),
                 ),
-              ],
-            ),
-
-            // Interruption overlay
-            if (_isInterrupted)
-              _InterruptionOverlay(reason: _interruptReason ?? ''),
-
-            // Error overlay
-            if (_hasError)
-              _ErrorOverlay(message: _errorMessage ?? 'Video unavailable'),
-
-            // Shorts: back button overlay
-            if (widget.isShort)
-              Positioned(
-                top: 8,
-                left: 8,
-                child: IconButton(
-                  icon: const Icon(Icons.arrow_back,
-                      color: Colors.white, size: 28),
-                  onPressed: () => Navigator.of(context).pop(),
-                ),
-              ),
-          ],
-        ),
+            ],
+          ),
         ),
       ),
     );
@@ -345,10 +351,7 @@ class _InterruptionOverlay extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(
-              '🎬',
-              style: TextStyle(fontSize: 64),
-            ),
+            Text('🎬', style: TextStyle(fontSize: 64)),
             SizedBox(height: 16),
             Text(
               'Time for a new video!',
@@ -361,10 +364,7 @@ class _InterruptionOverlay extends StatelessWidget {
             SizedBox(height: 8),
             Text(
               'Finding something fun...',
-              style: TextStyle(
-                color: Colors.white70,
-                fontSize: 16,
-              ),
+              style: TextStyle(color: Colors.white70, fontSize: 16),
             ),
             SizedBox(height: 24),
             SizedBox(
@@ -466,10 +466,7 @@ class _BottomBar extends StatelessWidget {
   final int watchedSeconds;
   final bool isPlaying;
 
-  const _BottomBar({
-    required this.watchedSeconds,
-    required this.isPlaying,
-  });
+  const _BottomBar({required this.watchedSeconds, required this.isPlaying});
 
   @override
   Widget build(BuildContext context) {

@@ -45,22 +45,22 @@ class VideoMetadata {
       title.toLowerCase().contains('#shorts');
 
   Map<String, dynamic> toSupabaseRow({String? source}) => {
-        'video_id': videoId,
-        'channel_id': channelId.isNotEmpty ? channelId : null,
-        'title': title,
-        'description': description,
-        'thumbnail_url': thumbnailUrl,
-        'duration_seconds': durationSeconds,
-        'published_at': publishedAt?.toIso8601String(),
-        'tags': tags,
-        'category_id': categoryId,
-        'has_captions': hasCaptions,
-        'view_count': viewCount,
-        'like_count': likeCount,
-        'is_short': detectedAsShort,
-        if (source != null) 'discovery_source': source,
-        'last_fetched_at': DateTime.now().toIso8601String(),
-      };
+    'video_id': videoId,
+    'channel_id': channelId.isNotEmpty ? channelId : null,
+    'title': title,
+    'description': description,
+    'thumbnail_url': thumbnailUrl,
+    'duration_seconds': durationSeconds,
+    'published_at': publishedAt?.toIso8601String(),
+    'tags': tags,
+    'category_id': categoryId,
+    'has_captions': hasCaptions,
+    'view_count': viewCount,
+    'like_count': likeCount,
+    'is_short': detectedAsShort,
+    if (source != null) 'discovery_source': source,
+    'last_fetched_at': DateTime.now().toIso8601String(),
+  };
 
   factory VideoMetadata.fromSupabaseRow(Map<String, dynamic> row) {
     return VideoMetadata(
@@ -110,14 +110,14 @@ class ChannelMetadata {
   });
 
   Map<String, dynamic> toSupabaseRow() => {
-        'channel_id': channelId,
-        'title': title,
-        'description': description,
-        'thumbnail_url': thumbnailUrl,
-        'subscriber_count': subscriberCount,
-        'is_kids_channel': isKidsChannel,
-        'last_fetched_at': DateTime.now().toIso8601String(),
-      };
+    'channel_id': channelId,
+    'title': title,
+    'description': description,
+    'thumbnail_url': thumbnailUrl,
+    'subscriber_count': subscriberCount,
+    'is_kids_channel': isKidsChannel,
+    'last_fetched_at': DateTime.now().toIso8601String(),
+  };
 
   factory ChannelMetadata.fromSupabaseRow(Map<String, dynamic> row) {
     return ChannelMetadata(
@@ -139,8 +139,5 @@ class VideoSearchResult {
   final List<VideoMetadata> videos;
   final String? nextPageToken;
 
-  const VideoSearchResult({
-    required this.videos,
-    this.nextPageToken,
-  });
+  const VideoSearchResult({required this.videos, this.nextPageToken});
 }

@@ -32,10 +32,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     ref.listen(authNotifierProvider, (prev, next) {
       if (next.error != null) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(next.error!),
-            backgroundColor: Colors.red,
-          ),
+          SnackBar(content: Text(next.error!), backgroundColor: Colors.red),
         );
       }
     });
@@ -60,16 +57,16 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 Text(
                   'Baby Monitor',
                   style: Theme.of(context).textTheme.headlineLarge?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
+                    fontWeight: FontWeight.bold,
+                  ),
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 8),
                 Text(
                   'Safe YouTube for your kids',
-                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                        color: Colors.grey,
-                      ),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodyLarge?.copyWith(color: Colors.grey),
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 40),
@@ -134,7 +131,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   Future<void> _handleLogin() async {
     if (!_formKey.currentState!.validate()) return;
 
-    final success = await ref.read(authNotifierProvider.notifier).signIn(
+    final success = await ref
+        .read(authNotifierProvider.notifier)
+        .signIn(
           email: _emailController.text.trim(),
           password: _passwordController.text,
         );
@@ -147,12 +146,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   void _handleForgotPassword() {
     final email = _emailController.text.trim();
     if (email.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Enter your email first')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Enter your email first')));
       return;
     }
-    ref.read(authNotifierProvider.notifier).resetPassword(email).then((success) {
+    ref.read(authNotifierProvider.notifier).resetPassword(email).then((
+      success,
+    ) {
       if (success && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Password reset email sent')),

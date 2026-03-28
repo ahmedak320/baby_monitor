@@ -19,10 +19,7 @@ class BedtimeScreen extends StatelessWidget {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Text(
-                  '🌙',
-                  style: TextStyle(fontSize: 80),
-                ),
+                const Text('🌙', style: TextStyle(fontSize: 80)),
                 const SizedBox(height: 32),
                 const Text(
                   'Time for bed!',
@@ -35,17 +32,11 @@ class BedtimeScreen extends StatelessWidget {
                 const SizedBox(height: 16),
                 const Text(
                   'Sweet dreams! Videos will be here\nwhen you wake up.',
-                  style: TextStyle(
-                    fontSize: 18,
-                    color: Colors.white54,
-                  ),
+                  style: TextStyle(fontSize: 18, color: Colors.white54),
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 48),
-                const Text(
-                  '⭐ ⭐ ⭐',
-                  style: TextStyle(fontSize: 40),
-                ),
+                const Text('⭐ ⭐ ⭐', style: TextStyle(fontSize: 40)),
                 const SizedBox(height: 64),
                 TextButton(
                   onPressed: () async {
@@ -54,10 +45,7 @@ class BedtimeScreen extends StatelessWidget {
                   },
                   child: const Text(
                     'Parent? Tap here',
-                    style: TextStyle(
-                      color: Colors.white24,
-                      fontSize: 12,
-                    ),
+                    style: TextStyle(color: Colors.white24, fontSize: 12),
                   ),
                 ),
               ],

@@ -5,11 +5,7 @@ class SafetyScoreBadge extends StatelessWidget {
   final double score; // 1-10
   final String label;
 
-  const SafetyScoreBadge({
-    super.key,
-    required this.score,
-    required this.label,
-  });
+  const SafetyScoreBadge({super.key, required this.score, required this.label});
 
   @override
   Widget build(BuildContext context) {
@@ -34,13 +30,7 @@ class SafetyScoreBadge extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 4),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 11,
-              color: color,
-            ),
-          ),
+          Text(label, style: TextStyle(fontSize: 11, color: color)),
         ],
       ),
     );

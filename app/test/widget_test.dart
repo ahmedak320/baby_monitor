@@ -9,9 +9,7 @@ void main() {
     await tester.pumpWidget(
       const ProviderScope(
         child: MaterialApp(
-          home: Scaffold(
-            body: Center(child: Text('Baby Monitor')),
-          ),
+          home: Scaffold(body: Center(child: Text('Baby Monitor'))),
         ),
       ),
     );
@@ -25,9 +23,7 @@ void main() {
         child: MaterialApp(
           home: Consumer(
             builder: (context, ref, _) {
-              return const Scaffold(
-                body: Center(child: Text('Provider test')),
-              );
+              return const Scaffold(body: Center(child: Text('Provider test')));
             },
           ),
         ),

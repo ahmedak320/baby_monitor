@@ -44,8 +44,7 @@ class ShortsPlayerWidget extends StatelessWidget {
               top: MediaQuery.of(context).padding.top + 8,
               right: 12,
               child: Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
                   color: Colors.black45,
                   borderRadius: BorderRadius.circular(12),
@@ -53,8 +52,11 @@ class ShortsPlayerWidget extends StatelessWidget {
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Icon(Icons.timer_outlined,
-                        size: 14, color: Colors.white70),
+                    const Icon(
+                      Icons.timer_outlined,
+                      size: 14,
+                      color: Colors.white70,
+                    ),
                     const SizedBox(width: 4),
                     Text(
                       '${remainingMinutes}m',
@@ -84,11 +86,7 @@ class ShortsPlayerWidget extends StatelessWidget {
                   },
                 ),
                 const SizedBox(height: 16),
-                _ActionButton(
-                  icon: Icons.more_vert,
-                  label: '',
-                  onTap: () {},
-                ),
+                _ActionButton(icon: Icons.more_vert, label: '', onTap: () {}),
               ],
             ),
           ),
@@ -126,10 +124,7 @@ class ShortsPlayerWidget extends StatelessWidget {
                     item.video.title,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 13,
-                    ),
+                    style: const TextStyle(color: Colors.white, fontSize: 13),
                   ),
                   const SizedBox(height: 8),
                   // Safety badge + content label
@@ -137,7 +132,9 @@ class ShortsPlayerWidget extends StatelessWidget {
                     children: [
                       Container(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 6, vertical: 2),
+                          horizontal: 6,
+                          vertical: 2,
+                        ),
                         decoration: BoxDecoration(
                           color: Colors.green.withValues(alpha: 0.8),
                           borderRadius: BorderRadius.circular(8),
@@ -145,8 +142,11 @@ class ShortsPlayerWidget extends StatelessWidget {
                         child: const Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Icon(Icons.check_circle,
-                                size: 12, color: Colors.white),
+                            Icon(
+                              Icons.check_circle,
+                              size: 12,
+                              color: Colors.white,
+                            ),
                             SizedBox(width: 3),
                             Text(
                               'Safe',
@@ -163,7 +163,9 @@ class ShortsPlayerWidget extends StatelessWidget {
                         const SizedBox(width: 6),
                         Container(
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 6, vertical: 2),
+                            horizontal: 6,
+                            vertical: 2,
+                          ),
                           decoration: BoxDecoration(
                             color: KidTheme.youtubeRed.withValues(alpha: 0.8),
                             borderRadius: BorderRadius.circular(8),
@@ -202,10 +204,8 @@ class _VideoBackground extends StatelessWidget {
     return CachedNetworkImage(
       imageUrl: thumbnailUrl.replaceAll('_live.jpg', '.jpg'),
       fit: BoxFit.cover,
-      placeholder: (_, _) =>
-          Container(color: KidTheme.background),
-      errorWidget: (_, _, _) =>
-          Container(color: KidTheme.background),
+      placeholder: (_, _) => Container(color: KidTheme.background),
+      errorWidget: (_, _, _) => Container(color: KidTheme.background),
     );
   }
 }

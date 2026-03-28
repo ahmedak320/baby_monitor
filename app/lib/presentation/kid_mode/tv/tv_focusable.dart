@@ -54,10 +54,7 @@ class _TvFocusableState extends State<TvFocusable> {
   @override
   Widget build(BuildContext context) {
     if (!PlatformInfo.isTV) {
-      return GestureDetector(
-        onTap: widget.onSelect,
-        child: widget.child,
-      );
+      return GestureDetector(onTap: widget.onSelect, child: widget.child);
     }
 
     return Focus(
@@ -69,9 +66,7 @@ class _TvFocusableState extends State<TvFocusable> {
         duration: const Duration(milliseconds: 150),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(12),
-          border: _isFocused
-              ? Border.all(color: Colors.white, width: 3)
-              : null,
+          border: _isFocused ? Border.all(color: Colors.white, width: 3) : null,
         ),
         transform: _isFocused
             ? Matrix4.diagonal3Values(1.05, 1.05, 1.0)

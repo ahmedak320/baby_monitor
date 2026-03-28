@@ -54,10 +54,7 @@ class NotificationBanner extends StatelessWidget {
                       const SizedBox(height: 2),
                       Text(
                         notification.body,
-                        style: TextStyle(
-                          fontSize: 13,
-                          color: Colors.grey[700],
-                        ),
+                        style: TextStyle(fontSize: 13, color: Colors.grey[700]),
                       ),
                     ],
                   ),

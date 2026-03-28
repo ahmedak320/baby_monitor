@@ -101,7 +101,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             // Subscription banner (free tier)
             subscriptionAsync.when(
               data: (sub) {
-                if (sub == null || sub.isPremium) return const SizedBox.shrink();
+                if (sub == null || sub.isPremium)
+                  return const SizedBox.shrink();
                 return _SubscriptionBanner(
                   used: sub.monthlyAnalysesUsed,
                   limit: sub.monthlyAnalysesLimit,
@@ -125,8 +126,10 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               child: ElevatedButton.icon(
                 onPressed: () => context.pushNamed(RouteNames.childSelect),
                 icon: const Icon(Icons.play_circle_filled, size: 28),
-                label: const Text('Start Kid Mode',
-                    style: TextStyle(fontSize: 18)),
+                label: const Text(
+                  'Start Kid Mode',
+                  style: TextStyle(fontSize: 18),
+                ),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF6C63FF),
                   foregroundColor: Colors.white,
@@ -142,9 +145,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             // Per-child stats
             Text(
               'Today\'s Activity',
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
+              style: Theme.of(
+                context,
+              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 12),
 
@@ -156,8 +159,11 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                       padding: const EdgeInsets.all(24),
                       child: Column(
                         children: [
-                          const Icon(Icons.child_care,
-                              size: 48, color: Colors.grey),
+                          const Icon(
+                            Icons.child_care,
+                            size: 48,
+                            color: Colors.grey,
+                          ),
                           const SizedBox(height: 12),
                           const Text('No children added yet'),
                           const SizedBox(height: 12),
@@ -175,13 +181,15 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
 
                 return Column(
                   children: statsList
-                      .map((s) => _ChildStatsCard(
-                            stats: s,
-                            onTap: () => context.pushNamed(
-                              RouteNames.childActivity,
-                              pathParameters: {'childId': s.child.id},
-                            ),
-                          ))
+                      .map(
+                        (s) => _ChildStatsCard(
+                          stats: s,
+                          onTap: () => context.pushNamed(
+                            RouteNames.childActivity,
+                            pathParameters: {'childId': s.child.id},
+                          ),
+                        ),
+                      )
                       .toList(),
                 );
               },
@@ -197,12 +205,13 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                   padding: const EdgeInsets.all(16),
                   child: Column(
                     children: [
-                      const Text('Something went wrong. Please try again.',
-                          style: TextStyle(color: Colors.red)),
+                      const Text(
+                        'Something went wrong. Please try again.',
+                        style: TextStyle(color: Colors.red),
+                      ),
                       const SizedBox(height: 12),
                       ElevatedButton.icon(
-                        onPressed: () =>
-                            context.pushNamed(RouteNames.addChild),
+                        onPressed: () => context.pushNamed(RouteNames.addChild),
                         icon: const Icon(Icons.add),
                         label: const Text('Add a child'),
                       ),
@@ -217,9 +226,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             // Quick actions
             Text(
               'Quick Actions',
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
+              style: Theme.of(
+                context,
+              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 12),
             Wrap(
@@ -399,11 +408,18 @@ class _StatBadge extends StatelessWidget {
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(value,
-                style: TextStyle(
-                    fontWeight: FontWeight.bold, fontSize: 14, color: color)),
-            Text(label,
-                style: TextStyle(fontSize: 11, color: Colors.grey[500])),
+            Text(
+              value,
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 14,
+                color: color,
+              ),
+            ),
+            Text(
+              label,
+              style: TextStyle(fontSize: 11, color: Colors.grey[500]),
+            ),
           ],
         ),
       ],
@@ -458,7 +474,11 @@ class _NotificationsSection extends ConsumerWidget {
     );
   }
 
-  void _handleNotificationTap(BuildContext context, WidgetRef ref, AppNotification n) {
+  void _handleNotificationTap(
+    BuildContext context,
+    WidgetRef ref,
+    AppNotification n,
+  ) {
     switch (n.type) {
       case NotificationType.filteredContentAlert:
         context.pushNamed(RouteNames.filteredContent);
@@ -518,10 +538,7 @@ class _SubscriptionBanner extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 12),
-            TextButton(
-              onPressed: onUpgrade,
-              child: const Text('Upgrade'),
-            ),
+            TextButton(onPressed: onUpgrade, child: const Text('Upgrade')),
           ],
         ),
       ),

@@ -70,16 +70,18 @@ class ChildSelectScreen extends ConsumerWidget {
                   child: GridView.builder(
                     gridDelegate:
                         const SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 2,
-                      childAspectRatio: 0.9,
-                      crossAxisSpacing: 20,
-                      mainAxisSpacing: 20,
-                    ),
+                          crossAxisCount: 2,
+                          childAspectRatio: 0.9,
+                          crossAxisSpacing: 20,
+                          mainAxisSpacing: 20,
+                        ),
                     itemCount: children.length,
                     itemBuilder: (context, index) {
                       final child = children[index];
                       final age = AgeCalculator.yearsFromDob(child.dateOfBirth);
-                      final bracket = AgeCalculator.ageBracket(child.dateOfBirth);
+                      final bracket = AgeCalculator.ageBracket(
+                        child.dateOfBirth,
+                      );
 
                       return _ChildAvatar(
                         name: child.name,
@@ -87,8 +89,10 @@ class ChildSelectScreen extends ConsumerWidget {
                         bracket: bracket,
                         colorIndex: index,
                         onTap: () async {
-                          final authenticated =
-                              await _authenticateParent(context, child.name);
+                          final authenticated = await _authenticateParent(
+                            context,
+                            child.name,
+                          );
                           if (authenticated && context.mounted) {
                             ref
                                 .read(currentChildProvider.notifier)
@@ -105,7 +109,9 @@ class ChildSelectScreen extends ConsumerWidget {
           );
         },
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => const Center(child: Text('Something went wrong. Please try again.')),
+        error: (e, _) => const Center(
+          child: Text('Something went wrong. Please try again.'),
+        ),
       ),
     );
   }
@@ -168,9 +174,7 @@ Future<bool> _showPinFallbackDialog(BuildContext context) async {
             keyboardType: TextInputType.number,
             obscureText: true,
             maxLength: 4,
-            decoration: const InputDecoration(
-              hintText: '4-digit PIN',
-            ),
+            decoration: const InputDecoration(hintText: '4-digit PIN'),
           ),
           if (remainingAttempts < _maxPinAttempts)
             Padding(
@@ -305,17 +309,11 @@ class _ChildAvatar extends StatelessWidget {
           const SizedBox(height: 12),
           Text(
             name,
-            style: const TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-            ),
+            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
           ),
           Text(
             'Age $age · $bracket',
-            style: const TextStyle(
-              fontSize: 13,
-              color: Colors.grey,
-            ),
+            style: const TextStyle(fontSize: 13, color: Colors.grey),
           ),
         ],
       ),

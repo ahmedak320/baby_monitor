@@ -43,27 +43,34 @@ class AnalyticsService {
       track('video_played', properties: {'video_id': videoId});
 
   static Future<void> trackVideoFiltered(String videoId, String reason) =>
-      track('video_filtered',
-          properties: {'video_id': videoId, 'reason': reason});
+      track(
+        'video_filtered',
+        properties: {'video_id': videoId, 'reason': reason},
+      );
 
   static Future<void> trackKidModeStarted(String childId) =>
       track('kid_mode_started', properties: {'child_id': _hashId(childId)});
 
   static Future<void> trackKidModeEnded(String childId, int durationSeconds) =>
-      track('kid_mode_ended',
-          properties: {'child_id': _hashId(childId), 'duration_s': durationSeconds});
+      track(
+        'kid_mode_ended',
+        properties: {
+          'child_id': _hashId(childId),
+          'duration_s': durationSeconds,
+        },
+      );
 
   static Future<void> trackFilterAdjusted(String setting, dynamic value) =>
-      track('filter_adjusted',
-          properties: {'setting': setting, 'value': '$value'});
+      track(
+        'filter_adjusted',
+        properties: {'setting': setting, 'value': '$value'},
+      );
 
   static Future<void> trackFeedbackSubmitted(String category) =>
       track('feedback_submitted', properties: {'category': category});
 
-  static Future<void> trackSubscriptionViewed() =>
-      track('subscription_viewed');
+  static Future<void> trackSubscriptionViewed() => track('subscription_viewed');
 
   static Future<void> trackError(String error, String context) =>
-      track('app_error',
-          properties: {'error': error, 'context': context});
+      track('app_error', properties: {'error': error, 'context': context});
 }

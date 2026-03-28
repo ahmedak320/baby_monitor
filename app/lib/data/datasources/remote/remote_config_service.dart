@@ -43,8 +43,10 @@ class RemoteConfigService {
 
     try {
       final client = Supabase.instance.client;
-      final response =
-          await client.from('app_config').select('key, value').limit(20);
+      final response = await client
+          .from('app_config')
+          .select('key, value')
+          .limit(20);
 
       final rows = response as List<dynamic>;
       for (final row in rows) {
@@ -64,9 +66,10 @@ class RemoteConfigService {
 
       // Merge: remote keys + compile-time keys, deduplicated.
       final compileKeys = _buildDefaultKeys();
-      final mergedKeys = <String>{..._youtubeApiKeys, ...compileKeys}
-          .where((k) => k.isNotEmpty)
-          .toList();
+      final mergedKeys = <String>{
+        ..._youtubeApiKeys,
+        ...compileKeys,
+      }.where((k) => k.isNotEmpty).toList();
       if (mergedKeys.isNotEmpty) _youtubeApiKeys = mergedKeys;
 
       debugPrint(

@@ -93,9 +93,9 @@ class _ReportContentScreenState extends ConsumerState<ReportContentScreen> {
 
           Text(
             'How accurate was our analysis?',
-            style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
+            style: Theme.of(
+              context,
+            ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 8),
           Text(
@@ -154,17 +154,14 @@ class _ReportContentScreenState extends ConsumerState<ReportContentScreen> {
 
     try {
       // Upsert community rating
-      await SupabaseClientWrapper.client.from('community_ratings').upsert(
-        {
-          'video_id': widget.videoId,
-          'parent_id': userId,
-          'rating': _selectedRating,
-          'comment': _commentController.text.trim().isNotEmpty
-              ? _commentController.text.trim()
-              : null,
-        },
-        onConflict: 'video_id,parent_id',
-      );
+      await SupabaseClientWrapper.client.from('community_ratings').upsert({
+        'video_id': widget.videoId,
+        'parent_id': userId,
+        'rating': _selectedRating,
+        'comment': _commentController.text.trim().isNotEmpty
+            ? _commentController.text.trim()
+            : null,
+      }, onConflict: 'video_id,parent_id');
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

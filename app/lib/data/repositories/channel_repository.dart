@@ -7,7 +7,7 @@ class ChannelRepository {
   final PipedPool _pipedPool;
 
   ChannelRepository({PipedPool? pipedPool})
-      : _pipedPool = pipedPool ?? PipedPool();
+    : _pipedPool = pipedPool ?? PipedPool();
 
   /// Search channels locally in the yt_channels table.
   Future<List<ChannelMetadata>> searchLocal(String query) async {
@@ -20,8 +20,7 @@ class ChannelRepository {
         .limit(20);
 
     return (rows as List)
-        .map((r) =>
-            ChannelMetadata.fromSupabaseRow(r as Map<String, dynamic>))
+        .map((r) => ChannelMetadata.fromSupabaseRow(r as Map<String, dynamic>))
         .toList();
   }
 
@@ -46,10 +45,9 @@ class ChannelRepository {
 
   /// Upsert a channel into yt_channels.
   Future<void> upsertChannel(ChannelMetadata channel) async {
-    await SupabaseClientWrapper.client.from('yt_channels').upsert(
-      channel.toSupabaseRow(),
-      onConflict: 'channel_id',
-    );
+    await SupabaseClientWrapper.client
+        .from('yt_channels')
+        .upsert(channel.toSupabaseRow(), onConflict: 'channel_id');
   }
 
   /// Set parent preference for a channel (approve or block).
@@ -59,15 +57,12 @@ class ChannelRepository {
     required String status,
     String? childId,
   }) async {
-    await SupabaseClientWrapper.client.from('parent_channel_prefs').upsert(
-      {
-        'parent_id': parentId,
-        'channel_id': channelId,
-        'status': status,
-        if (childId != null) 'applies_to_child_id': childId,
-      },
-      onConflict: 'parent_id,channel_id,applies_to_child_id',
-    );
+    await SupabaseClientWrapper.client.from('parent_channel_prefs').upsert({
+      'parent_id': parentId,
+      'channel_id': channelId,
+      'status': status,
+      if (childId != null) 'applies_to_child_id': childId,
+    }, onConflict: 'parent_id,channel_id,applies_to_child_id');
   }
 
   /// Remove parent preference for a channel.
@@ -94,16 +89,16 @@ class ChannelRepository {
 
   /// Get channel IDs with a specific status for a parent.
   Future<List<String>> getChannelIdsByStatus(
-      String parentId, String status) async {
+    String parentId,
+    String status,
+  ) async {
     final rows = await SupabaseClientWrapper.client
         .from('parent_channel_prefs')
         .select('channel_id')
         .eq('parent_id', parentId)
         .eq('status', status);
 
-    return (rows as List)
-        .map((r) => r['channel_id'] as String)
-        .toList();
+    return (rows as List).map((r) => r['channel_id'] as String).toList();
   }
 
   /// Get channel prefs as a map of channelId -> status.

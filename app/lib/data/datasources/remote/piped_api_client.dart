@@ -8,20 +8,15 @@ class PipedApiClient {
   final Dio _dio;
   final String _baseUrl;
 
-  PipedApiClient({
-    String baseUrl = 'https://pipedapi.kavin.rocks',
-    Dio? dio,
-  })  : _baseUrl = baseUrl,
-        _dio = dio ?? Dio();
+  PipedApiClient({String baseUrl = 'https://pipedapi.kavin.rocks', Dio? dio})
+    : _baseUrl = baseUrl,
+      _dio = dio ?? Dio();
 
   /// Search for videos.
   Future<VideoSearchResult> search(String query, {String? filter}) async {
     final response = await _dio.get(
       '$_baseUrl/search',
-      queryParameters: {
-        'q': query,
-        'filter': filter ?? 'videos',
-      },
+      queryParameters: {'q': query, 'filter': filter ?? 'videos'},
     );
 
     final data = response.data;
@@ -64,10 +59,7 @@ class PipedApiClient {
   Future<List<ChannelMetadata>> searchChannels(String query) async {
     final response = await _dio.get(
       '$_baseUrl/search',
-      queryParameters: {
-        'q': query,
-        'filter': 'channels',
-      },
+      queryParameters: {'q': query, 'filter': 'channels'},
     );
 
     final data = response.data;
@@ -137,17 +129,15 @@ class PipedApiClient {
       videoId: videoId,
       title: item['title'] as String? ?? '',
       description: item['shortDescription'] as String? ?? '',
-      channelId:
-          _extractChannelId(item['uploaderUrl'] as String? ?? ''),
+      channelId: _extractChannelId(item['uploaderUrl'] as String? ?? ''),
       channelTitle: item['uploaderName'] as String? ?? '',
       thumbnailUrl: item['thumbnail'] as String? ?? '',
       durationSeconds: item['duration'] as int? ?? 0,
       publishedAt: item['uploadedDate'] != null
           ? _parseRelativeDate(item['uploadedDate'] as String)
           : (item['uploaded'] != null
-              ? DateTime.fromMillisecondsSinceEpoch(
-                  item['uploaded'] as int)
-              : null),
+                ? DateTime.fromMillisecondsSinceEpoch(item['uploaded'] as int)
+                : null),
       viewCount: item['views'] as int? ?? 0,
     );
   }
@@ -183,13 +173,18 @@ class PipedApiClient {
     if (parts.length < 2) return null;
     final amount = int.tryParse(parts[0]) ?? 0;
     final unit = parts[1].toLowerCase();
-    if (unit.startsWith('second')) return now.subtract(Duration(seconds: amount));
-    if (unit.startsWith('minute')) return now.subtract(Duration(minutes: amount));
+    if (unit.startsWith('second'))
+      return now.subtract(Duration(seconds: amount));
+    if (unit.startsWith('minute'))
+      return now.subtract(Duration(minutes: amount));
     if (unit.startsWith('hour')) return now.subtract(Duration(hours: amount));
     if (unit.startsWith('day')) return now.subtract(Duration(days: amount));
-    if (unit.startsWith('week')) return now.subtract(Duration(days: amount * 7));
-    if (unit.startsWith('month')) return now.subtract(Duration(days: amount * 30));
-    if (unit.startsWith('year')) return now.subtract(Duration(days: amount * 365));
+    if (unit.startsWith('week'))
+      return now.subtract(Duration(days: amount * 7));
+    if (unit.startsWith('month'))
+      return now.subtract(Duration(days: amount * 30));
+    if (unit.startsWith('year'))
+      return now.subtract(Duration(days: amount * 365));
     return null;
   }
 }

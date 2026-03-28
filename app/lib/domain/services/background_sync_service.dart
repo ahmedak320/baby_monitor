@@ -16,18 +16,15 @@ class BackgroundSyncService {
   BackgroundSyncService({
     ProfileRepository? profileRepo,
     VideoRepository? videoRepo,
-  })  : _profileRepo = profileRepo ?? ProfileRepository(),
-        _videoRepo = videoRepo ?? VideoRepository();
+  }) : _profileRepo = profileRepo ?? ProfileRepository(),
+       _videoRepo = videoRepo ?? VideoRepository();
 
   /// Start periodic background sync (every 15 minutes).
   void startPeriodicSync() {
     // Run immediately, then every 15 minutes
     _syncAll();
     _syncTimer?.cancel();
-    _syncTimer = Timer.periodic(
-      const Duration(minutes: 15),
-      (_) => _syncAll(),
-    );
+    _syncTimer = Timer.periodic(const Duration(minutes: 15), (_) => _syncAll());
   }
 
   /// Stop periodic sync.

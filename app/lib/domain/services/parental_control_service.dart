@@ -39,10 +39,8 @@ class ParentalControlService {
 
     await SupabaseClientWrapper.client
         .from('parent_profiles')
-        .update({
-          'pin_hash': hash,
-          'pin_salt': saltHex,
-        }).eq('id', userId);
+        .update({'pin_hash': hash, 'pin_salt': saltHex})
+        .eq('id', userId);
   }
 
   /// Verify a PIN against the stored hash.

@@ -59,24 +59,24 @@ class ScreenTimeRules {
   }
 
   Map<String, dynamic> toJson() => {
-        'child_id': childId,
-        'mon_limit': dailyLimits[1],
-        'tue_limit': dailyLimits[2],
-        'wed_limit': dailyLimits[3],
-        'thu_limit': dailyLimits[4],
-        'fri_limit': dailyLimits[5],
-        'sat_limit': dailyLimits[6],
-        'sun_limit': dailyLimits[7],
-        'weekly_budget_minutes': weeklyBudgetMinutes,
-        'break_interval_minutes': breakIntervalMinutes,
-        'break_duration_minutes': breakDurationMinutes,
-        'bedtime_hour': bedtimeHour,
-        'bedtime_minute': bedtimeMinute,
-        'wakeup_hour': wakeupHour,
-        'wakeup_minute': wakeupMinute,
-        'winddown_warning_minutes': winddownWarningMinutes,
-        'is_enabled': isEnabled,
-      };
+    'child_id': childId,
+    'mon_limit': dailyLimits[1],
+    'tue_limit': dailyLimits[2],
+    'wed_limit': dailyLimits[3],
+    'thu_limit': dailyLimits[4],
+    'fri_limit': dailyLimits[5],
+    'sat_limit': dailyLimits[6],
+    'sun_limit': dailyLimits[7],
+    'weekly_budget_minutes': weeklyBudgetMinutes,
+    'break_interval_minutes': breakIntervalMinutes,
+    'break_duration_minutes': breakDurationMinutes,
+    'bedtime_hour': bedtimeHour,
+    'bedtime_minute': bedtimeMinute,
+    'wakeup_hour': wakeupHour,
+    'wakeup_minute': wakeupMinute,
+    'winddown_warning_minutes': winddownWarningMinutes,
+    'is_enabled': isEnabled,
+  };
 }
 
 /// Repository for screen time rules and sessions.
@@ -158,16 +158,20 @@ class ScreenTimeRepository {
 
   /// Update session duration.
   Future<void> updateSessionDuration(String sessionId, int seconds) async {
-    await _client.from('screen_time_sessions').update({
-      'duration_seconds': seconds,
-    }).eq('id', sessionId);
+    await _client
+        .from('screen_time_sessions')
+        .update({'duration_seconds': seconds})
+        .eq('id', sessionId);
   }
 
   /// End a session.
   Future<void> endSession(String sessionId, int totalSeconds) async {
-    await _client.from('screen_time_sessions').update({
-      'ended_at': DateTime.now().toIso8601String(),
-      'duration_seconds': totalSeconds,
-    }).eq('id', sessionId);
+    await _client
+        .from('screen_time_sessions')
+        .update({
+          'ended_at': DateTime.now().toIso8601String(),
+          'duration_seconds': totalSeconds,
+        })
+        .eq('id', sessionId);
   }
 }

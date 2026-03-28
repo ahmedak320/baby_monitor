@@ -26,9 +26,9 @@ class YouTubeDataService {
     YouTubeApiClient? ytClient,
     PipedPool? pipedPool,
     SupabaseClient? supabase,
-  })  : _ytClient = ytClient ?? YouTubeApiClient(),
-        _pipedPool = pipedPool ?? PipedPool(),
-        _supabase = supabase ?? SupabaseClientWrapper.client;
+  }) : _ytClient = ytClient ?? YouTubeApiClient(),
+       _pipedPool = pipedPool ?? PipedPool(),
+       _supabase = supabase ?? SupabaseClientWrapper.client;
 
   // ==========================================
   // PUBLIC API
@@ -44,16 +44,20 @@ class YouTubeDataService {
   }) async {
     // Tier 1: YouTube API
     try {
-      return await _ytClient.search(query,
-          maxResults: maxResults, pageToken: pageToken);
+      return await _ytClient.search(
+        query,
+        maxResults: maxResults,
+        pageToken: pageToken,
+      );
     } catch (e) {
       debugPrint('YouTubeDataService.search: YouTube API failed: $e');
     }
 
     // Tier 2: Piped
     try {
-      return await _pipedPool
-          .executeWithFailover((client) => client.search(query));
+      return await _pipedPool.executeWithFailover(
+        (client) => client.search(query),
+      );
     } catch (e) {
       debugPrint('YouTubeDataService.search: Piped failed: $e');
     }
@@ -78,8 +82,9 @@ class YouTubeDataService {
 
     // Tier 2: Piped
     try {
-      final video = await _pipedPool
-          .executeWithFailover((client) => client.getVideoDetails(videoId));
+      final video = await _pipedPool.executeWithFailover(
+        (client) => client.getVideoDetails(videoId),
+      );
       _upsertVideoAsync(video);
       return video;
     } catch (e) {
@@ -94,7 +99,8 @@ class YouTubeDataService {
 
   /// Get multiple video details with cache optimization.
   Future<List<VideoMetadata>> getVideoDetailsBatch(
-      List<String> videoIds) async {
+    List<String> videoIds,
+  ) async {
     final results = <String, VideoMetadata>{};
     final uncachedIds = <String>[];
 
@@ -122,14 +128,16 @@ class YouTubeDataService {
       }
     } catch (e) {
       debugPrint(
-          'YouTubeDataService.getVideoDetailsBatch: YouTube API failed: $e');
+        'YouTubeDataService.getVideoDetailsBatch: YouTube API failed: $e',
+      );
     }
 
     // Tier 2: Piped (one-by-one for remaining).
     for (final id in List<String>.from(uncachedIds)) {
       try {
-        final v = await _pipedPool
-            .executeWithFailover((client) => client.getVideoDetails(id));
+        final v = await _pipedPool.executeWithFailover(
+          (client) => client.getVideoDetails(id),
+        );
         results[v.videoId] = v;
         uncachedIds.remove(id);
         _upsertVideoAsync(v);
@@ -167,8 +175,9 @@ class YouTubeDataService {
 
     // Tier 2: Piped
     try {
-      final channel = await _pipedPool
-          .executeWithFailover((client) => client.getChannelInfo(channelId));
+      final channel = await _pipedPool.executeWithFailover(
+        (client) => client.getChannelInfo(channelId),
+      );
       _upsertChannelAsync(channel);
       return channel;
     } catch (e) {
@@ -187,14 +196,14 @@ class YouTubeDataService {
     try {
       return await _ytClient.getChannelVideos(channelId);
     } catch (e) {
-      debugPrint(
-          'YouTubeDataService.getChannelVideos: YouTube API failed: $e');
+      debugPrint('YouTubeDataService.getChannelVideos: YouTube API failed: $e');
     }
 
     // Tier 2: Piped
     try {
-      return await _pipedPool
-          .executeWithFailover((client) => client.getChannelVideos(channelId));
+      return await _pipedPool.executeWithFailover(
+        (client) => client.getChannelVideos(channelId),
+      );
     } catch (e) {
       debugPrint('YouTubeDataService.getChannelVideos: Piped failed: $e');
     }
@@ -207,8 +216,9 @@ class YouTubeDataService {
   Future<List<VideoMetadata>> getTrending({String region = 'US'}) async {
     // Tier 2 first: Piped (free)
     try {
-      return await _pipedPool
-          .executeWithFailover((client) => client.getTrending(region: region));
+      return await _pipedPool.executeWithFailover(
+        (client) => client.getTrending(region: region),
+      );
     } catch (e) {
       debugPrint('YouTubeDataService.getTrending: Piped failed: $e');
     }
@@ -228,8 +238,9 @@ class YouTubeDataService {
   Future<List<VideoMetadata>> getRelatedVideos(String videoId) async {
     // Tier 2 first: Piped (free)
     try {
-      return await _pipedPool
-          .executeWithFailover((client) => client.getRelatedVideos(videoId));
+      return await _pipedPool.executeWithFailover(
+        (client) => client.getRelatedVideos(videoId),
+      );
     } catch (e) {
       debugPrint('YouTubeDataService.getRelatedVideos: Piped failed: $e');
     }
@@ -238,8 +249,7 @@ class YouTubeDataService {
     try {
       return await _ytClient.getRelatedVideos(videoId);
     } catch (e) {
-      debugPrint(
-          'YouTubeDataService.getRelatedVideos: YouTube API failed: $e');
+      debugPrint('YouTubeDataService.getRelatedVideos: YouTube API failed: $e');
     }
 
     return [];
@@ -296,8 +306,8 @@ class YouTubeDataService {
         .upsert(video.toSupabaseRow(), onConflict: 'video_id')
         .then((_) {})
         .catchError((e) {
-      debugPrint('YouTubeDataService: cache upsert failed: $e');
-    });
+          debugPrint('YouTubeDataService: cache upsert failed: $e');
+        });
   }
 
   /// Fire-and-forget upsert of channel metadata to cache.
@@ -307,7 +317,7 @@ class YouTubeDataService {
         .upsert(channel.toSupabaseRow(), onConflict: 'channel_id')
         .then((_) {})
         .catchError((e) {
-      debugPrint('YouTubeDataService: channel cache upsert failed: $e');
-    });
+          debugPrint('YouTubeDataService: channel cache upsert failed: $e');
+        });
   }
 }

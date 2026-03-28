@@ -17,11 +17,7 @@ void main() {
     testWidgets('renders number buttons 0-9', (tester) async {
       await tester.pumpWidget(
         MaterialApp(
-          home: Scaffold(
-            body: TvPinPad(
-              onSubmit: (_) {},
-            ),
-          ),
+          home: Scaffold(body: TvPinPad(onSubmit: (_) {})),
         ),
       );
 
@@ -33,11 +29,7 @@ void main() {
     testWidgets('renders clear and backspace buttons', (tester) async {
       await tester.pumpWidget(
         MaterialApp(
-          home: Scaffold(
-            body: TvPinPad(
-              onSubmit: (_) {},
-            ),
-          ),
+          home: Scaffold(body: TvPinPad(onSubmit: (_) {})),
         ),
       );
 
@@ -48,12 +40,7 @@ void main() {
     testWidgets('shows correct number of PIN dots', (tester) async {
       await tester.pumpWidget(
         MaterialApp(
-          home: Scaffold(
-            body: TvPinPad(
-              pinLength: 4,
-              onSubmit: (_) {},
-            ),
-          ),
+          home: Scaffold(body: TvPinPad(pinLength: 4, onSubmit: (_) {})),
         ),
       );
 
@@ -71,10 +58,7 @@ void main() {
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
-            body: TvPinPad(
-              title: 'Enter PIN',
-              onSubmit: (_) {},
-            ),
+            body: TvPinPad(title: 'Enter PIN', onSubmit: (_) {}),
           ),
         ),
       );
@@ -82,14 +66,13 @@ void main() {
       expect(find.text('Enter PIN'), findsOneWidget);
     });
 
-    testWidgets('shows cancel button when onCancel is provided', (tester) async {
+    testWidgets('shows cancel button when onCancel is provided', (
+      tester,
+    ) async {
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
-            body: TvPinPad(
-              onSubmit: (_) {},
-              onCancel: () {},
-            ),
+            body: TvPinPad(onSubmit: (_) {}, onCancel: () {}),
           ),
         ),
       );

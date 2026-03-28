@@ -90,10 +90,7 @@ class KidProfileScreen extends ConsumerWidget {
                 screenTime.remainingMinutes != null
                     ? '${screenTime.remainingMinutes} minutes remaining'
                     : 'No limit set',
-                style: TextStyle(
-                  color: KidTheme.textSecondary,
-                  fontSize: 13,
-                ),
+                style: TextStyle(color: KidTheme.textSecondary, fontSize: 13),
               ),
             ],
           ),
@@ -159,10 +156,7 @@ class _ScreenTimeProgress extends StatelessWidget {
   final int usedMinutes;
   final int? limitMinutes;
 
-  const _ScreenTimeProgress({
-    required this.usedMinutes,
-    this.limitMinutes,
-  });
+  const _ScreenTimeProgress({required this.usedMinutes, this.limitMinutes});
 
   @override
   Widget build(BuildContext context) {
@@ -173,8 +167,8 @@ class _ScreenTimeProgress extends StatelessWidget {
     final color = progress < 0.5
         ? Colors.green
         : progress < 0.8
-            ? Colors.orange
-            : Colors.red;
+        ? Colors.orange
+        : Colors.red;
 
     return Column(
       children: [
@@ -183,7 +177,11 @@ class _ScreenTimeProgress extends StatelessWidget {
           children: [
             Text(
               '${usedMinutes}m used',
-              style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+              ),
             ),
             if (limitMinutes != null)
               Text(
@@ -230,7 +228,10 @@ class _InfoRow extends StatelessWidget {
           const Spacer(),
           Text(
             value,
-            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w500),
+            style: const TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.w500,
+            ),
           ),
         ],
       ),

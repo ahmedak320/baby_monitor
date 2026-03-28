@@ -8,8 +8,16 @@ import '../../../domain/services/analytics_service.dart';
 /// Categories for beta feedback.
 const _feedbackCategories = {
   'bug': ('Bug Report', Icons.bug_report, 'Something isn\'t working right'),
-  'feature_request': ('Feature Request', Icons.lightbulb, 'I wish the app could...'),
-  'content_issue': ('Content Issue', Icons.shield, 'A video was incorrectly filtered'),
+  'feature_request': (
+    'Feature Request',
+    Icons.lightbulb,
+    'I wish the app could...',
+  ),
+  'content_issue': (
+    'Content Issue',
+    Icons.shield,
+    'A video was incorrectly filtered',
+  ),
   'usability': ('Usability', Icons.touch_app, 'Something is hard to use'),
   'general': ('General Feedback', Icons.chat, 'Any other thoughts'),
 };
@@ -82,9 +90,9 @@ class _FeedbackScreenState extends ConsumerState<FeedbackScreen> {
         children: [
           Text(
             'Help us improve Baby Monitor!',
-            style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
+            style: Theme.of(
+              context,
+            ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 4),
           Text(
@@ -94,10 +102,7 @@ class _FeedbackScreenState extends ConsumerState<FeedbackScreen> {
           const SizedBox(height: 24),
 
           // Category selection
-          Text(
-            'Category',
-            style: Theme.of(context).textTheme.titleSmall,
-          ),
+          Text('Category', style: Theme.of(context).textTheme.titleSmall),
           const SizedBox(height: 8),
           Wrap(
             spacing: 8,

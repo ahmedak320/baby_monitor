@@ -27,18 +27,10 @@ class TvHomeContent extends StatelessWidget {
             ),
           ),
         ),
-        SliverToBoxAdapter(
-          child: _TvVideoRow(title: 'Recommended for You'),
-        ),
-        SliverToBoxAdapter(
-          child: _TvVideoRow(title: 'Popular Kids Channels'),
-        ),
-        SliverToBoxAdapter(
-          child: _TvVideoRow(title: 'Educational'),
-        ),
-        SliverToBoxAdapter(
-          child: _TvVideoRow(title: 'Music & Nursery Rhymes'),
-        ),
+        SliverToBoxAdapter(child: _TvVideoRow(title: 'Recommended for You')),
+        SliverToBoxAdapter(child: _TvVideoRow(title: 'Popular Kids Channels')),
+        SliverToBoxAdapter(child: _TvVideoRow(title: 'Educational')),
+        SliverToBoxAdapter(child: _TvVideoRow(title: 'Music & Nursery Rhymes')),
       ],
     );
   }

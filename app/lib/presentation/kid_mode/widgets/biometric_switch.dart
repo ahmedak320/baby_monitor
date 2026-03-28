@@ -39,10 +39,7 @@ class BiometricSwitch extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: () => _authenticate(context),
-      child: child,
-    );
+    return GestureDetector(onTap: () => _authenticate(context), child: child);
   }
 
   Future<void> _authenticate(BuildContext context) async {
@@ -112,9 +109,7 @@ class BiometricSwitch extends StatelessWidget {
               keyboardType: TextInputType.number,
               obscureText: true,
               maxLength: 4,
-              decoration: const InputDecoration(
-                hintText: '4-digit PIN',
-              ),
+              decoration: const InputDecoration(hintText: '4-digit PIN'),
             ),
             if (remainingAttempts < _maxAttempts)
               Padding(

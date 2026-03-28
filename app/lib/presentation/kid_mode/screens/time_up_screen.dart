@@ -20,11 +20,7 @@ class TimeUpScreen extends StatelessWidget {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Icon(
-                  Icons.nights_stay,
-                  size: 100,
-                  color: Colors.white,
-                ),
+                const Icon(Icons.nights_stay, size: 100, color: Colors.white),
                 const SizedBox(height: 32),
                 const Text(
                   'All done for today!',
@@ -37,18 +33,11 @@ class TimeUpScreen extends StatelessWidget {
                 const SizedBox(height: 16),
                 const Text(
                   'Great watching! Time to do something else.\nYou can watch more tomorrow.',
-                  style: TextStyle(
-                    fontSize: 18,
-                    color: Colors.white70,
-                  ),
+                  style: TextStyle(fontSize: 18, color: Colors.white70),
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 48),
-                const Icon(
-                  Icons.star,
-                  size: 60,
-                  color: Colors.amber,
-                ),
+                const Icon(Icons.star, size: 60, color: Colors.amber),
                 const SizedBox(height: 64),
                 // Hidden parent override
                 TextButton(
@@ -58,10 +47,7 @@ class TimeUpScreen extends StatelessWidget {
                   },
                   child: const Text(
                     'Parent? Tap here',
-                    style: TextStyle(
-                      color: Colors.white38,
-                      fontSize: 12,
-                    ),
+                    style: TextStyle(color: Colors.white38, fontSize: 12),
                   ),
                 ),
               ],

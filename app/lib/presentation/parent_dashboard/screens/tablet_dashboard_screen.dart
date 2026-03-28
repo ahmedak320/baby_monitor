@@ -25,8 +25,7 @@ class TabletDashboardScreen extends ConsumerStatefulWidget {
       _TabletDashboardScreenState();
 }
 
-class _TabletDashboardScreenState
-    extends ConsumerState<TabletDashboardScreen> {
+class _TabletDashboardScreenState extends ConsumerState<TabletDashboardScreen> {
   String? _selectedChildId;
   bool _checkedTransitions = false;
 
@@ -96,8 +95,7 @@ class _TabletDashboardScreenState
               subscriptionAsync: subscriptionAsync,
               notificationsAsync: notificationsAsync,
               selectedChildId: _selectedChildId,
-              onChildSelected: (id) =>
-                  setState(() => _selectedChildId = id),
+              onChildSelected: (id) => setState(() => _selectedChildId = id),
               ref: ref,
             ),
           ),
@@ -158,8 +156,7 @@ class _LeftPanel extends StatelessWidget {
         SizedBox(
           height: 48,
           child: ElevatedButton.icon(
-            onPressed: () =>
-                context.pushNamed(RouteNames.childSelect),
+            onPressed: () => context.pushNamed(RouteNames.childSelect),
             icon: const Icon(Icons.play_circle_filled),
             label: const Text('Start Kid Mode'),
             style: ElevatedButton.styleFrom(
@@ -176,9 +173,9 @@ class _LeftPanel extends StatelessWidget {
         // Children
         Text(
           'Children',
-          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
+          style: Theme.of(
+            context,
+          ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 8),
         statsAsync.when(
@@ -189,7 +186,11 @@ class _LeftPanel extends StatelessWidget {
                   padding: const EdgeInsets.all(16),
                   child: Column(
                     children: [
-                      const Icon(Icons.child_care, size: 40, color: Colors.grey),
+                      const Icon(
+                        Icons.child_care,
+                        size: 40,
+                        color: Colors.grey,
+                      ),
                       const SizedBox(height: 8),
                       const Text('No children added yet'),
                       const SizedBox(height: 8),
@@ -217,7 +218,10 @@ class _LeftPanel extends StatelessWidget {
           loading: () => const Center(child: CircularProgressIndicator()),
           error: (e, _) => Column(
             children: [
-              const Text('Something went wrong. Please try again.', style: TextStyle(color: Colors.red)),
+              const Text(
+                'Something went wrong. Please try again.',
+                style: TextStyle(color: Colors.red),
+              ),
               const SizedBox(height: 8),
               ElevatedButton.icon(
                 onPressed: () => context.pushNamed(RouteNames.addChild),
@@ -233,9 +237,9 @@ class _LeftPanel extends StatelessWidget {
         // Quick actions (vertical on tablet side panel)
         Text(
           'Quick Actions',
-          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
+          style: Theme.of(
+            context,
+          ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 8),
         _SidebarAction(
@@ -319,8 +323,10 @@ class _CompactChildTile extends StatelessWidget {
             ),
           ),
         ),
-        title: Text(stats.child.name,
-            style: const TextStyle(fontWeight: FontWeight.bold)),
+        title: Text(
+          stats.child.name,
+          style: const TextStyle(fontWeight: FontWeight.bold),
+        ),
         subtitle: Text('Age $age · $bracket'),
         trailing: Text(
           '${stats.watchedMinutesToday}m',
@@ -358,10 +364,7 @@ class _RightPanel extends StatelessWidget {
   final String? selectedChildId;
   final AsyncValue<List<ChildDashboardStats>> statsAsync;
 
-  const _RightPanel({
-    required this.selectedChildId,
-    required this.statsAsync,
-  });
+  const _RightPanel({required this.selectedChildId, required this.statsAsync});
 
   @override
   Widget build(BuildContext context) {
@@ -422,7 +425,9 @@ class _RightPanel extends StatelessWidget {
                     Text(
                       s.child.name,
                       style: const TextStyle(
-                          fontSize: 24, fontWeight: FontWeight.bold),
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                     Text(
                       'Age $age · $bracket',
@@ -471,7 +476,8 @@ class _RightPanel extends StatelessWidget {
         );
       },
       loading: () => const Center(child: CircularProgressIndicator()),
-      error: (e, _) => const Center(child: Text('Something went wrong. Please try again.')),
+      error: (e, _) =>
+          const Center(child: Text('Something went wrong. Please try again.')),
     );
   }
 }

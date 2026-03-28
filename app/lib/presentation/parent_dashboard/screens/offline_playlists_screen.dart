@@ -47,108 +47,111 @@ class _OfflinePlaylistsScreenState
       appBar: AppBar(
         title: const Text('Offline Playlists'),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.add),
-            onPressed: _createPlaylist,
-          ),
+          IconButton(icon: const Icon(Icons.add), onPressed: _createPlaylist),
         ],
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : _playlists.isEmpty
-              ? Center(
-                  child: Padding(
-                    padding: const EdgeInsets.all(32),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
+          ? Center(
+              child: Padding(
+                padding: const EdgeInsets.all(32),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(
+                      Icons.download_for_offline,
+                      size: 64,
+                      color: Colors.grey,
+                    ),
+                    const SizedBox(height: 16),
+                    const Text(
+                      'No offline playlists yet',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Create playlists of approved videos for offline viewing '
+                      '(car rides, flights, etc.)',
+                      style: TextStyle(color: Colors.grey[600]),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 24),
+                    ElevatedButton.icon(
+                      onPressed: _createPlaylist,
+                      icon: const Icon(Icons.add),
+                      label: const Text('Create Playlist'),
+                    ),
+                    const SizedBox(height: 16),
+                    // Curated templates
+                    const Text(
+                      'Or try a curated playlist:',
+                      style: TextStyle(color: Colors.grey),
+                    ),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 8,
                       children: [
-                        const Icon(Icons.download_for_offline,
-                            size: 64, color: Colors.grey),
-                        const SizedBox(height: 16),
-                        const Text(
-                          'No offline playlists yet',
-                          style: TextStyle(
-                              fontSize: 18, fontWeight: FontWeight.w600),
+                        ActionChip(
+                          avatar: const Text('🚗'),
+                          label: const Text('Road Trip'),
+                          onPressed: () => _createFromTemplate('Road Trip'),
                         ),
-                        const SizedBox(height: 8),
-                        Text(
-                          'Create playlists of approved videos for offline viewing '
-                          '(car rides, flights, etc.)',
-                          style: TextStyle(color: Colors.grey[600]),
-                          textAlign: TextAlign.center,
+                        ActionChip(
+                          avatar: const Text('🌙'),
+                          label: const Text('Bedtime'),
+                          onPressed: () => _createFromTemplate('Bedtime'),
                         ),
-                        const SizedBox(height: 24),
-                        ElevatedButton.icon(
-                          onPressed: _createPlaylist,
-                          icon: const Icon(Icons.add),
-                          label: const Text('Create Playlist'),
+                        ActionChip(
+                          avatar: const Text('✈️'),
+                          label: const Text('Flight'),
+                          onPressed: () => _createFromTemplate('Flight Mode'),
                         ),
-                        const SizedBox(height: 16),
-                        // Curated templates
-                        const Text('Or try a curated playlist:',
-                            style: TextStyle(color: Colors.grey)),
-                        const SizedBox(height: 8),
-                        Wrap(
-                          spacing: 8,
-                          children: [
-                            ActionChip(
-                              avatar: const Text('🚗'),
-                              label: const Text('Road Trip'),
-                              onPressed: () => _createFromTemplate('Road Trip'),
-                            ),
-                            ActionChip(
-                              avatar: const Text('🌙'),
-                              label: const Text('Bedtime'),
-                              onPressed: () => _createFromTemplate('Bedtime'),
-                            ),
-                            ActionChip(
-                              avatar: const Text('✈️'),
-                              label: const Text('Flight'),
-                              onPressed: () =>
-                                  _createFromTemplate('Flight Mode'),
-                            ),
-                          ],
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            )
+          : ListView.builder(
+              padding: const EdgeInsets.all(12),
+              itemCount: _playlists.length,
+              itemBuilder: (context, index) {
+                final playlist = _playlists[index];
+                final name = playlist['name'] as String? ?? 'Unnamed';
+                final videoIds = (playlist['video_ids'] as List?)?.length ?? 0;
+
+                return Card(
+                  margin: const EdgeInsets.only(bottom: 8),
+                  child: ListTile(
+                    leading: const CircleAvatar(
+                      child: Icon(Icons.playlist_play),
+                    ),
+                    title: Text(
+                      name,
+                      style: const TextStyle(fontWeight: FontWeight.w600),
+                    ),
+                    subtitle: Text('$videoIds videos'),
+                    trailing: PopupMenuButton<String>(
+                      onSelected: (action) {
+                        if (action == 'delete') {
+                          _deletePlaylist(playlist['id'] as String);
+                        }
+                      },
+                      itemBuilder: (context) => [
+                        const PopupMenuItem(
+                          value: 'delete',
+                          child: Text('Delete'),
                         ),
                       ],
                     ),
                   ),
-                )
-              : ListView.builder(
-                  padding: const EdgeInsets.all(12),
-                  itemCount: _playlists.length,
-                  itemBuilder: (context, index) {
-                    final playlist = _playlists[index];
-                    final name = playlist['name'] as String? ?? 'Unnamed';
-                    final videoIds =
-                        (playlist['video_ids'] as List?)?.length ?? 0;
-
-                    return Card(
-                      margin: const EdgeInsets.only(bottom: 8),
-                      child: ListTile(
-                        leading: const CircleAvatar(
-                          child: Icon(Icons.playlist_play),
-                        ),
-                        title: Text(name,
-                            style:
-                                const TextStyle(fontWeight: FontWeight.w600)),
-                        subtitle: Text('$videoIds videos'),
-                        trailing: PopupMenuButton<String>(
-                          onSelected: (action) {
-                            if (action == 'delete') {
-                              _deletePlaylist(playlist['id'] as String);
-                            }
-                          },
-                          itemBuilder: (context) => [
-                            const PopupMenuItem(
-                              value: 'delete',
-                              child: Text('Delete'),
-                            ),
-                          ],
-                        ),
-                      ),
-                    );
-                  },
-                ),
+                );
+              },
+            ),
     );
   }
 

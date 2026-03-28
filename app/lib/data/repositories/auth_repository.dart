@@ -10,9 +10,7 @@ class AuthResult {
 
   const AuthResult({required this.success, this.error});
   const AuthResult.success() : success = true, error = null;
-  const AuthResult.failure(String message)
-      : success = false,
-        error = message;
+  const AuthResult.failure(String message) : success = false, error = message;
 }
 
 /// Repository handling authentication with Supabase.

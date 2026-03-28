@@ -24,10 +24,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
   AuthNotifier(this._repo) : super(const AuthState.initial());
 
-  Future<bool> signIn({
-    required String email,
-    required String password,
-  }) async {
+  Future<bool> signIn({required String email, required String password}) async {
     state = const AuthState.loading();
     final result = await _repo.signIn(email: email, password: password);
     if (result.success) {
@@ -82,8 +79,9 @@ class AuthNotifier extends StateNotifier<AuthState> {
 }
 
 /// Provides the auth state notifier.
-final authNotifierProvider =
-    StateNotifierProvider<AuthNotifier, AuthState>((ref) {
+final authNotifierProvider = StateNotifierProvider<AuthNotifier, AuthState>((
+  ref,
+) {
   final repo = ref.watch(authRepositoryProvider);
   return AuthNotifier(repo);
 });

@@ -10,7 +10,8 @@ class AnalysisResultsCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isApproved = !analysis.isGloballyBlacklisted &&
+    final isApproved =
+        !analysis.isGloballyBlacklisted &&
         analysis.violenceScore <= 4.0 &&
         analysis.audioSafetyScore >= 4.0;
 
@@ -63,17 +64,32 @@ class AnalysisResultsCard extends StatelessWidget {
               style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
             ),
             const SizedBox(height: 8),
-            _ScoreRow('Educational', analysis.educationalScore, Colors.blue,
-                invert: true),
             _ScoreRow(
-                'Overstimulation', analysis.overstimulationScore, Colors.orange),
+              'Educational',
+              analysis.educationalScore,
+              Colors.blue,
+              invert: true,
+            ),
+            _ScoreRow(
+              'Overstimulation',
+              analysis.overstimulationScore,
+              Colors.orange,
+            ),
             _ScoreRow('Brainrot', analysis.brainrotScore, Colors.purple),
             _ScoreRow('Scariness', analysis.scarinessScore, Colors.indigo),
-            _ScoreRow('Language', analysis.languageSafetyScore, Colors.teal,
-                invert: true),
+            _ScoreRow(
+              'Language',
+              analysis.languageSafetyScore,
+              Colors.teal,
+              invert: true,
+            ),
             _ScoreRow('Violence', analysis.violenceScore, Colors.red),
-            _ScoreRow('Audio Safety', analysis.audioSafetyScore, Colors.cyan,
-                invert: true),
+            _ScoreRow(
+              'Audio Safety',
+              analysis.audioSafetyScore,
+              Colors.cyan,
+              invert: true,
+            ),
             const SizedBox(height: 12),
 
             // Content labels
@@ -102,22 +118,28 @@ class AnalysisResultsCard extends StatelessWidget {
               const Text(
                 'Detected Issues',
                 style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 14,
-                    color: Colors.orange),
+                  fontWeight: FontWeight.bold,
+                  fontSize: 14,
+                  color: Colors.orange,
+                ),
               ),
               const SizedBox(height: 6),
-              ...analysis.detectedIssues.map((issue) => Padding(
-                    padding: const EdgeInsets.only(bottom: 2),
-                    child: Row(
-                      children: [
-                        const Icon(Icons.warning_amber,
-                            size: 14, color: Colors.orange),
-                        const SizedBox(width: 4),
-                        Text(issue, style: const TextStyle(fontSize: 13)),
-                      ],
-                    ),
-                  )),
+              ...analysis.detectedIssues.map(
+                (issue) => Padding(
+                  padding: const EdgeInsets.only(bottom: 2),
+                  child: Row(
+                    children: [
+                      const Icon(
+                        Icons.warning_amber,
+                        size: 14,
+                        color: Colors.orange,
+                      ),
+                      const SizedBox(width: 4),
+                      Text(issue, style: const TextStyle(fontSize: 13)),
+                    ],
+                  ),
+                ),
+              ),
               const SizedBox(height: 12),
             ],
 
@@ -172,8 +194,8 @@ class _ScoreRow extends StatelessWidget {
                 color: dangerLevel > 0.6
                     ? Colors.red
                     : dangerLevel > 0.3
-                        ? Colors.orange
-                        : Colors.green,
+                    ? Colors.orange
+                    : Colors.green,
                 minHeight: 8,
               ),
             ),

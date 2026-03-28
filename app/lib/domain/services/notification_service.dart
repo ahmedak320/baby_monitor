@@ -40,9 +40,9 @@ class NotificationService {
     ProfileRepository? profileRepo,
     ScreenTimeRepository? screenTimeRepo,
     VideoRepository? videoRepo,
-  })  : _profileRepo = profileRepo ?? ProfileRepository(),
-        _screenTimeRepo = screenTimeRepo ?? ScreenTimeRepository(),
-        _videoRepo = videoRepo ?? VideoRepository();
+  }) : _profileRepo = profileRepo ?? ProfileRepository(),
+       _screenTimeRepo = screenTimeRepo ?? ScreenTimeRepository(),
+       _videoRepo = videoRepo ?? VideoRepository();
 
   /// Generate pending notifications that haven't been shown today.
   Future<List<AppNotification>> getPendingNotifications() async {
@@ -93,21 +93,19 @@ class NotificationService {
 
     final lines = <String>[];
     for (final child in children) {
-      final usedSeconds =
-          await _screenTimeRepo.getTodayUsageSeconds(child.id);
-      final watchHistory =
-          await _videoRepo.getWatchHistory(child.id, limit: 100);
-      final filteredLog =
-          await _videoRepo.getFilteredLog(child.id, limit: 100);
+      final usedSeconds = await _screenTimeRepo.getTodayUsageSeconds(child.id);
+      final watchHistory = await _videoRepo.getWatchHistory(
+        child.id,
+        limit: 100,
+      );
+      final filteredLog = await _videoRepo.getFilteredLog(child.id, limit: 100);
 
       final today = DateTime.now().toIso8601String().split('T').first;
       final todayWatches = watchHistory
-          .where((w) =>
-              (w['watched_at'] as String? ?? '').startsWith(today))
+          .where((w) => (w['watched_at'] as String? ?? '').startsWith(today))
           .length;
       final todayFiltered = filteredLog
-          .where((f) =>
-              (f['filtered_at'] as String? ?? '').startsWith(today))
+          .where((f) => (f['filtered_at'] as String? ?? '').startsWith(today))
           .length;
 
       final minutes = usedSeconds ~/ 60;
@@ -135,11 +133,9 @@ class NotificationService {
     final today = DateTime.now().toIso8601String().split('T').first;
 
     for (final child in children) {
-      final filteredLog =
-          await _videoRepo.getFilteredLog(child.id, limit: 100);
+      final filteredLog = await _videoRepo.getFilteredLog(child.id, limit: 100);
       totalFiltered += filteredLog
-          .where((f) =>
-              (f['filtered_at'] as String? ?? '').startsWith(today))
+          .where((f) => (f['filtered_at'] as String? ?? '').startsWith(today))
           .length;
     }
 
@@ -148,7 +144,8 @@ class NotificationService {
     return AppNotification(
       type: NotificationType.filteredContentAlert,
       title: 'Content Filtered Today',
-      body: '$totalFiltered video${totalFiltered == 1 ? '' : 's'} '
+      body:
+          '$totalFiltered video${totalFiltered == 1 ? '' : 's'} '
           'filtered today. Review in the Filtered Content screen.',
       createdAt: DateTime.now(),
     );
@@ -160,8 +157,7 @@ class NotificationService {
 
     final lines = <String>[];
     for (final child in children) {
-      final usedSeconds =
-          await _screenTimeRepo.getTodayUsageSeconds(child.id);
+      final usedSeconds = await _screenTimeRepo.getTodayUsageSeconds(child.id);
       final rules = await _screenTimeRepo.getRules(child.id);
       final limitMinutes = rules?.todayLimit;
 

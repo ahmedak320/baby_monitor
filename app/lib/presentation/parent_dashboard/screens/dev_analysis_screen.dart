@@ -124,7 +124,9 @@ class _DevAnalysisScreenState extends ConsumerState<DevAnalysisScreen> {
             decoration: BoxDecoration(
               color: Colors.deepPurple.withValues(alpha: 0.05),
               borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: Colors.deepPurple.withValues(alpha: 0.2)),
+              border: Border.all(
+                color: Colors.deepPurple.withValues(alpha: 0.2),
+              ),
             ),
             child: const Text(
               'Debug tool — paste any YouTube URL to test the full '
@@ -163,8 +165,10 @@ class _DevAnalysisScreenState extends ConsumerState<DevAnalysisScreen> {
 
             // Video info
             ListTile(
-              title: Text(_video!.title,
-                  style: const TextStyle(fontWeight: FontWeight.bold)),
+              title: Text(
+                _video!.title,
+                style: const TextStyle(fontWeight: FontWeight.bold),
+              ),
               subtitle: Text(
                 '${_video!.channelTitle} · ${_video!.durationSeconds}s · '
                 'cat:${_video!.categoryId}'
@@ -193,17 +197,18 @@ class _DevAnalysisScreenState extends ConsumerState<DevAnalysisScreen> {
             // Tags
             if (_video!.tags.isNotEmpty) ...[
               const Divider(),
-              const Text('Tags',
-                  style: TextStyle(fontWeight: FontWeight.bold)),
+              const Text('Tags', style: TextStyle(fontWeight: FontWeight.bold)),
               const SizedBox(height: 4),
               Wrap(
                 spacing: 4,
                 runSpacing: 4,
                 children: _video!.tags
-                    .map((t) => Chip(
-                          label: Text(t, style: const TextStyle(fontSize: 11)),
-                          visualDensity: VisualDensity.compact,
-                        ))
+                    .map(
+                      (t) => Chip(
+                        label: Text(t, style: const TextStyle(fontSize: 11)),
+                        visualDensity: VisualDensity.compact,
+                      ),
+                    )
                     .toList(),
               ),
             ],
@@ -218,12 +223,14 @@ class _DevAnalysisScreenState extends ConsumerState<DevAnalysisScreen> {
                       width: 16,
                       height: 16,
                       child: CircularProgressIndicator(
-                          strokeWidth: 2, color: Colors.white),
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
                     )
                   : const Icon(Icons.analytics),
-              label: Text(_analyzing
-                  ? 'Waiting for worker...'
-                  : 'Trigger Full Analysis'),
+              label: Text(
+                _analyzing ? 'Waiting for worker...' : 'Trigger Full Analysis',
+              ),
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.deepPurple,
                 foregroundColor: Colors.white,
@@ -234,8 +241,10 @@ class _DevAnalysisScreenState extends ConsumerState<DevAnalysisScreen> {
           // Analysis results
           if (_analysis != null) ...[
             const SizedBox(height: 24),
-            const Text('Full Analysis Results',
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+            const Text(
+              'Full Analysis Results',
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+            ),
             const SizedBox(height: 8),
             AnalysisResultsCard(analysis: _analysis!),
           ],

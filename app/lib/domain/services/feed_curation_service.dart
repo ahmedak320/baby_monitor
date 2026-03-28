@@ -12,11 +12,13 @@ class FeedItem {
   final VideoMetadata video;
   final VideoAnalysis? analysis;
   final List<String> contentLabels;
+  final bool isPendingAnalysis;
 
   const FeedItem({
     required this.video,
     this.analysis,
     this.contentLabels = const [],
+    this.isPendingAnalysis = false,
   });
 }
 
@@ -30,9 +32,9 @@ class FeedCurationService {
     VideoRepository? videoRepo,
     ContentFilterService? filterService,
     ChannelRepository? channelRepo,
-  })  : _videoRepo = videoRepo ?? VideoRepository(),
-        _filterService = filterService ?? ContentFilterService(),
-        _channelRepo = channelRepo ?? ChannelRepository();
+  }) : _videoRepo = videoRepo ?? VideoRepository(),
+       _filterService = filterService ?? ContentFilterService(),
+       _channelRepo = channelRepo ?? ChannelRepository();
 
   /// Build a curated feed for a child.
   ///
@@ -59,6 +61,7 @@ class FeedCurationService {
         childAge: childAge,
         limit: limit * 3,
         includeMetadataApproved: includeMetadataApproved,
+        includePending: true,
       );
     } catch (e) {
       // Fallback: try without metadata-approved if query fails
@@ -105,33 +108,31 @@ class FeedCurationService {
           );
           continue;
         }
-      } else if (video.analysisStatus != 'metadata_approved') {
-        // No analysis and not metadata-approved — skip
-        continue;
       }
+      // No analysis yet — show the video (whitelist-until-checked).
+      // It will be filtered reactively once analysis completes.
 
       // Check content type preferences and schedule
       final labels = analysis?.contentLabels ?? [];
       if (allowedContentTypes != null && allowedContentTypes.isNotEmpty) {
-        final hasAllowed = labels.any(
-          (l) => allowedContentTypes.contains(l),
-        );
+        final hasAllowed = labels.any((l) => allowedContentTypes.contains(l));
         if (!hasAllowed && labels.isNotEmpty) continue;
       }
 
       // Check content preferences
       if (contentPreferences != null) {
-        final isBlocked = labels.any(
-          (l) => contentPreferences[l] == 'blocked',
-        );
+        final isBlocked = labels.any((l) => contentPreferences[l] == 'blocked');
         if (isBlocked) continue;
       }
 
-      feedItems.add(FeedItem(
-        video: video,
-        analysis: analysis,
-        contentLabels: labels,
-      ));
+      feedItems.add(
+        FeedItem(
+          video: video,
+          analysis: analysis,
+          contentLabels: labels,
+          isPendingAnalysis: analysis == null,
+        ),
+      );
     }
 
     // Sort: preferred content first, then variety
@@ -153,6 +154,7 @@ class FeedCurationService {
       childId: child.id,
       childAge: childAge,
       limit: 20,
+      includePending: true,
     );
 
     final suggestions = <FeedItem>[];
@@ -162,36 +164,43 @@ class FeedCurationService {
       if (suggestions.length >= count) break;
 
       final analysis = await _videoRepo.getAnalysis(video.videoId);
-      if (analysis == null) continue;
 
-      final result = _filterService.filterForChild(
-        analysis: analysis,
-        child: child,
-        channelId: video.channelId,
-        channelPrefs: channelPrefs,
-      );
-      if (!result.isApproved) {
-        _videoRepo.logFiltered(
-          childId: child.id,
-          videoId: video.videoId,
-          reason: result.reason,
+      // If analyzed, run content filter; if not, allow through
+      if (analysis != null) {
+        final result = _filterService.filterForChild(
+          analysis: analysis,
+          child: child,
+          channelId: video.channelId,
+          channelPrefs: channelPrefs,
         );
-        continue;
+        if (!result.isApproved) {
+          _videoRepo.logFiltered(
+            childId: child.id,
+            videoId: video.videoId,
+            reason: result.reason,
+          );
+          continue;
+        }
       }
 
-      suggestions.add(FeedItem(
-        video: video,
-        analysis: analysis,
-        contentLabels: analysis.contentLabels,
-      ));
+      suggestions.add(
+        FeedItem(
+          video: video,
+          analysis: analysis,
+          contentLabels: analysis?.contentLabels ?? [],
+          isPendingAnalysis: analysis == null,
+        ),
+      );
     }
 
     // Prefer videos with overlapping content labels
     suggestions.sort((a, b) {
-      final aOverlap =
-          a.contentLabels.where((l) => currentLabels.contains(l)).length;
-      final bOverlap =
-          b.contentLabels.where((l) => currentLabels.contains(l)).length;
+      final aOverlap = a.contentLabels
+          .where((l) => currentLabels.contains(l))
+          .length;
+      final bOverlap = b.contentLabels
+          .where((l) => currentLabels.contains(l))
+          .length;
       return bOverlap.compareTo(aOverlap);
     });
 
@@ -207,7 +216,9 @@ class FeedCurationService {
       final childAge = AgeCalculator.yearsFromDob(child.dateOfBirth);
 
       // Fetch parent's approved channels
-      final approvedChannels = await _videoRepo.getApprovedChannels(child.parentId);
+      final approvedChannels = await _videoRepo.getApprovedChannels(
+        child.parentId,
+      );
       if (approvedChannels.isEmpty) return [];
 
       // Fetch all approved videos and filter to approved channels
@@ -218,7 +229,9 @@ class FeedCurationService {
         includeMetadataApproved: false,
       );
 
-      final channelPrefs = await _channelRepo.getChannelPrefsMap(child.parentId);
+      final channelPrefs = await _channelRepo.getChannelPrefsMap(
+        child.parentId,
+      );
       final channelSet = approvedChannels.toSet();
       final channelVideos = allVideos
           .where((v) => channelSet.contains(v.channelId))
@@ -244,11 +257,13 @@ class FeedCurationService {
             continue;
           }
         }
-        items.add(FeedItem(
-          video: video,
-          analysis: analysis,
-          contentLabels: analysis?.contentLabels ?? [],
-        ));
+        items.add(
+          FeedItem(
+            video: video,
+            analysis: analysis,
+            contentLabels: analysis?.contentLabels ?? [],
+          ),
+        );
       }
       return items;
     } catch (e) {
@@ -266,10 +281,10 @@ class FeedCurationService {
 
     items.sort((a, b) {
       // Preferred content gets a boost
-      final aPreferred = prefs != null &&
-          a.contentLabels.any((l) => prefs[l] == 'preferred');
-      final bPreferred = prefs != null &&
-          b.contentLabels.any((l) => prefs[l] == 'preferred');
+      final aPreferred =
+          prefs != null && a.contentLabels.any((l) => prefs[l] == 'preferred');
+      final bPreferred =
+          prefs != null && b.contentLabels.any((l) => prefs[l] == 'preferred');
 
       if (aPreferred && !bPreferred) return -1;
       if (!aPreferred && bPreferred) return 1;

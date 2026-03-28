@@ -49,13 +49,13 @@ class _TvKidShellState extends ConsumerState<TvKidShell> {
   ];
 
   Widget _buildContent() => switch (_selectedIndex) {
-        0 => const TvHomeContent(),
-        1 => const ShortsFeedScreen(),
-        2 => const KidSearchScreen(),
-        3 => const KidLibraryScreen(),
-        4 => const KidProfileScreen(),
-        _ => const TvHomeContent(),
-      };
+    0 => const TvHomeContent(),
+    1 => const ShortsFeedScreen(),
+    2 => const KidSearchScreen(),
+    3 => const KidLibraryScreen(),
+    4 => const KidProfileScreen(),
+    _ => const TvHomeContent(),
+  };
 
   @override
   Widget build(BuildContext context) {
@@ -94,10 +94,7 @@ class _TvKidShellState extends ConsumerState<TvKidShell> {
                   ),
                   destinations: _destinations,
                 ),
-                const VerticalDivider(
-                  width: 1,
-                  color: Color(0xFF383838),
-                ),
+                const VerticalDivider(width: 1, color: Color(0xFF383838)),
                 // Main content area
                 Expanded(child: _buildContent()),
               ],

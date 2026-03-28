@@ -19,5 +19,5 @@ class CurrentChildNotifier extends StateNotifier<ChildProfile?> {
 
 final currentChildProvider =
     StateNotifierProvider<CurrentChildNotifier, ChildProfile?>((ref) {
-  return CurrentChildNotifier();
-});
+      return CurrentChildNotifier();
+    });

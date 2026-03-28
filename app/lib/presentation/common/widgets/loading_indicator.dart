@@ -15,10 +15,7 @@ class AppLoadingIndicator extends StatelessWidget {
           const CircularProgressIndicator(),
           if (message != null) ...[
             const SizedBox(height: 16),
-            Text(
-              message!,
-              style: TextStyle(color: Colors.grey[600]),
-            ),
+            Text(message!, style: TextStyle(color: Colors.grey[600])),
           ],
         ],
       ),

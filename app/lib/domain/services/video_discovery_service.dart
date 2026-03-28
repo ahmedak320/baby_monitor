@@ -16,8 +16,8 @@ class VideoDiscoveryService {
   VideoDiscoveryService({
     YouTubeDataService? ytService,
     VideoRepository? videoRepo,
-  })  : _ytService = ytService ?? YouTubeDataService(),
-        _videoRepo = videoRepo ?? VideoRepository();
+  }) : _ytService = ytService ?? YouTubeDataService(),
+       _videoRepo = videoRepo ?? VideoRepository();
 
   /// Fetch trending kids content. Rate-limited to once per hour.
   Future<List<VideoMetadata>> discoverTrending() async {
@@ -135,18 +135,15 @@ class VideoDiscoveryService {
     if (watchMatch != null) return watchMatch.group(1);
 
     // youtu.be/ID
-    final shortMatch =
-        RegExp(r'youtu\.be/([a-zA-Z0-9_-]{11})').firstMatch(url);
+    final shortMatch = RegExp(r'youtu\.be/([a-zA-Z0-9_-]{11})').firstMatch(url);
     if (shortMatch != null) return shortMatch.group(1);
 
     // youtube.com/shorts/ID
-    final shortsMatch =
-        RegExp(r'shorts/([a-zA-Z0-9_-]{11})').firstMatch(url);
+    final shortsMatch = RegExp(r'shorts/([a-zA-Z0-9_-]{11})').firstMatch(url);
     if (shortsMatch != null) return shortsMatch.group(1);
 
     // youtube.com/embed/ID
-    final embedMatch =
-        RegExp(r'embed/([a-zA-Z0-9_-]{11})').firstMatch(url);
+    final embedMatch = RegExp(r'embed/([a-zA-Z0-9_-]{11})').firstMatch(url);
     if (embedMatch != null) return embedMatch.group(1);
 
     // Raw video ID (11 chars)

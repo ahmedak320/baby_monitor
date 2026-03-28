@@ -22,8 +22,7 @@ class AgeTransition {
       'updated from ${previousBracket.label} to ${newBracket.label}.';
 
   /// Suggested new filter sensitivity values.
-  Map<String, double> get suggestedSensitivity =>
-      newBracket.defaultSensitivity;
+  Map<String, double> get suggestedSensitivity => newBracket.defaultSensitivity;
 }
 
 /// Service that detects when children cross age bracket boundaries
@@ -40,8 +39,9 @@ class AgeTransitionService {
 
     for (final child in children) {
       final storedBracket = PreferencesCache.getChildBracket(child.id);
-      final currentBracket =
-          AgeRecommendationService.getConfigForDob(child.dateOfBirth);
+      final currentBracket = AgeRecommendationService.getConfigForDob(
+        child.dateOfBirth,
+      );
 
       if (storedBracket != null && storedBracket != currentBracket.label) {
         // Find the previous bracket config for context
@@ -57,12 +57,14 @@ class AgeTransitionService {
           age--;
         }
 
-        transitions.add(AgeTransition(
-          child: child,
-          newAge: age,
-          previousBracket: previousConfig,
-          newBracket: currentBracket,
-        ));
+        transitions.add(
+          AgeTransition(
+            child: child,
+            newAge: age,
+            previousBracket: previousConfig,
+            newBracket: currentBracket,
+          ),
+        );
       }
 
       // Store current bracket for next check
@@ -77,8 +79,9 @@ class AgeTransitionService {
     AgeTransition transition,
     ProfileRepository profileRepo,
   ) async {
-    final newSensitivity =
-        Map<String, dynamic>.from(transition.child.filterSensitivity);
+    final newSensitivity = Map<String, dynamic>.from(
+      transition.child.filterSensitivity,
+    );
 
     // Update with new bracket defaults
     for (final entry in transition.suggestedSensitivity.entries) {

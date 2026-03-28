@@ -27,10 +27,7 @@ void main() {
     });
 
     test('overrideForTest sets Fire TV', () {
-      PlatformInfo.overrideForTest(
-        isTV: true,
-        tvPlatform: TvPlatform.fireTV,
-      );
+      PlatformInfo.overrideForTest(isTV: true, tvPlatform: TvPlatform.fireTV);
 
       expect(PlatformInfo.isTV, isTrue);
       expect(PlatformInfo.tvPlatform, TvPlatform.fireTV);

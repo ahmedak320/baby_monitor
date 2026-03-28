@@ -16,26 +16,22 @@ class WelcomeScreen extends ConsumerWidget {
           child: Column(
             children: [
               const Spacer(flex: 2),
-              const Icon(
-                Icons.child_care,
-                size: 100,
-                color: Color(0xFF6C63FF),
-              ),
+              const Icon(Icons.child_care, size: 100, color: Color(0xFF6C63FF)),
               const SizedBox(height: 24),
               Text(
                 'Welcome to\nBaby Monitor',
                 style: Theme.of(context).textTheme.headlineLarge?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
+                  fontWeight: FontWeight.bold,
+                ),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 16),
               Text(
                 'Let\'s set up safe YouTube viewing for your kids. '
                 'This will only take a minute.',
-                style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                      color: Colors.grey[600],
-                    ),
+                style: Theme.of(
+                  context,
+                ).textTheme.bodyLarge?.copyWith(color: Colors.grey[600]),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 48),
@@ -100,15 +96,15 @@ class _FeatureRow extends StatelessWidget {
             children: [
               Text(
                 title,
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w600,
-                    ),
+                style: Theme.of(
+                  context,
+                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
               ),
               Text(
                 subtitle,
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: Colors.grey[600],
-                    ),
+                style: Theme.of(
+                  context,
+                ).textTheme.bodySmall?.copyWith(color: Colors.grey[600]),
               ),
             ],
           ),

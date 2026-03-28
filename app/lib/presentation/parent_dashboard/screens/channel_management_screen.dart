@@ -202,18 +202,15 @@ class _ChannelManagementScreenState
             child: _isSearchActive
                 ? _buildSearchResults()
                 : _isLoading
-                    ? const Center(child: CircularProgressIndicator())
-                    : TabBarView(
-                        controller: _tabController,
-                        children: [
-                          _buildChannelList(
-                              _approvedChannels, isPrefs: true),
-                          _buildChannelList(
-                              _blockedChannels, isPrefs: true),
-                          _buildChannelList(
-                              _allChannels, isPrefs: false),
-                        ],
-                      ),
+                ? const Center(child: CircularProgressIndicator())
+                : TabBarView(
+                    controller: _tabController,
+                    children: [
+                      _buildChannelList(_approvedChannels, isPrefs: true),
+                      _buildChannelList(_blockedChannels, isPrefs: true),
+                      _buildChannelList(_allChannels, isPrefs: false),
+                    ],
+                  ),
           ),
         ],
       ),
@@ -321,8 +318,10 @@ class _ChannelManagementScreenState
     );
   }
 
-  Widget _buildChannelList(List<Map<String, dynamic>> channels,
-      {required bool isPrefs}) {
+  Widget _buildChannelList(
+    List<Map<String, dynamic>> channels, {
+    required bool isPrefs,
+  }) {
     if (channels.isEmpty) {
       return Center(
         child: Text(isPrefs ? 'No channels here yet' : 'No channels found'),
@@ -346,22 +345,25 @@ class _ChannelManagementScreenState
           margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
           child: ListTile(
             leading: CircleAvatar(
-              backgroundColor:
-                  isKids ? Colors.green : const Color(0xFF6C63FF),
+              backgroundColor: isKids ? Colors.green : const Color(0xFF6C63FF),
               child: Text(
                 title.isNotEmpty ? title[0].toUpperCase() : '?',
                 style: const TextStyle(
-                    color: Colors.white, fontWeight: FontWeight.bold),
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ),
-            title: Text(title,
-                style: const TextStyle(fontWeight: FontWeight.w600)),
+            title: Text(
+              title,
+              style: const TextStyle(fontWeight: FontWeight.w600),
+            ),
             subtitle: Text(
               subs > 0
                   ? '${_formatCount(subs)} subscribers${isKids ? ' \u00b7 Kids channel' : ''}'
                   : isKids
-                      ? 'Kids channel'
-                      : '',
+                  ? 'Kids channel'
+                  : '',
               style: TextStyle(fontSize: 12, color: Colors.grey[600]),
             ),
             trailing: PopupMenuButton<String>(
