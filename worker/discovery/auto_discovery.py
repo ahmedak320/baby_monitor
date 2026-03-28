@@ -1,16 +1,12 @@
 """Periodic auto-discovery of popular kids content via Piped API."""
 
 import asyncio
-import ipaddress
 import logging
 import re
-import socket
 from datetime import date, datetime
 from typing import Any
-from urllib.parse import urlparse
 
-import httpx
-
+from clients.piped_client import PipedClient
 from config import Settings
 
 logger = logging.getLogger(__name__)
@@ -45,10 +41,10 @@ DAILY_DISCOVERY_LIMIT = 250
 class AutoDiscovery:
     """Periodically searches for popular kids content and queues for analysis."""
 
-    def __init__(self, settings: Settings, supabase_client: Any):
+    def __init__(self, settings: Settings, supabase_client: Any, piped_client: PipedClient):
         self.settings = settings
         self.supabase = supabase_client
-        self.piped_url = settings.piped_api_url
+        self.piped = piped_client
         self._current_query_index = 0
         self._daily_count = 0
         self._daily_reset_date = date.today()
@@ -87,7 +83,7 @@ class AutoDiscovery:
         logger.info("Auto-discovery: searching '%s' (%s)", query, category)
 
         try:
-            videos = await self._search_piped(query)
+            videos = await self.piped.search(query)
             count = await self._ingest_videos(videos, category)
             self._daily_count += count
             logger.info(
@@ -122,44 +118,6 @@ class AutoDiscovery:
 
             await asyncio.sleep(interval_hours * 3600)
 
-    @staticmethod
-    def _validate_url(url: str) -> None:
-        """Validate that a URL is safe (not pointing to private/loopback IPs)."""
-        parsed = urlparse(url)
-        if parsed.scheme not in ("http", "https"):
-            raise ValueError(f"Invalid URL scheme: {parsed.scheme}")
-        if not parsed.hostname:
-            raise ValueError("URL has no hostname")
-        # Resolve hostname and check for private/loopback addresses
-        try:
-            addr_infos = socket.getaddrinfo(parsed.hostname, None)
-        except socket.gaierror as e:
-            raise ValueError(f"Cannot resolve hostname: {parsed.hostname}") from e
-        for addr_info in addr_infos:
-            ip = ipaddress.ip_address(addr_info[4][0])
-            if ip.is_private or ip.is_loopback or ip.is_link_local or ip.is_reserved:
-                raise ValueError(
-                    f"URL resolves to non-public IP: {ip}"
-                )
-
-    async def _search_piped(self, query: str) -> list[dict]:
-        """Search Piped API for videos."""
-        self._validate_url(self.piped_url)
-
-        async with httpx.AsyncClient() as client:
-            response = await client.get(
-                f"{self.piped_url}/search",
-                params={"q": query, "filter": "videos"},
-                timeout=15.0,
-            )
-            response.raise_for_status()
-            data = response.json()
-            items = data.get("items", [])
-            return [
-                item for item in items
-                if item.get("type") == "stream"
-            ]
-
     async def _ingest_videos(
         self, videos: list[dict], category: str
     ) -> int:
@@ -192,6 +150,7 @@ class AutoDiscovery:
                 "analysis_status": "pending",
                 "discovery_source": "auto_discovery",
                 "is_short": is_short,
+                "last_fetched_at": datetime.utcnow().isoformat(),
             }
 
             try:
@@ -206,6 +165,8 @@ class AutoDiscovery:
                         {
                             "channel_id": channel_id,
                             "title": item.get("uploaderName", ""),
+                            "thumbnail_url": item.get("uploaderAvatar", ""),
+                            "last_fetched_at": datetime.utcnow().isoformat(),
                         },
                         on_conflict="channel_id",
                     ).execute()

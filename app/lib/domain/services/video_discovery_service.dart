@@ -1,22 +1,22 @@
 import '../../data/datasources/remote/supabase_client.dart';
-import '../../data/datasources/remote/youtube_api_client.dart';
 import '../../data/models/video_metadata.dart';
 import '../../data/repositories/video_repository.dart';
 import 'metadata_gate_service.dart';
+import 'youtube_data_service.dart';
 
 /// Orchestrates video discovery from multiple sources:
 /// trending, related, search, and parent submissions.
 class VideoDiscoveryService {
-  final YouTubeApiClient _ytClient;
+  final YouTubeDataService _ytService;
   final VideoRepository _videoRepo;
 
   DateTime? _lastTrendingFetch;
   static const _trendingCooldown = Duration(hours: 1);
 
   VideoDiscoveryService({
-    YouTubeApiClient? ytClient,
+    YouTubeDataService? ytService,
     VideoRepository? videoRepo,
-  })  : _ytClient = ytClient ?? YouTubeApiClient(),
+  })  : _ytService = ytService ?? YouTubeDataService(),
         _videoRepo = videoRepo ?? VideoRepository();
 
   /// Fetch trending kids content. Rate-limited to once per hour.
@@ -28,7 +28,7 @@ class VideoDiscoveryService {
     _lastTrendingFetch = DateTime.now();
 
     try {
-      final videos = await _ytClient.getTrending();
+      final videos = await _ytService.getTrending();
       return _ingestVideos(videos, 'trending');
     } catch (_) {
       return [];
@@ -38,7 +38,7 @@ class VideoDiscoveryService {
   /// Fetch related/sidebar videos for a given video.
   Future<List<VideoMetadata>> discoverRelated(String videoId) async {
     try {
-      final videos = await _ytClient.getRelatedVideos(videoId);
+      final videos = await _ytService.getRelatedVideos(videoId);
       return _ingestVideos(videos, 'related');
     } catch (_) {
       return [];
@@ -76,7 +76,7 @@ class VideoDiscoveryService {
 
     // Fetch video metadata and queue for analysis
     try {
-      final video = await _ytClient.getVideoDetails(videoId);
+      final video = await _ytService.getVideoDetails(videoId);
       await _videoRepo.upsertVideo(video, source: 'parent_submitted');
       await _videoRepo.requestAnalysis(videoId, priority: 3, source: 'parent');
     } catch (_) {

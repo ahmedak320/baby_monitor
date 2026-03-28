@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../data/datasources/remote/analysis_api.dart';
-import '../../../data/datasources/remote/youtube_api_client.dart';
+import '../../../domain/services/youtube_data_service.dart';
 import '../../../data/models/video_metadata.dart';
 import '../../../data/repositories/video_repository.dart';
 import '../../../domain/services/metadata_gate_service.dart';
@@ -53,8 +53,8 @@ class _DevAnalysisScreenState extends ConsumerState<DevAnalysisScreen> {
     });
 
     try {
-      final ytClient = YouTubeApiClient();
-      final video = await ytClient.getVideoDetails(videoId);
+      final ytService = YouTubeDataService();
+      final video = await ytService.getVideoDetails(videoId);
 
       final gate = MetadataGateService.check(
         title: video.title,

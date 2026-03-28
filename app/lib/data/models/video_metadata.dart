@@ -16,6 +16,7 @@ class VideoMetadata {
   final bool isShort;
   final String? analysisStatus;
   final String? discoverySource;
+  final DateTime? lastFetchedAt;
 
   const VideoMetadata({
     required this.videoId,
@@ -34,6 +35,7 @@ class VideoMetadata {
     this.isShort = false,
     this.analysisStatus,
     this.discoverySource,
+    this.lastFetchedAt,
   });
 
   /// Detect if this video is a YouTube Short.
@@ -57,6 +59,7 @@ class VideoMetadata {
         'like_count': likeCount,
         'is_short': detectedAsShort,
         if (source != null) 'discovery_source': source,
+        'last_fetched_at': DateTime.now().toIso8601String(),
       };
 
   factory VideoMetadata.fromSupabaseRow(Map<String, dynamic> row) {
@@ -79,6 +82,9 @@ class VideoMetadata {
       isShort: row['is_short'] as bool? ?? false,
       analysisStatus: row['analysis_status'] as String?,
       discoverySource: row['discovery_source'] as String?,
+      lastFetchedAt: row['last_fetched_at'] != null
+          ? DateTime.tryParse(row['last_fetched_at'] as String)
+          : null,
     );
   }
 }
@@ -91,6 +97,7 @@ class ChannelMetadata {
   final String thumbnailUrl;
   final int subscriberCount;
   final bool isKidsChannel;
+  final DateTime? lastFetchedAt;
 
   const ChannelMetadata({
     required this.channelId,
@@ -99,6 +106,7 @@ class ChannelMetadata {
     this.thumbnailUrl = '',
     this.subscriberCount = 0,
     this.isKidsChannel = false,
+    this.lastFetchedAt,
   });
 
   Map<String, dynamic> toSupabaseRow() => {
@@ -108,6 +116,7 @@ class ChannelMetadata {
         'thumbnail_url': thumbnailUrl,
         'subscriber_count': subscriberCount,
         'is_kids_channel': isKidsChannel,
+        'last_fetched_at': DateTime.now().toIso8601String(),
       };
 
   factory ChannelMetadata.fromSupabaseRow(Map<String, dynamic> row) {
@@ -118,6 +127,9 @@ class ChannelMetadata {
       thumbnailUrl: row['thumbnail_url'] as String? ?? '',
       subscriberCount: (row['subscriber_count'] as int?) ?? 0,
       isKidsChannel: row['is_kids_channel'] as bool? ?? false,
+      lastFetchedAt: row['last_fetched_at'] != null
+          ? DateTime.tryParse(row['last_fetched_at'] as String)
+          : null,
     );
   }
 }

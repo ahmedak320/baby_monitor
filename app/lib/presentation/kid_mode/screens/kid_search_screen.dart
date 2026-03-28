@@ -7,7 +7,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 
 import '../../../config/theme/kid_theme.dart';
 import '../../../data/datasources/remote/supabase_client.dart';
-import '../../../data/datasources/remote/youtube_api_client.dart';
+import '../../../domain/services/youtube_data_service.dart';
 import '../../../data/models/video_metadata.dart';
 import '../../../data/datasources/remote/analysis_api.dart';
 import '../../../data/repositories/video_repository.dart';
@@ -308,8 +308,8 @@ class _KidSearchScreenState extends ConsumerState<KidSearchScreen> {
   /// Search live YouTube and run metadata gate on results.
   Future<void> _searchLive(String query) async {
     try {
-      final ytClient = YouTubeApiClient();
-      final result = await ytClient.search(query, maxResults: 10);
+      final ytService = YouTubeDataService();
+      final result = await ytService.search(query, maxResults: 10);
 
       final gated = <VideoMetadata>[];
       final videoRepo = VideoRepository();

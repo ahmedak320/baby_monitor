@@ -84,6 +84,26 @@ class PreferencesCache {
     await LocalCache.preferences.put('quota_reset_date', date);
   }
 
+  // --- YouTube API key quota tracking ---
+
+  /// Get daily quota usage for a specific YouTube API key.
+  static int getYtKeyUsage(String keyHash) =>
+      (LocalCache.preferences.get('yt_key_$keyHash') as int?) ?? 0;
+
+  /// Set daily quota usage for a specific YouTube API key.
+  static Future<void> setYtKeyUsage(String keyHash, int value) async {
+    await LocalCache.preferences.put('yt_key_$keyHash', value);
+  }
+
+  /// Get the last date YouTube key quotas were reset.
+  static String? getYtKeyResetDate() =>
+      LocalCache.preferences.get('yt_key_reset_date') as String?;
+
+  /// Set the YouTube key quota reset date.
+  static Future<void> setYtKeyResetDate(String date) async {
+    await LocalCache.preferences.put('yt_key_reset_date', date);
+  }
+
   // --- Dev/Test Mode settings ---
 
   /// Whether to skip biometric auth during testing.

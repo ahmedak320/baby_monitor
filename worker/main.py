@@ -14,6 +14,7 @@ import uvicorn
 from supabase import create_client
 
 from api.routes import create_api
+from clients.piped_client import PipedClient
 from config import settings
 from discovery.auto_discovery import AutoDiscovery
 from pipeline.orchestrator import PipelineOrchestrator
@@ -54,8 +55,11 @@ async def main() -> None:
         settings.supabase_service_key,
     )
 
+    # Set up Piped client with multi-instance failover
+    piped_client = PipedClient(instances=settings.piped_instances)
+
     # Set up auto-discovery
-    discovery = AutoDiscovery(settings, supabase_client)
+    discovery = AutoDiscovery(settings, supabase_client, piped_client)
 
     # Set up FastAPI server
     orchestrator = PipelineOrchestrator()

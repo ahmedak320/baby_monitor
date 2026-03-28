@@ -7,6 +7,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'app.dart';
 import 'config/supabase_config.dart';
 import 'data/datasources/local/local_cache.dart';
+import 'data/datasources/remote/remote_config_service.dart';
 import 'domain/services/background_sync_service.dart';
 import 'utils/platform_info.dart';
 
@@ -35,6 +36,9 @@ Future<void> main() async {
     url: SupabaseConfig.supabaseUrl,
     anonKey: SupabaseConfig.supabaseAnonKey,
   );
+
+  // Load remote config (API keys, Piped instances) from Supabase
+  await RemoteConfigService.instance.initialize();
 
   // Initialize RevenueCat (stub — real API key needed for production)
   try {

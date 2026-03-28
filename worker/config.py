@@ -29,10 +29,29 @@ class Settings:
     youtube_api_key: str = field(
         default_factory=lambda: os.getenv("YOUTUBE_API_KEY", "")
     )
+    youtube_api_keys: list[str] = field(
+        default_factory=lambda: [
+            k.strip()
+            for k in os.getenv(
+                "YOUTUBE_API_KEYS", os.getenv("YOUTUBE_API_KEY", "")
+            ).split(",")
+            if k.strip()
+        ]
+    )
     piped_api_url: str = field(
         default_factory=lambda: os.getenv(
             "PIPED_API_URL", "https://pipedapi.kavin.rocks"
         )
+    )
+    piped_instances: list[str] = field(
+        default_factory=lambda: [
+            u.strip()
+            for u in os.getenv(
+                "PIPED_INSTANCES",
+                os.getenv("PIPED_API_URL", "https://pipedapi.kavin.rocks"),
+            ).split(",")
+            if u.strip()
+        ]
     )
 
     # AI Providers

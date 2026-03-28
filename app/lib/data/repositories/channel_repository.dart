@@ -1,13 +1,13 @@
-import '../datasources/remote/piped_api_client.dart';
+import '../datasources/remote/piped_pool.dart';
 import '../datasources/remote/supabase_client.dart';
 import '../models/video_metadata.dart';
 
 /// Repository for channel search, preferences, and persistence.
 class ChannelRepository {
-  final PipedApiClient _piped;
+  final PipedPool _pipedPool;
 
-  ChannelRepository({PipedApiClient? piped})
-      : _piped = piped ?? PipedApiClient();
+  ChannelRepository({PipedPool? pipedPool})
+      : _pipedPool = pipedPool ?? PipedPool();
 
   /// Search channels locally in the yt_channels table.
   Future<List<ChannelMetadata>> searchLocal(String query) async {
@@ -25,10 +25,13 @@ class ChannelRepository {
         .toList();
   }
 
-  /// Search channels remotely via Piped API, upserts results into DB.
+  /// Search channels remotely via Piped pool (multi-instance failover),
+  /// upserts results into DB.
   Future<List<ChannelMetadata>> searchRemote(String query) async {
     try {
-      final channels = await _piped.searchChannels(query);
+      final channels = await _pipedPool.executeWithFailover(
+        (client) => client.searchChannels(query),
+      );
 
       // Upsert found channels into yt_channels
       for (final channel in channels) {

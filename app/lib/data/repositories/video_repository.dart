@@ -1,6 +1,6 @@
 import '../datasources/local/approved_cache.dart';
 import '../datasources/remote/supabase_client.dart';
-import '../datasources/remote/youtube_api_client.dart';
+import '../../domain/services/youtube_data_service.dart';
 import '../models/video_metadata.dart';
 
 /// Analysis result for a video.
@@ -71,10 +71,10 @@ class VideoAnalysis {
 /// fetch from YouTube, persist to Supabase, cache locally, queue for analysis.
 class VideoRepository {
   final _client = SupabaseClientWrapper.client;
-  final YouTubeApiClient _youtubeApi;
+  final YouTubeDataService _ytService;
 
-  VideoRepository({YouTubeApiClient? youtubeApi})
-      : _youtubeApi = youtubeApi ?? YouTubeApiClient();
+  VideoRepository({YouTubeDataService? ytService})
+      : _ytService = ytService ?? YouTubeDataService();
 
   // ==========================================
   // VIDEO METADATA
@@ -91,9 +91,9 @@ class VideoRepository {
 
     if (row != null) return VideoMetadata.fromSupabaseRow(row);
 
-    // Fetch from YouTube and cache
+    // Fetch via tiered resolution (YouTube API → Piped → stale cache)
     try {
-      final video = await _youtubeApi.getVideoDetails(videoId);
+      final video = await _ytService.getVideoDetails(videoId);
       await _upsertVideo(video);
       return video;
     } catch (_) {
@@ -103,7 +103,7 @@ class VideoRepository {
 
   /// Search videos, caching results in Supabase.
   Future<List<VideoMetadata>> searchVideos(String query) async {
-    final result = await _youtubeApi.search(query);
+    final result = await _ytService.search(query);
     // Cache results in background
     for (final video in result.videos) {
       _upsertVideo(video); // fire and forget
@@ -183,7 +183,7 @@ class VideoRepository {
 
   /// Get channel uploads and cache them.
   Future<List<VideoMetadata>> getChannelUploads(String channelId) async {
-    final videos = await _youtubeApi.getChannelVideos(channelId);
+    final videos = await _ytService.getChannelVideos(channelId);
     for (final video in videos) {
       _upsertVideo(video);
     }

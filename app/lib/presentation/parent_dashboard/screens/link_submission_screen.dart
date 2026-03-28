@@ -5,7 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 
 import '../../../data/datasources/remote/analysis_api.dart';
-import '../../../data/datasources/remote/youtube_api_client.dart';
+import '../../../domain/services/youtube_data_service.dart';
 import '../../../data/models/video_metadata.dart';
 import '../../../data/repositories/video_repository.dart';
 import '../../../domain/services/video_discovery_service.dart';
@@ -53,8 +53,8 @@ class _LinkSubmissionScreenState extends ConsumerState<LinkSubmissionScreen> {
     });
 
     try {
-      final ytClient = YouTubeApiClient();
-      final video = await ytClient.getVideoDetails(videoId);
+      final ytService = YouTubeDataService();
+      final video = await ytService.getVideoDetails(videoId);
       setState(() {
         _video = video;
         _loading = false;
