@@ -22,7 +22,7 @@ final shortsFeedProvider = FutureProvider<List<FeedItem>>((ref) async {
       childId: child.id,
       childAge: childAge,
       limit: 100,
-      includeMetadataApproved: false,
+      includeMetadataApproved: true,
     );
 
     // Filter for shorts only
@@ -38,7 +38,14 @@ final shortsFeedProvider = FutureProvider<List<FeedItem>>((ref) async {
           analysis: analysis,
           child: child,
         );
-        if (!result.isApproved) continue;
+        if (!result.isApproved) {
+          videoRepo.logFiltered(
+            childId: child.id,
+            videoId: video.videoId,
+            reason: result.reason,
+          );
+          continue;
+        }
       } else if (video.analysisStatus != 'metadata_approved') {
         continue;
       }

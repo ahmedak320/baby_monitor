@@ -1,5 +1,3 @@
-import 'package:flutter/foundation.dart' show kDebugMode;
-
 import '../datasources/remote/supabase_client.dart';
 
 /// Subscription tier.
@@ -67,22 +65,15 @@ class SubscriptionRepository {
 
   /// Update the subscription tier (for dev/testing).
   Future<void> updateTier(SubscriptionTier tier) async {
-    if (!kDebugMode) return;
     final userId = SupabaseClientWrapper.currentUserId;
     if (userId == null) return;
 
     final tierStr = tier == SubscriptionTier.premium ? 'premium' : 'free';
-    final limit = tier == SubscriptionTier.premium ? 999999 : 50;
-
-    await _client.from('subscriptions').update({
-      'tier': tierStr,
-      'monthly_analyses_limit': limit,
-    }).eq('parent_id', userId);
+    await _client.rpc('set_subscription_tier', params: {'new_tier': tierStr});
   }
 
   /// Reset the monthly analysis counter (for dev/testing).
   Future<void> resetAnalysisCount() async {
-    if (!kDebugMode) return;
     final userId = SupabaseClientWrapper.currentUserId;
     if (userId == null) return;
 

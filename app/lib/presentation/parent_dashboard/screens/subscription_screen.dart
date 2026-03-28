@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../data/repositories/subscription_repository.dart';
 import '../../../providers/subscription_provider.dart';
 
 class SubscriptionScreen extends ConsumerWidget {
@@ -103,13 +104,17 @@ class SubscriptionScreen extends ConsumerWidget {
                 SizedBox(
                   height: 56,
                   child: ElevatedButton(
-                    onPressed: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text(
-                              'Payments coming soon. Use Dev Settings to test premium features.'),
-                        ),
-                      );
+                    onPressed: () async {
+                      final repo = SubscriptionRepository();
+                      await repo.updateTier(SubscriptionTier.premium);
+                      ref.invalidate(subscriptionProvider);
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Upgraded to Premium! Enjoy all features.'),
+                          ),
+                        );
+                      }
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.amber,

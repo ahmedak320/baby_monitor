@@ -314,6 +314,23 @@ class VideoRepository {
   // FILTERED LOG
   // ==========================================
 
+  /// Log that a video was filtered/rejected for a child.
+  Future<void> logFiltered({
+    required String childId,
+    required String videoId,
+    required String reason,
+  }) async {
+    try {
+      await _client.rpc('log_filtered_content', params: {
+        'p_child_id': childId,
+        'p_video_id': videoId,
+        'p_reason': reason,
+      });
+    } catch (_) {
+      // Fire-and-forget — don't break feed if logging fails
+    }
+  }
+
   /// Get filtered video log for a child.
   Future<List<Map<String, dynamic>>> getFilteredLog(
     String childId, {

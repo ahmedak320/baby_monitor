@@ -34,6 +34,9 @@ class _KidVideoPlayerScreenState extends ConsumerState<KidVideoPlayerScreen> {
   bool _isPlaying = false;
   bool _isInterrupted = false;
   String? _interruptReason;
+  bool _hasError = false;
+  String? _errorMessage;
+  Timer? _errorTimer;
   StreamSubscription<String>? _analysisSub;
   StreamSubscription<YoutubePlayerValue>? _playerStateSub;
   StreamSubscription<YoutubeVideoState>? _videoStateSub;
@@ -70,7 +73,15 @@ class _KidVideoPlayerScreenState extends ConsumerState<KidVideoPlayerScreen> {
     _videoStateSub = _controller.videoStateStream.listen((state) {
       if (!mounted) return;
       if (!_isPlaying) {
+        _errorTimer?.cancel();
         setState(() => _isPlaying = true);
+      }
+    });
+
+    // Fallback error detection: if player doesn't start within 8 seconds
+    _errorTimer = Timer(const Duration(seconds: 8), () {
+      if (mounted && !_isPlaying && !_isInterrupted && !_hasError) {
+        _showError('This video is unavailable');
       }
     });
 
@@ -78,7 +89,8 @@ class _KidVideoPlayerScreenState extends ConsumerState<KidVideoPlayerScreen> {
     // Stream events update _isPlaying when available (native platforms),
     // but on web postMessage may be blocked by cross-origin restrictions.
     Future.delayed(const Duration(seconds: 2), () {
-      if (mounted && !_isPlaying && !_isInterrupted) {
+      if (mounted && !_isPlaying && !_isInterrupted && !_hasError) {
+        _errorTimer?.cancel();
         setState(() => _isPlaying = true);
       }
     });
@@ -149,10 +161,30 @@ class _KidVideoPlayerScreenState extends ConsumerState<KidVideoPlayerScreen> {
     });
   }
 
+  void _showError(String message) {
+    if (_hasError || !mounted) return;
+    setState(() {
+      _hasError = true;
+      _errorMessage = message;
+    });
+    _controller.pauseVideo();
+    Future.delayed(const Duration(seconds: 3), () {
+      if (mounted) Navigator.of(context).pop();
+    });
+  }
+
   void _onPlayerStateChange(YoutubePlayerValue value) {
     if (!mounted) return;
+
+    // Detect YouTube embed errors (e.g., 150/152 = not embeddable)
+    if (value.hasError) {
+      _showError("This video can't be played right now");
+      return;
+    }
+
     final playing = value.playerState == PlayerState.playing;
     if (_isPlaying != playing) {
+      if (playing) _errorTimer?.cancel();
       setState(() => _isPlaying = playing);
     }
 
@@ -176,6 +208,7 @@ class _KidVideoPlayerScreenState extends ConsumerState<KidVideoPlayerScreen> {
     _playerStateSub?.cancel();
     _videoStateSub?.cancel();
     _watchTimer?.cancel();
+    _errorTimer?.cancel();
     _controller.close();
     SystemChrome.setPreferredOrientations([]);
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
@@ -235,6 +268,10 @@ class _KidVideoPlayerScreenState extends ConsumerState<KidVideoPlayerScreen> {
             // Interruption overlay
             if (_isInterrupted)
               _InterruptionOverlay(reason: _interruptReason ?? ''),
+
+            // Error overlay
+            if (_hasError)
+              _ErrorOverlay(message: _errorMessage ?? 'Video unavailable'),
 
             // Shorts: back button overlay
             if (widget.isShort)
@@ -301,6 +338,51 @@ class _InterruptionOverlay extends StatelessWidget {
               height: 32,
               child: CircularProgressIndicator(
                 color: Colors.white,
+                strokeWidth: 3,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Kid-friendly error overlay shown when a video can't be played.
+class _ErrorOverlay extends StatelessWidget {
+  final String message;
+  const _ErrorOverlay({required this.message});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      color: Colors.black.withValues(alpha: 0.9),
+      child: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.error_outline, size: 64, color: Colors.white70),
+            const SizedBox(height: 16),
+            Text(
+              message,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'Going back...',
+              style: TextStyle(color: Colors.white70, fontSize: 14),
+            ),
+            const SizedBox(height: 24),
+            const SizedBox(
+              width: 32,
+              height: 32,
+              child: CircularProgressIndicator(
+                color: Colors.white70,
                 strokeWidth: 3,
               ),
             ),

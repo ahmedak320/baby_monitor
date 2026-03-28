@@ -11,8 +11,11 @@ import '../../../data/datasources/remote/youtube_api_client.dart';
 import '../../../data/models/video_metadata.dart';
 import '../../../data/datasources/remote/analysis_api.dart';
 import '../../../data/repositories/video_repository.dart';
+import '../../../domain/services/content_filter_service.dart';
 import '../../../domain/services/metadata_gate_service.dart';
+import '../../../domain/services/subscription_service.dart';
 import '../../../providers/current_child_provider.dart';
+import '../../../providers/subscription_provider.dart';
 import '../../../routing/route_names.dart';
 import '../../../utils/age_calculator.dart';
 import '../../../utils/duration_formatter.dart';
@@ -72,19 +75,28 @@ class _KidSearchScreenState extends ConsumerState<KidSearchScreen> {
       if (analysis == null || !mounted) return;
 
       final child = ref.read(currentChildProvider);
-      final childAge = child != null
-          ? AgeCalculator.yearsFromDob(child.dateOfBirth)
-          : 5;
 
-      final isApproved = !analysis.isGloballyBlacklisted &&
-          analysis.ageMinAppropriate <= childAge &&
-          analysis.ageMaxAppropriate >= childAge;
+      // Use ContentFilterService for consistency with _searchApproved()
+      bool isApproved;
+      if (child != null) {
+        final filterService = ContentFilterService();
+        final result = filterService.filterForChild(
+          analysis: analysis,
+          child: child,
+        );
+        isApproved = result.isApproved;
+      } else {
+        final childAge = 5;
+        isApproved = !analysis.isGloballyBlacklisted &&
+            analysis.ageMinAppropriate <= childAge &&
+            analysis.ageMaxAppropriate >= childAge;
+      }
 
       setState(() {
+        final video = _liveResults.where((v) => v.videoId == videoId).firstOrNull;
         _liveResults.removeWhere((v) => v.videoId == videoId);
-        if (isApproved) {
-          // Find the video metadata and move to approved
-          // It might already be gone from liveResults
+        if (isApproved && video != null) {
+          _approvedResults.add(video);
         }
       });
     } catch (_) {}
@@ -97,9 +109,9 @@ class _KidSearchScreenState extends ConsumerState<KidSearchScreen> {
     return Theme(
       data: KidTheme.theme,
       child: Scaffold(
-        backgroundColor: const Color(0xFFF5F5FF),
+        backgroundColor: KidTheme.background,
         appBar: AppBar(
-          backgroundColor: const Color(0xFFF5F5FF),
+          backgroundColor: KidTheme.background,
           title: const Text('Search'),
           elevation: 0,
         ),
@@ -111,12 +123,14 @@ class _KidSearchScreenState extends ConsumerState<KidSearchScreen> {
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: TextField(
                   controller: _searchController,
+                  style: const TextStyle(color: KidTheme.textPrimary),
                   decoration: InputDecoration(
                     hintText: 'Search videos...',
-                    prefixIcon: const Icon(Icons.search),
+                    hintStyle: const TextStyle(color: KidTheme.textSecondary),
+                    prefixIcon: const Icon(Icons.search, color: KidTheme.textSecondary),
                     suffixIcon: _searchController.text.isNotEmpty
                         ? IconButton(
-                            icon: const Icon(Icons.clear),
+                            icon: const Icon(Icons.clear, color: KidTheme.textSecondary),
                             onPressed: () {
                               _searchController.clear();
                               setState(() {
@@ -128,7 +142,7 @@ class _KidSearchScreenState extends ConsumerState<KidSearchScreen> {
                           )
                         : null,
                     filled: true,
-                    fillColor: Colors.white,
+                    fillColor: KidTheme.surfaceVariant,
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(24),
                       borderSide: BorderSide.none,
@@ -149,16 +163,16 @@ class _KidSearchScreenState extends ConsumerState<KidSearchScreen> {
                             child: Column(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                Icon(Icons.search,
-                                    size: 64, color: Colors.grey[300]),
+                                const Icon(Icons.search,
+                                    size: 64, color: KidTheme.textSecondary),
                                 const SizedBox(height: 16),
                                 Text(
                                   _searchController.text.isEmpty
                                       ? 'Type to search videos'
                                       : 'No results found',
-                                  style: TextStyle(
+                                  style: const TextStyle(
                                     fontSize: 16,
-                                    color: Colors.grey[500],
+                                    color: KidTheme.textSecondary,
                                   ),
                                 ),
                               ],
@@ -255,8 +269,28 @@ class _KidSearchScreenState extends ConsumerState<KidSearchScreen> {
               (r) => VideoMetadata.fromSupabaseRow(r as Map<String, dynamic>))
           .toList();
 
+      // Apply per-child sensitivity filtering
+      final child = ref.read(currentChildProvider);
+      final filterService = ContentFilterService();
+      final videoRepo = VideoRepository();
+      final filtered = <VideoMetadata>[];
+      for (final video in videos) {
+        final analysis = await videoRepo.getAnalysis(video.videoId);
+        if (analysis != null && child != null) {
+          final result = filterService.filterForChild(
+            analysis: analysis,
+            child: child,
+          );
+          if (result.isApproved) {
+            filtered.add(video);
+          }
+        } else {
+          filtered.add(video); // No analysis data, include it
+        }
+      }
+
       if (mounted) {
-        setState(() => _approvedResults = videos);
+        setState(() => _approvedResults = filtered);
       }
     } catch (_) {}
   }
@@ -269,6 +303,9 @@ class _KidSearchScreenState extends ConsumerState<KidSearchScreen> {
 
       final gated = <VideoMetadata>[];
       final videoRepo = VideoRepository();
+      final subService = SubscriptionService();
+      final canAnalyze = await subService.canAnalyze();
+      int queued = 0;
 
       for (final video in result.videos) {
         if (video.videoId.isEmpty) continue;
@@ -289,15 +326,26 @@ class _KidSearchScreenState extends ConsumerState<KidSearchScreen> {
           gated.add(video);
           _pendingAnalysis.add(video.videoId);
 
-          // Upsert and queue for analysis in background
+          // Upsert video metadata regardless of quota
           videoRepo.upsertVideo(video,
               source: 'search',
               analysisStatus: 'metadata_approved',
               metadataGatePassed: true,
               metadataGateReason: gate.reason);
-          videoRepo.requestAnalysis(video.videoId,
-              priority: 2, source: 'search');
+
+          // Only queue for analysis if quota allows
+          if (canAnalyze) {
+            videoRepo.requestAnalysis(video.videoId,
+                priority: 2, source: 'search');
+            subService.recordAnalysisUsage();
+            queued++;
+          }
         }
+      }
+
+      // Refresh subscription counter in UI if we queued any videos
+      if (queued > 0) {
+        ref.invalidate(subscriptionProvider);
       }
 
       if (mounted) {
@@ -410,6 +458,7 @@ class _SearchResultTile extends StatelessWidget {
   Widget build(BuildContext context) {
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
+      color: KidTheme.surface,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: InkWell(
         onTap: onTap,
@@ -434,7 +483,7 @@ class _SearchResultTile extends StatelessWidget {
                               fit: BoxFit.cover,
                             )
                           : Container(
-                              color: Colors.grey[200],
+                              color: KidTheme.surface,
                               child:
                                   const Icon(Icons.play_circle_outline),
                             ),
@@ -473,6 +522,7 @@ class _SearchResultTile extends StatelessWidget {
                       style: const TextStyle(
                         fontWeight: FontWeight.w600,
                         fontSize: 14,
+                        color: KidTheme.textPrimary,
                       ),
                     ),
                     const SizedBox(height: 4),
@@ -485,9 +535,9 @@ class _SearchResultTile extends StatelessWidget {
                           Text(
                             DurationFormatter.videoLength(
                                 video.durationSeconds),
-                            style: TextStyle(
+                            style: const TextStyle(
                               fontSize: 12,
-                              color: Colors.grey[600],
+                              color: KidTheme.textSecondary,
                             ),
                           ),
                       ],

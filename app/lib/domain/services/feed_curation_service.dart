@@ -87,7 +87,15 @@ class FeedCurationService {
           analysis: analysis,
           child: child,
         );
-        if (!result.isApproved) continue;
+        if (!result.isApproved) {
+          // Log the filtered video for parent dashboard visibility
+          _videoRepo.logFiltered(
+            childId: child.id,
+            videoId: video.videoId,
+            reason: result.reason,
+          );
+          continue;
+        }
       } else if (video.analysisStatus != 'metadata_approved') {
         // No analysis and not metadata-approved — skip
         continue;
@@ -150,7 +158,14 @@ class FeedCurationService {
         analysis: analysis,
         child: child,
       );
-      if (!result.isApproved) continue;
+      if (!result.isApproved) {
+        _videoRepo.logFiltered(
+          childId: child.id,
+          videoId: video.videoId,
+          reason: result.reason,
+        );
+        continue;
+      }
 
       suggestions.add(FeedItem(
         video: video,
@@ -202,7 +217,14 @@ class FeedCurationService {
         final analysis = await _videoRepo.getAnalysis(video.videoId);
         if (analysis != null) {
           final result = _filterService.filterForChild(analysis: analysis, child: child);
-          if (!result.isApproved) continue;
+          if (!result.isApproved) {
+            _videoRepo.logFiltered(
+              childId: child.id,
+              videoId: video.videoId,
+              reason: result.reason,
+            );
+            continue;
+          }
         }
         items.add(FeedItem(
           video: video,
