@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../data/datasources/local/local_cache.dart';
 import '../../../routing/route_names.dart';
 import '../../../utils/validators.dart';
 import '../providers/auth_provider.dart';
@@ -17,6 +18,40 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
+  bool _rememberMe = false;
+
+  static const _rememberMeKey = 'remember_me';
+  static const _savedEmailKey = 'saved_email';
+  static const _savedPasswordKey = 'saved_password';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSavedCredentials();
+  }
+
+  void _loadSavedCredentials() {
+    final prefs = LocalCache.preferences;
+    final remembered = prefs.get(_rememberMeKey) as bool? ?? false;
+    if (remembered) {
+      _emailController.text = prefs.get(_savedEmailKey) as String? ?? '';
+      _passwordController.text = prefs.get(_savedPasswordKey) as String? ?? '';
+      setState(() => _rememberMe = true);
+    }
+  }
+
+  Future<void> _saveCredentials() async {
+    final prefs = LocalCache.preferences;
+    if (_rememberMe) {
+      await prefs.put(_rememberMeKey, true);
+      await prefs.put(_savedEmailKey, _emailController.text.trim());
+      await prefs.put(_savedPasswordKey, _passwordController.text);
+    } else {
+      await prefs.delete(_rememberMeKey);
+      await prefs.delete(_savedEmailKey);
+      await prefs.delete(_savedPasswordKey);
+    }
+  }
 
   @override
   void dispose() {
@@ -97,12 +132,28 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     return null;
                   },
                 ),
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: TextButton(
-                    onPressed: _handleForgotPassword,
-                    child: const Text('Forgot Password?'),
-                  ),
+                Row(
+                  children: [
+                    SizedBox(
+                      height: 24,
+                      width: 24,
+                      child: Checkbox(
+                        value: _rememberMe,
+                        onChanged: (v) =>
+                            setState(() => _rememberMe = v ?? false),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    GestureDetector(
+                      onTap: () => setState(() => _rememberMe = !_rememberMe),
+                      child: const Text('Remember me'),
+                    ),
+                    const Spacer(),
+                    TextButton(
+                      onPressed: _handleForgotPassword,
+                      child: const Text('Forgot Password?'),
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 8),
                 ElevatedButton(
@@ -139,6 +190,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         );
 
     if (success && mounted) {
+      await _saveCredentials();
       context.goNamed(RouteNames.dashboard);
     }
   }

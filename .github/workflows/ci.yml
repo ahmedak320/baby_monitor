@@ -53,11 +53,14 @@ jobs:
           channel: stable
           cache: true
 
+      - name: Create .env
+        run: echo "${{ secrets.ENV_FILE }}" > .env
+
       - name: Get dependencies
         run: flutter pub get
 
       - name: Build Mobile APK
-        run: flutter build apk --debug --flavor mobile
+        run: flutter build apk --debug --flavor mobile --dart-define-from-file=.env
 
       - name: Upload Mobile APK
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
@@ -85,11 +88,14 @@ jobs:
           channel: stable
           cache: true
 
+      - name: Create .env
+        run: echo "${{ secrets.ENV_FILE }}" > .env
+
       - name: Get dependencies
         run: flutter pub get
 
       - name: Build TV APK
-        run: flutter build apk --debug --flavor tv
+        run: flutter build apk --debug --flavor tv --dart-define-from-file=.env
 
       - name: Upload TV APK
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
