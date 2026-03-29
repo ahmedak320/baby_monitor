@@ -246,7 +246,7 @@ class ChannelSuggestionsScreen extends ConsumerWidget {
                       onTap: () {
                         ref
                             .read(onboardingProvider.notifier)
-                            .toggleChannel(channel.id);
+                            .toggleChannel(channel.id, name: channel.name);
                       },
                     ),
                   );

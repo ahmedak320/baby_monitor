@@ -17,6 +17,9 @@ class OnboardingState {
   // Approved channels (Step 11)
   final Set<String> approvedChannelIds;
 
+  // Channel name mapping (for ensureChannelExists FK dependency)
+  final Map<String, String> approvedChannelNames; // channelId -> name
+
   // Content preferences (Step 12)
   final Map<String, String>
   contentPreferences; // type -> preferred/allowed/blocked
@@ -42,6 +45,7 @@ class OnboardingState {
       'educational_preference': 5,
     },
     this.approvedChannelIds = const {},
+    this.approvedChannelNames = const {},
     this.contentPreferences = const {},
     this.isLoading = false,
     this.error,
@@ -53,6 +57,7 @@ class OnboardingState {
     List<String>? filterPriorities,
     Map<String, double>? filterSensitivity,
     Set<String>? approvedChannelIds,
+    Map<String, String>? approvedChannelNames,
     Map<String, String>? contentPreferences,
     bool? isLoading,
     String? error,
@@ -63,6 +68,7 @@ class OnboardingState {
       filterPriorities: filterPriorities ?? this.filterPriorities,
       filterSensitivity: filterSensitivity ?? this.filterSensitivity,
       approvedChannelIds: approvedChannelIds ?? this.approvedChannelIds,
+      approvedChannelNames: approvedChannelNames ?? this.approvedChannelNames,
       contentPreferences: contentPreferences ?? this.contentPreferences,
       isLoading: isLoading ?? this.isLoading,
       error: error,
@@ -93,14 +99,20 @@ class OnboardingNotifier extends StateNotifier<OnboardingState> {
     state = state.copyWith(filterSensitivity: updated);
   }
 
-  void toggleChannel(String channelId) {
-    final updated = Set<String>.from(state.approvedChannelIds);
-    if (updated.contains(channelId)) {
-      updated.remove(channelId);
+  void toggleChannel(String channelId, {String? name}) {
+    final updatedIds = Set<String>.from(state.approvedChannelIds);
+    final updatedNames = Map<String, String>.from(state.approvedChannelNames);
+    if (updatedIds.contains(channelId)) {
+      updatedIds.remove(channelId);
+      updatedNames.remove(channelId);
     } else {
-      updated.add(channelId);
+      updatedIds.add(channelId);
+      if (name != null) updatedNames[channelId] = name;
     }
-    state = state.copyWith(approvedChannelIds: updated);
+    state = state.copyWith(
+      approvedChannelIds: updatedIds,
+      approvedChannelNames: updatedNames,
+    );
   }
 
   void setContentPreference(String type, String preference) {
@@ -132,6 +144,12 @@ class OnboardingNotifier extends StateNotifier<OnboardingState> {
         final userId = SupabaseClientWrapper.currentUserId;
         if (userId != null) {
           final channelRepo = ChannelRepository();
+          // Ensure channels exist in yt_channels (FK dependency)
+          for (final channelId in state.approvedChannelIds) {
+            final name =
+                state.approvedChannelNames[channelId] ?? 'Unknown Channel';
+            await channelRepo.ensureChannelExists(channelId, name);
+          }
           for (final channelId in state.approvedChannelIds) {
             await channelRepo.setChannelPref(
               parentId: userId,

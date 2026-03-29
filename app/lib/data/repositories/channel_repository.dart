@@ -43,6 +43,22 @@ class ChannelRepository {
     }
   }
 
+  /// Ensure a channel row exists in yt_channels (for FK dependencies).
+  /// Uses ignoreDuplicates to avoid triggering RLS UPDATE restrictions.
+  Future<void> ensureChannelExists(String channelId, String title) async {
+    await SupabaseClientWrapper.client
+        .from('yt_channels')
+        .upsert(
+          {
+            'channel_id': channelId,
+            'title': title,
+            'last_fetched_at': DateTime.now().toIso8601String(),
+          },
+          onConflict: 'channel_id',
+          ignoreDuplicates: true,
+        );
+  }
+
   /// Upsert a channel into yt_channels.
   Future<void> upsertChannel(ChannelMetadata channel) async {
     await SupabaseClientWrapper.client
@@ -51,18 +67,36 @@ class ChannelRepository {
   }
 
   /// Set parent preference for a channel (approve or block).
+  /// Uses delete-then-insert when childId is null to avoid PostgreSQL
+  /// NULL != NULL behavior in unique constraints.
   Future<void> setChannelPref({
     required String parentId,
     required String channelId,
     required String status,
     String? childId,
   }) async {
-    await SupabaseClientWrapper.client.from('parent_channel_prefs').upsert({
-      'parent_id': parentId,
-      'channel_id': channelId,
-      'status': status,
-      if (childId != null) 'applies_to_child_id': childId,
-    }, onConflict: 'parent_id,channel_id,applies_to_child_id');
+    if (childId == null) {
+      // NULL != NULL in unique constraints, so upsert won't detect conflicts.
+      // Delete any existing row first, then insert.
+      await SupabaseClientWrapper.client
+          .from('parent_channel_prefs')
+          .delete()
+          .eq('parent_id', parentId)
+          .eq('channel_id', channelId)
+          .isFilter('applies_to_child_id', null);
+      await SupabaseClientWrapper.client.from('parent_channel_prefs').insert({
+        'parent_id': parentId,
+        'channel_id': channelId,
+        'status': status,
+      });
+    } else {
+      await SupabaseClientWrapper.client.from('parent_channel_prefs').upsert({
+        'parent_id': parentId,
+        'channel_id': channelId,
+        'status': status,
+        'applies_to_child_id': childId,
+      }, onConflict: 'parent_id,channel_id,applies_to_child_id');
+    }
   }
 
   /// Remove parent preference for a channel.
