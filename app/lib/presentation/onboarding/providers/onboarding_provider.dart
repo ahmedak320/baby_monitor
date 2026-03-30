@@ -23,8 +23,7 @@ class OnboardingState {
   final Map<String, String> approvedChannelNames; // channelId -> name
 
   // Content preferences (Step 12)
-  final Map<String, String>
-  contentPreferences; // type -> preferred/allowed/blocked
+  final Map<String, String> contentPreferences;
 
   final bool isLoading;
   final String? error;
