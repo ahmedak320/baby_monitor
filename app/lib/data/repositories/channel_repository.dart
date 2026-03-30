@@ -1,3 +1,5 @@
+import 'package:supabase_flutter/supabase_flutter.dart';
+
 import '../datasources/remote/piped_pool.dart';
 import '../datasources/remote/supabase_client.dart';
 import '../models/video_metadata.dart';
@@ -44,19 +46,18 @@ class ChannelRepository {
   }
 
   /// Ensure a channel row exists in yt_channels (for FK dependencies).
-  /// Uses ignoreDuplicates to avoid triggering RLS UPDATE restrictions.
+  /// Uses insert + catch duplicate to avoid triggering RLS UPDATE restrictions.
   Future<void> ensureChannelExists(String channelId, String title) async {
-    await SupabaseClientWrapper.client
-        .from('yt_channels')
-        .upsert(
-          {
-            'channel_id': channelId,
-            'title': title,
-            'last_fetched_at': DateTime.now().toIso8601String(),
-          },
-          onConflict: 'channel_id',
-          ignoreDuplicates: true,
-        );
+    try {
+      await SupabaseClientWrapper.client.from('yt_channels').insert({
+        'channel_id': channelId,
+        'title': title,
+        'last_fetched_at': DateTime.now().toIso8601String(),
+      });
+    } on PostgrestException catch (e) {
+      // 23505 = unique_violation — channel already exists, safe to ignore.
+      if (e.code != '23505') rethrow;
+    }
   }
 
   /// Upsert a channel into yt_channels.

@@ -1,5 +1,7 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../data/datasources/local/preferences_cache.dart';
 import '../../../data/datasources/remote/supabase_client.dart';
 import '../../../data/repositories/channel_repository.dart';
 import '../../../data/repositories/profile_repository.dart';
@@ -127,8 +129,15 @@ class OnboardingNotifier extends StateNotifier<OnboardingState> {
 
     state = state.copyWith(isLoading: true);
     try {
-      // Create child profile
-      await _profileRepo.createChild(
+      // Idempotency: reuse existing child with same name if a previous
+      // attempt partially succeeded (avoids duplicate children on retry).
+      final existingChildren = await _profileRepo.getChildren();
+      var child = existingChildren.cast<ChildProfile?>().firstWhere(
+        (c) => c!.name == state.childName,
+        orElse: () => null,
+      );
+
+      child ??= await _profileRepo.createChild(
         name: state.childName,
         dateOfBirth: state.childDob!,
         filterSensitivity: {
@@ -138,6 +147,9 @@ class OnboardingNotifier extends StateNotifier<OnboardingState> {
           'max_video_duration_minutes': 30,
         },
       );
+
+      // Persist child ID locally (required by setup guard)
+      await PreferencesCache.setLastChildId(child.id);
 
       // Persist approved channels from onboarding
       if (state.approvedChannelIds.isNotEmpty) {
@@ -160,12 +172,27 @@ class OnboardingNotifier extends StateNotifier<OnboardingState> {
         }
       }
 
+      // Persist content preferences
+      if (state.contentPreferences.isNotEmpty) {
+        final rows = state.contentPreferences.entries
+            .map((e) => {
+                  'child_id': child!.id,
+                  'content_type': e.key,
+                  'preference': e.value,
+                })
+            .toList();
+        await SupabaseClientWrapper.client
+            .from('content_preferences')
+            .upsert(rows, onConflict: 'child_id,content_type');
+      }
+
       // Mark parent setup as completed
       await _profileRepo.completeSetup();
 
       state = state.copyWith(isLoading: false);
       return true;
-    } catch (e) {
+    } catch (e, st) {
+      debugPrint('completeOnboarding failed: $e\n$st');
       state = state.copyWith(isLoading: false, error: e.toString());
       return false;
     }
