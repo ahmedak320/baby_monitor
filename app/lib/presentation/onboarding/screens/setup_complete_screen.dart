@@ -116,10 +116,12 @@ class SetupCompleteScreen extends ConsumerWidget {
     if (success && context.mounted) {
       context.goNamed(RouteNames.dashboard);
     } else if (context.mounted) {
+      final error = ref.read(onboardingProvider).error;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Something went wrong. Please try again.'),
+        SnackBar(
+          content: Text(error ?? 'Something went wrong. Please try again.'),
           backgroundColor: Colors.red,
+          duration: const Duration(seconds: 10),
         ),
       );
     }

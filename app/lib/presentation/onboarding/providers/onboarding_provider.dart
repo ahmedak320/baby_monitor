@@ -153,40 +153,49 @@ class OnboardingNotifier extends StateNotifier<OnboardingState> {
       // Persist child ID locally (required by setup guard)
       await PreferencesCache.setLastChildId(child.id);
 
-      // Persist approved channels from onboarding
-      if (state.approvedChannelIds.isNotEmpty) {
-        final userId = SupabaseClientWrapper.currentUserId;
-        if (userId != null) {
-          final channelRepo = ChannelRepository();
-          // Ensure channels exist in yt_channels (FK dependency)
-          for (final channelId in state.approvedChannelIds) {
-            final name =
-                state.approvedChannelNames[channelId] ?? 'Unknown Channel';
-            await channelRepo.ensureChannelExists(channelId, name);
-          }
-          for (final channelId in state.approvedChannelIds) {
-            await channelRepo.setChannelPref(
-              parentId: userId,
-              channelId: channelId,
-              status: 'approved',
-            );
+      // Persist approved channels — non-fatal so onboarding still
+      // completes even if yt_channels INSERT policy is missing
+      // (requires migration 011_channel_search_rls.sql).
+      try {
+        if (state.approvedChannelIds.isNotEmpty) {
+          final userId = SupabaseClientWrapper.currentUserId;
+          if (userId != null) {
+            final channelRepo = ChannelRepository();
+            for (final channelId in state.approvedChannelIds) {
+              final name =
+                  state.approvedChannelNames[channelId] ?? 'Unknown Channel';
+              await channelRepo.ensureChannelExists(channelId, name);
+            }
+            for (final channelId in state.approvedChannelIds) {
+              await channelRepo.setChannelPref(
+                parentId: userId,
+                channelId: channelId,
+                status: 'approved',
+              );
+            }
           }
         }
+      } catch (e) {
+        debugPrint('Channel prefs failed (non-fatal): $e');
       }
 
-      // Persist content preferences
-      if (state.contentPreferences.isNotEmpty) {
-        final rows = <Map<String, dynamic>>[];
-        for (final entry in state.contentPreferences.entries) {
-          rows.add({
-            'child_id': child.id,
-            'content_type': entry.key,
-            'preference': entry.value,
-          });
+      // Persist content preferences — non-fatal
+      try {
+        if (state.contentPreferences.isNotEmpty) {
+          final rows = <Map<String, dynamic>>[];
+          for (final entry in state.contentPreferences.entries) {
+            rows.add({
+              'child_id': child.id,
+              'content_type': entry.key,
+              'preference': entry.value,
+            });
+          }
+          await SupabaseClientWrapper.client
+              .from('content_preferences')
+              .upsert(rows, onConflict: 'child_id,content_type');
         }
-        await SupabaseClientWrapper.client
-            .from('content_preferences')
-            .upsert(rows, onConflict: 'child_id,content_type');
+      } catch (e) {
+        debugPrint('Content prefs failed (non-fatal): $e');
       }
 
       // Mark parent setup as completed
