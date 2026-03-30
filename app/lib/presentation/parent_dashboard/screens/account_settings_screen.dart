@@ -123,9 +123,9 @@ class _AccountSettingsScreenState extends ConsumerState<AccountSettingsScreen> {
     confirmController.dispose();
 
     if (saved == true && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('PIN updated successfully')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('PIN updated successfully')));
     }
   }
 
