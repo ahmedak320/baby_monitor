@@ -30,6 +30,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - Toolchain: Flutter 3.41.x, Java 17, Python 3.12
 
 ### Supabase
+- **CLI**: `npx supabase` — use for all Supabase operations (migrations, db queries, edge functions, project management). Requires `npx supabase login` for auth.
 - Migrations in `supabase/migrations/` (12 SQL files: 001 initial schema through 012 remote config)
 - Edge functions in `supabase/functions/` (e.g., `aggregate-ratings` for community consensus + auto-blacklisting)
 

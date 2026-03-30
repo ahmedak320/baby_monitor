@@ -12,6 +12,7 @@ class RouteNames {
   static const addChild = 'addChild';
   static const filterSetup = 'filterSetup';
   static const channelSuggestions = 'channelSuggestions';
+  static const pinSetup = 'pinSetup';
   static const setupComplete = 'setupComplete';
 
   // Parent Dashboard
