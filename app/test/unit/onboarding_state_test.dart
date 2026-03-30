@@ -48,8 +48,11 @@ void main() {
       // All channels have names (used by ensureChannelExists)
       for (final id in state.approvedChannelIds) {
         final name = state.approvedChannelNames[id] ?? 'Unknown Channel';
-        expect(name, isNot('Unknown Channel'),
-            reason: 'Channel $id should have a stored name');
+        expect(
+          name,
+          isNot('Unknown Channel'),
+          reason: 'Channel $id should have a stored name',
+        );
       }
     });
   });
