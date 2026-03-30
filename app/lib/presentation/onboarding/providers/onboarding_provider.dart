@@ -132,10 +132,13 @@ class OnboardingNotifier extends StateNotifier<OnboardingState> {
       // Idempotency: reuse existing child with same name if a previous
       // attempt partially succeeded (avoids duplicate children on retry).
       final existingChildren = await _profileRepo.getChildren();
-      var child = existingChildren.cast<ChildProfile?>().firstWhere(
-        (c) => c!.name == state.childName,
-        orElse: () => null,
-      );
+      ChildProfile? child;
+      for (final c in existingChildren) {
+        if (c.name == state.childName) {
+          child = c;
+          break;
+        }
+      }
 
       child ??= await _profileRepo.createChild(
         name: state.childName,
@@ -174,13 +177,14 @@ class OnboardingNotifier extends StateNotifier<OnboardingState> {
 
       // Persist content preferences
       if (state.contentPreferences.isNotEmpty) {
-        final rows = state.contentPreferences.entries
-            .map((e) => {
-                  'child_id': child!.id,
-                  'content_type': e.key,
-                  'preference': e.value,
-                })
-            .toList();
+        final rows = <Map<String, dynamic>>[];
+        for (final entry in state.contentPreferences.entries) {
+          rows.add({
+            'child_id': child.id,
+            'content_type': entry.key,
+            'preference': entry.value,
+          });
+        }
         await SupabaseClientWrapper.client
             .from('content_preferences')
             .upsert(rows, onConflict: 'child_id,content_type');
