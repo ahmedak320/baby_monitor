@@ -143,11 +143,16 @@ Future<bool> _showVerifyPinDialog(BuildContext context) async {
   );
   controller.dispose();
 
-  // If result is null, "Forgot PIN?" was tapped — start forgot flow
-  if (result == null && context.mounted) {
+  // If result is null, "Forgot PIN?" was tapped — start forgot flow.
+  // Delay one event-loop tick so Flutter finishes disposing the previous
+  // dialog's widget tree before we open a new one (avoids
+  // "dependents.isEmpty is not true" assertion).
+  if (result == null) {
+    await Future<void>.delayed(Duration.zero);
+    if (!context.mounted) return false;
     return _showForgotPinFlow(context);
   }
-  return result ?? false;
+  return result;
 }
 
 /// Forgot PIN flow: math problem → set new PIN → authenticated.
@@ -208,6 +213,11 @@ Future<bool> _showForgotPinFlow(BuildContext context) async {
   answerController.dispose();
 
   if (solved != true || !context.mounted) return false;
+
+  // Wait for the math-problem dialog to fully dispose before opening the
+  // set-PIN dialog (same disposal-race guard as above).
+  await Future<void>.delayed(Duration.zero);
+  if (!context.mounted) return false;
 
   // Math solved — let them set a new PIN
   final pinSet = await _showSetPinDialog(context, isInitial: false);
