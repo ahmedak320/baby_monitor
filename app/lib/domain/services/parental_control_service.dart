@@ -79,6 +79,20 @@ class ParentalControlService {
     return storedHash == computedHash;
   }
 
+  /// Check whether the current user has a PIN set.
+  static Future<bool> hasPin() async {
+    final userId = SupabaseClientWrapper.currentUserId;
+    if (userId == null) return false;
+
+    final row = await SupabaseClientWrapper.client
+        .from('parent_profiles')
+        .select('pin_hash')
+        .eq('id', userId)
+        .maybeSingle();
+
+    return row != null && row['pin_hash'] != null;
+  }
+
   /// Authenticate parent: try biometric first, fall back to PIN.
   static Future<bool> authenticateParent() async {
     // Try biometric

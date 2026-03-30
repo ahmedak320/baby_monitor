@@ -10,6 +10,7 @@ import '../presentation/onboarding/screens/add_child_screen.dart';
 import '../presentation/onboarding/screens/filter_setup_screen.dart';
 import '../presentation/onboarding/screens/channel_suggestions_screen.dart';
 import '../presentation/onboarding/screens/content_prefs_screen.dart';
+import '../presentation/onboarding/screens/pin_setup_screen.dart';
 import '../presentation/onboarding/screens/setup_complete_screen.dart';
 import '../presentation/kid_mode/screens/kid_video_player_screen.dart';
 import '../presentation/kid_mode/screens/kid_home_screen.dart';
@@ -115,6 +116,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: '/onboarding/content-prefs',
         name: 'contentPrefs',
         builder: (context, state) => const ContentPrefsScreen(),
+      ),
+      GoRoute(
+        path: '/onboarding/pin-setup',
+        name: RouteNames.pinSetup,
+        builder: (context, state) => const PinSetupScreen(),
       ),
       GoRoute(
         path: '/onboarding/complete',

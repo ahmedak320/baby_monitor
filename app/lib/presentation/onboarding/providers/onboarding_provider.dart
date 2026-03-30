@@ -5,6 +5,7 @@ import '../../../data/datasources/local/preferences_cache.dart';
 import '../../../data/datasources/remote/supabase_client.dart';
 import '../../../data/repositories/channel_repository.dart';
 import '../../../data/repositories/profile_repository.dart';
+import '../../../domain/services/parental_control_service.dart';
 
 /// Tracks onboarding state across the multi-step flow.
 class OnboardingState {
@@ -24,6 +25,9 @@ class OnboardingState {
 
   // Content preferences (Step 12)
   final Map<String, String> contentPreferences;
+
+  // Parent PIN (Step 13)
+  final String? pin;
 
   final bool isLoading;
   final String? error;
@@ -48,6 +52,7 @@ class OnboardingState {
     this.approvedChannelIds = const {},
     this.approvedChannelNames = const {},
     this.contentPreferences = const {},
+    this.pin,
     this.isLoading = false,
     this.error,
   });
@@ -60,6 +65,7 @@ class OnboardingState {
     Set<String>? approvedChannelIds,
     Map<String, String>? approvedChannelNames,
     Map<String, String>? contentPreferences,
+    String? pin,
     bool? isLoading,
     String? error,
   }) {
@@ -71,6 +77,7 @@ class OnboardingState {
       approvedChannelIds: approvedChannelIds ?? this.approvedChannelIds,
       approvedChannelNames: approvedChannelNames ?? this.approvedChannelNames,
       contentPreferences: contentPreferences ?? this.contentPreferences,
+      pin: pin ?? this.pin,
       isLoading: isLoading ?? this.isLoading,
       error: error,
     );
@@ -114,6 +121,10 @@ class OnboardingNotifier extends StateNotifier<OnboardingState> {
       approvedChannelIds: updatedIds,
       approvedChannelNames: updatedNames,
     );
+  }
+
+  void setPin(String pin) {
+    state = state.copyWith(pin: pin);
   }
 
   void setContentPreference(String type, String preference) {
@@ -196,6 +207,11 @@ class OnboardingNotifier extends StateNotifier<OnboardingState> {
         }
       } catch (e) {
         debugPrint('Content prefs failed (non-fatal): $e');
+      }
+
+      // Save parent PIN if set during onboarding
+      if (state.pin != null && state.pin!.isNotEmpty) {
+        await ParentalControlService.setPin(state.pin!);
       }
 
       // Mark parent setup as completed

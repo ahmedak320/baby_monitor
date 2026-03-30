@@ -7,6 +7,7 @@ import '../../../data/repositories/profile_repository.dart';
 import '../../../domain/services/parental_control_service.dart';
 import '../../../routing/route_names.dart';
 import '../../../utils/biometric_helper.dart';
+import '../../common/widgets/pin_dialog_helper.dart';
 
 class AccountSettingsScreen extends ConsumerStatefulWidget {
   const AccountSettingsScreen({super.key});
@@ -28,20 +29,67 @@ class _AccountSettingsScreenState extends ConsumerState<AccountSettingsScreen> {
     );
     if (biometricSuccess) return true;
 
-    // Fallback: show a PIN dialog that verifies against the stored hash
     if (!mounted) return false;
+    return showPinAuthDialog(context);
+  }
+
+  Future<void> _changePin() async {
+    final hasPin = await ParentalControlService.hasPin();
+
+    if (hasPin) {
+      // Verify current PIN first
+      if (!mounted) return;
+      final authenticated = await _reauthenticate();
+      if (!authenticated || !mounted) return;
+    }
+
+    if (!mounted) return;
+
+    // Show set-new-PIN dialog
     final pinController = TextEditingController();
-    final result = await showDialog<bool>(
+    final confirmController = TextEditingController();
+    String? errorText;
+
+    final saved = await showDialog<bool>(
       context: context,
-      builder: (ctx) {
-        return AlertDialog(
-          title: const Text('Enter PIN'),
-          content: TextField(
-            controller: pinController,
-            obscureText: true,
-            maxLength: 4,
-            keyboardType: TextInputType.number,
-            decoration: const InputDecoration(hintText: '4-digit PIN'),
+      barrierDismissible: false,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setState) => AlertDialog(
+          title: Text(hasPin ? 'Set New PIN' : 'Set a Parent PIN'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: pinController,
+                keyboardType: TextInputType.number,
+                obscureText: true,
+                maxLength: 4,
+                autofocus: true,
+                decoration: const InputDecoration(
+                  hintText: 'New PIN',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 8),
+              TextField(
+                controller: confirmController,
+                keyboardType: TextInputType.number,
+                obscureText: true,
+                maxLength: 4,
+                decoration: const InputDecoration(
+                  hintText: 'Confirm PIN',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              if (errorText != null)
+                Padding(
+                  padding: const EdgeInsets.only(top: 8),
+                  child: Text(
+                    errorText!,
+                    style: const TextStyle(color: Colors.red, fontSize: 13),
+                  ),
+                ),
+            ],
           ),
           actions: [
             TextButton(
@@ -51,26 +99,34 @@ class _AccountSettingsScreenState extends ConsumerState<AccountSettingsScreen> {
             ElevatedButton(
               onPressed: () async {
                 final pin = pinController.text;
-                if (pin.length != 4) return;
-                final verified = await ParentalControlService.verifyPin(pin);
-                if (ctx.mounted) {
-                  if (verified) {
-                    Navigator.pop(ctx, true);
-                  } else {
-                    ScaffoldMessenger.of(ctx).showSnackBar(
-                      const SnackBar(content: Text('Incorrect PIN')),
-                    );
-                  }
+                final confirm = confirmController.text;
+
+                if (pin.length != 4) {
+                  setState(() => errorText = 'PIN must be 4 digits');
+                  return;
                 }
+                if (pin != confirm) {
+                  setState(() => errorText = 'PINs do not match');
+                  return;
+                }
+
+                await ParentalControlService.setPin(pin);
+                if (ctx.mounted) Navigator.pop(ctx, true);
               },
-              child: const Text('Confirm'),
+              child: const Text('Save PIN'),
             ),
           ],
-        );
-      },
+        ),
+      ),
     );
     pinController.dispose();
-    return result ?? false;
+    confirmController.dispose();
+
+    if (saved == true && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('PIN updated successfully')),
+      );
+    }
   }
 
   Future<void> _deleteChildProfile(String childId, String childName) async {
@@ -272,6 +328,24 @@ class _AccountSettingsScreenState extends ConsumerState<AccountSettingsScreen> {
                 );
               },
             ),
+
+          const SizedBox(height: 24),
+
+          // Security section
+          const Text(
+            'Security',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 8),
+          Card(
+            child: ListTile(
+              leading: const Icon(Icons.pin),
+              title: const Text('Change Parent PIN'),
+              subtitle: const Text('Update your 4-digit kid-mode PIN'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: _changePin,
+            ),
+          ),
 
           const SizedBox(height: 32),
           const Divider(),
