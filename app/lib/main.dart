@@ -7,7 +7,10 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'app.dart';
 import 'config/supabase_config.dart';
 import 'data/datasources/local/local_cache.dart';
+import 'data/datasources/local/preferences_cache.dart';
 import 'data/datasources/remote/remote_config_service.dart';
+import 'data/datasources/remote/supabase_client.dart';
+import 'data/repositories/profile_repository.dart';
 import 'domain/services/background_sync_service.dart';
 import 'utils/platform_info.dart';
 
@@ -48,6 +51,20 @@ Future<void> main() async {
     }
   } catch (e) {
     debugPrint('RevenueCat init skipped: $e');
+  }
+
+  // Rehydrate local cache for returning users whose Hive data was cleared
+  // but Supabase session persists (different storage backends).
+  if (SupabaseClientWrapper.isAuthenticated &&
+      PreferencesCache.lastChildId == null) {
+    try {
+      final children = await ProfileRepository().getChildren();
+      if (children.isNotEmpty) {
+        await PreferencesCache.setLastChildId(children.first.id);
+      }
+    } catch (_) {
+      // Non-fatal — setup guard will redirect to onboarding as fallback.
+    }
   }
 
   // Start background sync for approved video cache
