@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../data/datasources/local/local_cache.dart';
+import '../../../data/datasources/local/preferences_cache.dart';
+import '../../../data/repositories/profile_repository.dart';
 import '../../../routing/route_names.dart';
 import '../../../utils/validators.dart';
 import '../providers/auth_provider.dart';
@@ -191,7 +193,25 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
     if (success && mounted) {
       await _saveCredentials();
-      context.goNamed(RouteNames.dashboard);
+
+      // Rehydrate local cache for returning users on new devices.
+      // Without this, the setup guard sees null lastChildId and
+      // incorrectly redirects to onboarding.
+      if (PreferencesCache.lastChildId == null) {
+        try {
+          final children = await ProfileRepository().getChildren();
+          if (children.isNotEmpty) {
+            await PreferencesCache.setLastChildId(children.first.id);
+          }
+        } catch (_) {
+          // Network failure is non-fatal — setup guard will redirect
+          // to onboarding as a safe fallback.
+        }
+      }
+
+      if (mounted) {
+        context.goNamed(RouteNames.dashboard);
+      }
     }
   }
 
