@@ -12,6 +12,16 @@ import '../../utils/pbkdf2.dart';
 
 /// Service for PIN management and parental control authentication.
 class ParentalControlService {
+  static Future<Map<String, dynamic>?> _getParentProfilePinRow(
+    String userId,
+  ) async {
+    return SupabaseClientWrapper.client
+        .from('parent_profiles')
+        .select('id, pin_hash, pin_salt')
+        .eq('id', userId)
+        .maybeSingle();
+  }
+
   static Map<String, dynamic> _parentProfilePayload({
     required String userId,
     required String email,
@@ -74,20 +84,28 @@ class ParentalControlService {
     final hash = await hashPin(pin, salt);
     final saltHex = Pbkdf2.toHex(salt);
 
-    final persisted = await SupabaseClientWrapper.client
-        .from('parent_profiles')
-        .upsert(
-          _parentProfilePayload(
-            userId: user.id,
-            email: email,
-            userMetadata: user.userMetadata ?? const {},
-            hash: hash,
-            saltHex: saltHex,
-          ),
-          onConflict: 'id',
-        )
-        .select('pin_hash, pin_salt')
-        .single();
+    final existingRow = await _getParentProfilePinRow(user.id);
+
+    final persisted = existingRow == null
+        ? await SupabaseClientWrapper.client
+              .from('parent_profiles')
+              .insert(
+                _parentProfilePayload(
+                  userId: user.id,
+                  email: email,
+                  userMetadata: user.userMetadata ?? const {},
+                  hash: hash,
+                  saltHex: saltHex,
+                ),
+              )
+              .select('pin_hash, pin_salt')
+              .single()
+        : await SupabaseClientWrapper.client
+              .from('parent_profiles')
+              .update({'pin_hash': hash, 'pin_salt': saltHex})
+              .eq('id', user.id)
+              .select('pin_hash, pin_salt')
+              .single();
 
     if (persisted['pin_hash'] != hash || persisted['pin_salt'] != saltHex) {
       throw StateError('PIN update did not persist correctly.');
@@ -148,11 +166,7 @@ class ParentalControlService {
 
     Map<String, dynamic>? row;
     try {
-      row = await SupabaseClientWrapper.client
-          .from('parent_profiles')
-          .select('pin_hash')
-          .eq('id', userId)
-          .maybeSingle();
+      row = await _getParentProfilePinRow(userId);
     } catch (e) {
       debugPrint('hasPinSet failed to load parent profile: $e');
       return false;

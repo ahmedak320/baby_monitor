@@ -74,7 +74,8 @@ Future<bool> showPinResetFlowWithSaver(
       );
     }
     return verified;
-  } catch (_) {
+  } catch (e, st) {
+    debugPrint('showPinResetFlow failed to persist PIN: $e\n$st');
     if (context.mounted) {
       ScaffoldMessenger.maybeOf(context)?.showSnackBar(
         const SnackBar(
