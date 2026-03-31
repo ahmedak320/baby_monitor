@@ -1,6 +1,17 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../../../domain/services/parental_control_service.dart';
+
+/// Wait for the current frame to fully complete (build → layout → paint).
+/// More reliable than [Future.delayed(Duration.zero)] for avoiding the
+/// "dependents.isEmpty is not true" assertion when chaining dialogs.
+Future<void> _waitForFrameCompletion() {
+  final completer = Completer<void>();
+  WidgetsBinding.instance.addPostFrameCallback((_) => completer.complete());
+  return completer.future;
+}
 
 /// Shows a "Forgot PIN?" flow:
 /// 1. Solve a math problem to prove you're an adult
@@ -12,17 +23,15 @@ Future<bool> showPinResetFlow(BuildContext context) async {
   final mathPassed = await _showMathChallenge(context);
   if (!mathPassed || !context.mounted) return false;
 
+  await _waitForFrameCompletion();
+  if (!context.mounted) return false;
+
   // Phase 2 + 3: Create and confirm new PIN
   final newPin = await _showCreatePinFlow(context);
   if (newPin == null || !context.mounted) return false;
 
   // Save the new PIN
   await ParentalControlService.setPin(newPin);
-  if (context.mounted) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('PIN has been reset successfully.')),
-    );
-  }
   return true;
 }
 
@@ -42,88 +51,94 @@ Future<bool> _showMathChallenge(BuildContext context) async {
   final problem = ParentalControlService.generateMathProblem();
   final controller = TextEditingController();
   int attempts = 0;
+  String? errorText;
 
   final result = await showDialog<bool>(
     context: context,
     barrierDismissible: false,
     builder: (ctx) => StatefulBuilder(
       builder: (ctx, setDialogState) {
-        return AlertDialog(
-          title: const Text('Verify You\'re a Parent'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Text(
-                'Solve this to continue:',
-                style: TextStyle(color: Colors.grey),
-              ),
-              const SizedBox(height: 16),
-              Text(
-                '${problem.question} = ?',
-                style: const TextStyle(
-                  fontSize: 28,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: controller,
-                keyboardType: TextInputType.number,
-                textAlign: TextAlign.center,
-                style: const TextStyle(fontSize: 24),
-                decoration: InputDecoration(
-                  hintText: 'Answer',
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
+        return PopScope(
+          canPop: false,
+          child: AlertDialog(
+            title: const Text('Verify You\'re a Parent'),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text(
+                    'Solve this to continue:',
+                    style: TextStyle(color: Colors.grey),
                   ),
-                ),
-                onSubmitted: (_) {
-                  // handled by button
-                },
-              ),
-              if (attempts > 0)
-                Padding(
-                  padding: const EdgeInsets.only(top: 8),
-                  child: Text(
-                    '${3 - attempts} attempts remaining',
-                    style: TextStyle(
-                      color: attempts >= 2 ? Colors.red : Colors.orange,
-                      fontSize: 13,
+                  const SizedBox(height: 16),
+                  Text(
+                    '${problem.question} = ?',
+                    style: const TextStyle(
+                      fontSize: 28,
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
-                ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Cancel'),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                final answer = int.tryParse(controller.text.trim());
-                if (answer == problem.answer) {
-                  Navigator.pop(ctx, true);
-                } else {
-                  attempts++;
-                  if (attempts >= 3) {
-                    Navigator.pop(ctx, false);
-                    ScaffoldMessenger.of(ctx).showSnackBar(
-                      const SnackBar(
-                        content: Text(
-                          'Too many wrong answers. Please try again later.',
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: controller,
+                    keyboardType: TextInputType.number,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(fontSize: 24),
+                    decoration: InputDecoration(
+                      hintText: 'Answer',
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                  ),
+                  if (attempts > 0)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 8),
+                      child: Text(
+                        '${3 - attempts} attempts remaining',
+                        style: TextStyle(
+                          color: attempts >= 2 ? Colors.red : Colors.orange,
+                          fontSize: 13,
                         ),
                       ),
-                    );
-                  } else {
-                    controller.clear();
-                    setDialogState(() {});
-                  }
-                }
-              },
-              child: const Text('Submit'),
+                    ),
+                  if (errorText != null)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 8),
+                      child: Text(
+                        errorText!,
+                        style: const TextStyle(color: Colors.red, fontSize: 13),
+                      ),
+                    ),
+                ],
+              ),
             ),
-          ],
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx, false),
+                child: const Text('Cancel'),
+              ),
+              ElevatedButton(
+                onPressed: () {
+                  final answer = int.tryParse(controller.text.trim());
+                  if (answer == problem.answer) {
+                    Navigator.pop(ctx, true);
+                  } else {
+                    attempts++;
+                    if (attempts >= 3) {
+                      Navigator.pop(ctx, false);
+                    } else {
+                      controller.clear();
+                      setDialogState(
+                        () => errorText = 'Incorrect answer. Try again.',
+                      );
+                    }
+                  }
+                },
+                child: const Text('Submit'),
+              ),
+            ],
+          ),
         );
       },
     ),
@@ -143,6 +158,9 @@ Future<String?> _showCreatePinFlow(BuildContext context) async {
   );
   if (newPin == null || !context.mounted) return null;
 
+  await _waitForFrameCompletion();
+  if (!context.mounted) return null;
+
   // Phase 3: Confirm new PIN
   final confirmed = await _showPinEntryDialog(
     context,
@@ -153,12 +171,9 @@ Future<String?> _showCreatePinFlow(BuildContext context) async {
 
   if (newPin != confirmed) {
     if (context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('PINs did not match. Please try again.')),
-      );
-    }
-    // Retry the whole create flow
-    if (context.mounted) {
+      // Retry the whole create flow
+      await _waitForFrameCompletion();
+      if (!context.mounted) return null;
       return _showCreatePinFlow(context);
     }
     return null;
@@ -174,48 +189,65 @@ Future<String?> _showPinEntryDialog(
   required String subtitle,
 }) async {
   final controller = TextEditingController();
+  String? errorText;
+
   final result = await showDialog<String?>(
     context: context,
     barrierDismissible: false,
-    builder: (ctx) => AlertDialog(
-      title: Text(title),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(subtitle, style: const TextStyle(color: Colors.grey)),
-          const SizedBox(height: 16),
-          TextField(
-            controller: controller,
-            keyboardType: TextInputType.number,
-            obscureText: true,
-            maxLength: 4,
-            textAlign: TextAlign.center,
-            style: const TextStyle(fontSize: 24, letterSpacing: 8),
-            decoration: InputDecoration(
-              hintText: '····',
-              counterText: '',
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
+    builder: (ctx) => StatefulBuilder(
+      builder: (ctx, setState) => PopScope(
+        canPop: false,
+        child: AlertDialog(
+          title: Text(title),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(subtitle, style: const TextStyle(color: Colors.grey)),
+              const SizedBox(height: 16),
+              TextField(
+                controller: controller,
+                keyboardType: TextInputType.number,
+                obscureText: true,
+                maxLength: 4,
+                textAlign: TextAlign.center,
+                style: const TextStyle(fontSize: 24, letterSpacing: 8),
+                decoration: InputDecoration(
+                  hintText: '····',
+                  counterText: '',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
               ),
-            ),
+              if (errorText != null)
+                Padding(
+                  padding: const EdgeInsets.only(top: 8),
+                  child: Text(
+                    errorText!,
+                    style: const TextStyle(color: Colors.red, fontSize: 13),
+                  ),
+                ),
+            ],
           ),
-        ],
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, null),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                final pin = controller.text;
+                if (pin.length == 4) {
+                  Navigator.pop(ctx, pin);
+                } else {
+                  setState(() => errorText = 'PIN must be 4 digits');
+                }
+              },
+              child: const Text('Next'),
+            ),
+          ],
+        ),
       ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(ctx, null),
-          child: const Text('Cancel'),
-        ),
-        ElevatedButton(
-          onPressed: () {
-            final pin = controller.text;
-            if (pin.length == 4) {
-              Navigator.pop(ctx, pin);
-            }
-          },
-          child: const Text('Next'),
-        ),
-      ],
     ),
   );
   controller.dispose();

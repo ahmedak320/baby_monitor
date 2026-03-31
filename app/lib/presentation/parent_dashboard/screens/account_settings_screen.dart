@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -59,109 +61,154 @@ class _AccountSettingsScreenState extends ConsumerState<AccountSettingsScreen> {
     // Fallback: show a PIN dialog that verifies against the stored hash
     if (!mounted) return false;
     final pinController = TextEditingController();
-    final result = await showDialog<bool>(
+    String? errorText;
+    bool isVerifying = false;
+
+    final result = await showDialog<Object>(
       context: context,
+      barrierDismissible: false,
       builder: (ctx) {
         return StatefulBuilder(
           builder: (ctx, setDialogState) {
             final remainingAttempts = _maxPinAttempts - _pinAttempts;
-            return AlertDialog(
-              title: const Text('Enter PIN'),
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  TextField(
-                    controller: pinController,
-                    obscureText: true,
-                    maxLength: 4,
-                    keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(hintText: '4-digit PIN'),
-                  ),
-                  if (remainingAttempts < _maxPinAttempts)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 8),
-                      child: Text(
-                        '$remainingAttempts attempts remaining',
-                        style: TextStyle(
-                          color: remainingAttempts <= 2
-                              ? Colors.red
-                              : Colors.orange,
-                          fontSize: 13,
-                        ),
+            return PopScope(
+              canPop: false,
+              child: AlertDialog(
+                title: const Text('Enter PIN'),
+                content: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    TextField(
+                      controller: pinController,
+                      obscureText: true,
+                      maxLength: 4,
+                      keyboardType: TextInputType.number,
+                      enabled: !isVerifying,
+                      decoration: const InputDecoration(
+                        hintText: '4-digit PIN',
                       ),
                     ),
+                    if (remainingAttempts < _maxPinAttempts)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 8),
+                        child: Text(
+                          '$remainingAttempts attempts remaining',
+                          style: TextStyle(
+                            color: remainingAttempts <= 2
+                                ? Colors.red
+                                : Colors.orange,
+                            fontSize: 13,
+                          ),
+                        ),
+                      ),
+                    if (errorText != null)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 8),
+                        child: Text(
+                          errorText!,
+                          style: const TextStyle(
+                            color: Colors.red,
+                            fontSize: 13,
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: isVerifying
+                        ? null
+                        : () => Navigator.pop(ctx, false),
+                    child: const Text('Cancel'),
+                  ),
+                  TextButton(
+                    onPressed: isVerifying
+                        ? null
+                        : () => Navigator.pop(ctx, 'forgot'),
+                    child: const Text('Forgot PIN?'),
+                  ),
+                  ElevatedButton(
+                    onPressed: isVerifying
+                        ? null
+                        : () async {
+                            final pin = pinController.text;
+                            if (pin.length != 4) {
+                              setDialogState(
+                                () => errorText = 'PIN must be 4 digits',
+                              );
+                              return;
+                            }
+
+                            setDialogState(() {
+                              isVerifying = true;
+                              errorText = null;
+                            });
+
+                            bool verified;
+                            try {
+                              verified = await ParentalControlService.verifyPin(
+                                pin,
+                              );
+                            } catch (e) {
+                              if (!ctx.mounted) return;
+                              setDialogState(() {
+                                isVerifying = false;
+                                errorText =
+                                    'Verification failed. Please try again.';
+                              });
+                              return;
+                            }
+
+                            if (!ctx.mounted) return;
+
+                            if (verified) {
+                              _resetPinCounters();
+                              Navigator.pop(ctx, true);
+                            } else {
+                              _pinAttempts++;
+                              if (_pinAttempts >= _maxPinAttempts) {
+                                _lockoutUntil = DateTime.now().add(
+                                  Duration(seconds: _lockoutDurationSeconds),
+                                );
+                                _lockoutDurationSeconds = min(
+                                  _lockoutDurationSeconds * 2,
+                                  3600,
+                                );
+                                _pinAttempts = 0;
+                                Navigator.pop(ctx, false);
+                              } else {
+                                pinController.clear();
+                                setDialogState(() {
+                                  isVerifying = false;
+                                  errorText =
+                                      'Incorrect PIN. '
+                                      '${_maxPinAttempts - _pinAttempts} '
+                                      'attempts remaining.';
+                                });
+                              }
+                            }
+                          },
+                    child: isVerifying
+                        ? const SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Text('Confirm'),
+                  ),
                 ],
               ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(ctx, false),
-                  child: const Text('Cancel'),
-                ),
-                TextButton(
-                  onPressed: () async {
-                    Navigator.pop(ctx, false);
-                    if (ctx.mounted) {
-                      await showPinResetFlow(ctx);
-                    }
-                  },
-                  child: const Text('Forgot PIN?'),
-                ),
-                ElevatedButton(
-                  onPressed: () async {
-                    final pin = pinController.text;
-                    if (pin.length != 4) return;
-                    final verified = await ParentalControlService.verifyPin(
-                      pin,
-                    );
-                    if (ctx.mounted) {
-                      if (verified) {
-                        _resetPinCounters();
-                        Navigator.pop(ctx, true);
-                      } else {
-                        _pinAttempts++;
-                        if (_pinAttempts >= _maxPinAttempts) {
-                          _lockoutUntil = DateTime.now().add(
-                            Duration(seconds: _lockoutDurationSeconds),
-                          );
-                          _lockoutDurationSeconds =
-                              (_lockoutDurationSeconds * 2).clamp(30, 3600);
-                          _pinAttempts = 0;
-                          if (ctx.mounted) {
-                            Navigator.pop(ctx, false);
-                            ScaffoldMessenger.of(ctx).showSnackBar(
-                              SnackBar(
-                                content: Text(
-                                  'Too many failed attempts. Locked for '
-                                  '${_lockoutDurationSeconds ~/ 2} seconds.',
-                                ),
-                              ),
-                            );
-                          }
-                        } else {
-                          pinController.clear();
-                          setDialogState(() {});
-                          ScaffoldMessenger.of(ctx).showSnackBar(
-                            SnackBar(
-                              content: Text(
-                                'Incorrect PIN. '
-                                '${_maxPinAttempts - _pinAttempts} attempts remaining.',
-                              ),
-                            ),
-                          );
-                        }
-                      }
-                    }
-                  },
-                  child: const Text('Confirm'),
-                ),
-              ],
             );
           },
         );
       },
     );
     pinController.dispose();
-    return result ?? false;
+
+    if (result == 'forgot' && mounted) {
+      return showPinResetFlow(context);
+    }
+    return result == true;
   }
 
   Future<void> _changePin() async {
