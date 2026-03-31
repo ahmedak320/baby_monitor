@@ -111,7 +111,7 @@ class ContentPrefsScreen extends ConsumerWidget {
             Padding(
               padding: const EdgeInsets.all(24),
               child: ElevatedButton(
-                onPressed: () => context.pushNamed(RouteNames.setupComplete),
+                onPressed: () => context.pushNamed(RouteNames.pinSetup),
                 child: const Text('Next'),
               ),
             ),

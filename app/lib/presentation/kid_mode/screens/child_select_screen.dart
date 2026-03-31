@@ -10,6 +10,7 @@ import '../../../providers/current_user_provider.dart';
 import '../../../routing/route_names.dart';
 import '../../../utils/age_calculator.dart';
 import '../../../utils/biometric_helper.dart';
+import '../widgets/pin_reset_dialog.dart';
 
 // Brute-force protection state for PIN fallback dialog
 int _pinAttempts = 0;
@@ -131,7 +132,21 @@ Future<bool> _authenticateParent(BuildContext context, String childName) async {
     if (success) return true;
   }
 
-  // Biometric failed or unavailable — fall back to PIN dialog
+  // Biometric failed or unavailable — check if PIN is set
+  if (!context.mounted) return false;
+
+  final hasPin = await ParentalControlService.hasPinSet();
+  if (!hasPin && context.mounted) {
+    // No PIN set — prompt to create one
+    final newPin = await showCreatePinDialog(context);
+    if (newPin != null) {
+      await ParentalControlService.setPin(newPin);
+      return true; // PIN was just created — grant access
+    }
+    return false;
+  }
+
+  // PIN exists — show verification dialog
   if (context.mounted) {
     return _showPinFallbackDialog(context);
   }
@@ -200,6 +215,15 @@ Future<bool> _showPinFallbackDialog(BuildContext context) async {
             TextButton(
               onPressed: () => Navigator.pop(ctx, false),
               child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () async {
+                Navigator.pop(ctx, false);
+                if (ctx.mounted) {
+                  await showPinResetFlow(ctx);
+                }
+              },
+              child: const Text('Forgot PIN?'),
             ),
             ElevatedButton(
               onPressed: () async {

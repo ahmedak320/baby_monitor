@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../../../domain/services/parental_control_service.dart';
 import '../../../utils/biometric_helper.dart';
+import 'pin_reset_dialog.dart';
 
 /// Widget that triggers biometric/PIN authentication for switching children.
 /// Falls back to a simple PIN dialog if biometrics are unavailable.
@@ -133,6 +134,15 @@ class BiometricSwitch extends StatelessWidget {
               TextButton(
                 onPressed: () => Navigator.pop(dialogCtx, false),
                 child: const Text('Cancel'),
+              ),
+              TextButton(
+                onPressed: () async {
+                  Navigator.pop(dialogCtx, false);
+                  if (dialogCtx.mounted) {
+                    await showPinResetFlow(dialogCtx);
+                  }
+                },
+                child: const Text('Forgot PIN?'),
               ),
               ElevatedButton(
                 onPressed: () async {

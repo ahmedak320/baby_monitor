@@ -7,6 +7,7 @@ import '../../../data/repositories/profile_repository.dart';
 import '../../../domain/services/parental_control_service.dart';
 import '../../../routing/route_names.dart';
 import '../../../utils/biometric_helper.dart';
+import '../../kid_mode/widgets/pin_reset_dialog.dart';
 
 class AccountSettingsScreen extends ConsumerStatefulWidget {
   const AccountSettingsScreen({super.key});
@@ -96,6 +97,15 @@ class _AccountSettingsScreenState extends ConsumerState<AccountSettingsScreen> {
                   onPressed: () => Navigator.pop(ctx, false),
                   child: const Text('Cancel'),
                 ),
+                TextButton(
+                  onPressed: () async {
+                    Navigator.pop(ctx, false);
+                    if (ctx.mounted) {
+                      await showPinResetFlow(ctx);
+                    }
+                  },
+                  child: const Text('Forgot PIN?'),
+                ),
                 ElevatedButton(
                   onPressed: () async {
                     final pin = pinController.text;
@@ -152,6 +162,23 @@ class _AccountSettingsScreenState extends ConsumerState<AccountSettingsScreen> {
     );
     pinController.dispose();
     return result ?? false;
+  }
+
+  Future<void> _changePin() async {
+    // Require current auth first
+    final authenticated = await _reauthenticate();
+    if (!authenticated || !mounted) return;
+
+    // Show create + confirm new PIN flow
+    final newPin = await showCreatePinDialog(context);
+    if (newPin != null && mounted) {
+      await ParentalControlService.setPin(newPin);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('PIN updated successfully.')),
+        );
+      }
+    }
   }
 
   Future<void> _deleteChildProfile(String childId, String childName) async {
@@ -293,6 +320,18 @@ class _AccountSettingsScreenState extends ConsumerState<AccountSettingsScreen> {
                   ),
                 ],
               ),
+            ),
+          ),
+          const SizedBox(height: 12),
+
+          // Change PIN
+          Card(
+            child: ListTile(
+              leading: const Icon(Icons.pin_outlined),
+              title: const Text('Change PIN'),
+              subtitle: const Text('Update your 4-digit parent PIN'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: _changePin,
             ),
           ),
           const SizedBox(height: 24),

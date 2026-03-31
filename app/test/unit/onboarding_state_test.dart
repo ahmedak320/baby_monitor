@@ -57,6 +57,25 @@ void main() {
     });
   });
 
+  group('OnboardingState PIN field', () {
+    test('default PIN is empty', () {
+      const state = OnboardingState();
+      expect(state.pin, isEmpty);
+    });
+
+    test('copyWith updates PIN', () {
+      final state = const OnboardingState().copyWith(pin: '1234');
+      expect(state.pin, '1234');
+    });
+
+    test('copyWith preserves PIN when not specified', () {
+      final state = const OnboardingState().copyWith(pin: '5678');
+      final updated = state.copyWith(childName: 'Test');
+      expect(updated.pin, '5678');
+      expect(updated.childName, 'Test');
+    });
+  });
+
   group('completeOnboarding early validation', () {
     test('returns false when childName is empty', () {
       // Test the validation logic directly via state check
