@@ -4,31 +4,31 @@ import 'package:baby_monitor/utils/pbkdf2.dart';
 
 void main() {
   group('ParentalControlService', () {
-    test('hashPin produces consistent hash for same input and salt', () {
+    test('hashPin produces consistent hash for same input and salt', () async {
       final salt = Pbkdf2.fromHex('00112233445566778899aabbccddeeff');
-      final hash1 = ParentalControlService.hashPin('1234', salt);
-      final hash2 = ParentalControlService.hashPin('1234', salt);
+      final hash1 = await ParentalControlService.hashPin('1234', salt);
+      final hash2 = await ParentalControlService.hashPin('1234', salt);
       expect(hash1, equals(hash2));
     });
 
-    test('hashPin produces different hash for different input', () {
+    test('hashPin produces different hash for different input', () async {
       final salt = Pbkdf2.fromHex('00112233445566778899aabbccddeeff');
-      final hash1 = ParentalControlService.hashPin('1234', salt);
-      final hash2 = ParentalControlService.hashPin('5678', salt);
+      final hash1 = await ParentalControlService.hashPin('1234', salt);
+      final hash2 = await ParentalControlService.hashPin('5678', salt);
       expect(hash1, isNot(equals(hash2)));
     });
 
-    test('hashPin produces different hash for different salt', () {
+    test('hashPin produces different hash for different salt', () async {
       final salt1 = Pbkdf2.fromHex('00112233445566778899aabbccddeeff');
       final salt2 = Pbkdf2.fromHex('ffeeddccbbaa99887766554433221100');
-      final hash1 = ParentalControlService.hashPin('1234', salt1);
-      final hash2 = ParentalControlService.hashPin('1234', salt2);
+      final hash1 = await ParentalControlService.hashPin('1234', salt1);
+      final hash2 = await ParentalControlService.hashPin('1234', salt2);
       expect(hash1, isNot(equals(hash2)));
     });
 
-    test('hashPin produces 64 hex character output (32 bytes)', () {
+    test('hashPin produces 64 hex character output (32 bytes)', () async {
       final salt = Pbkdf2.fromHex('00112233445566778899aabbccddeeff');
-      final hash = ParentalControlService.hashPin('1234', salt);
+      final hash = await ParentalControlService.hashPin('1234', salt);
       // PBKDF2 with keyLength=32 produces 64 hex characters
       expect(hash.length, equals(64));
     });

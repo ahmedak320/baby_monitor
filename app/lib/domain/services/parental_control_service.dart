@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:isolate';
 import 'dart:math';
 import 'dart:typed_data';
 
@@ -12,9 +13,19 @@ import '../../utils/pbkdf2.dart';
 /// Service for PIN management and parental control authentication.
 class ParentalControlService {
   /// Hash a PIN using PBKDF2-HMAC-SHA256 with the given salt.
-  static String hashPin(String pin, Uint8List salt) {
-    final derived = Pbkdf2.derive(pin, salt, iterations: 100000, keyLength: 32);
-    return Pbkdf2.toHex(derived);
+  ///
+  /// Runs in a background isolate to avoid blocking the UI thread
+  /// (100,000 iterations is CPU-intensive).
+  static Future<String> hashPin(String pin, Uint8List salt) {
+    return Isolate.run(() {
+      final derived = Pbkdf2.derive(
+        pin,
+        salt,
+        iterations: 100000,
+        keyLength: 32,
+      );
+      return Pbkdf2.toHex(derived);
+    });
   }
 
   /// Legacy hash for migration — plain SHA-256 (no salt).
@@ -34,7 +45,7 @@ class ParentalControlService {
       salt[i] = rng.nextInt(256);
     }
 
-    final hash = hashPin(pin, salt);
+    final hash = await hashPin(pin, salt);
     final saltHex = Pbkdf2.toHex(salt);
 
     await SupabaseClientWrapper.client
@@ -75,7 +86,7 @@ class ParentalControlService {
 
     // New: PBKDF2 verification
     final salt = Pbkdf2.fromHex(storedSalt);
-    final computedHash = hashPin(pin, salt);
+    final computedHash = await hashPin(pin, salt);
     return storedHash == computedHash;
   }
 
