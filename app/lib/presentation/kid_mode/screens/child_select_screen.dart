@@ -146,7 +146,18 @@ Future<bool> _authenticateParent(BuildContext context, String childName) async {
     // No PIN set — prompt to create one
     final newPin = await showCreatePinDialog(context);
     if (newPin != null) {
-      await ParentalControlService.setPin(newPin);
+      try {
+        await ParentalControlService.setPin(newPin);
+      } catch (_) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Failed to save the new PIN. Please try again.'),
+            ),
+          );
+        }
+        return false;
+      }
       return true; // PIN was just created — grant access
     }
     return false;

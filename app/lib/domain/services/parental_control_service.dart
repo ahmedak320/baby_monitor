@@ -1,9 +1,9 @@
 import 'dart:convert';
 import 'dart:isolate';
 import 'dart:math';
-import 'dart:typed_data';
 
 import 'package:crypto/crypto.dart';
+import 'package:flutter/foundation.dart';
 
 import '../../data/datasources/local/preferences_cache.dart';
 import '../../data/datasources/remote/supabase_client.dart';
@@ -12,6 +12,26 @@ import '../../utils/pbkdf2.dart';
 
 /// Service for PIN management and parental control authentication.
 class ParentalControlService {
+  static Map<String, dynamic> _parentProfilePayload({
+    required String userId,
+    required String email,
+    required Map<String, dynamic> userMetadata,
+    required String hash,
+    required String saltHex,
+  }) {
+    final displayName = (userMetadata['display_name'] as String?)?.trim();
+
+    return {
+      'id': userId,
+      'display_name': (displayName != null && displayName.isNotEmpty)
+          ? displayName
+          : email.split('@').first,
+      'email': email,
+      'pin_hash': hash,
+      'pin_salt': saltHex,
+    };
+  }
+
   /// Hash a PIN using PBKDF2-HMAC-SHA256 with the given salt.
   ///
   /// Runs in a background isolate to avoid blocking the UI thread
@@ -36,8 +56,14 @@ class ParentalControlService {
 
   /// Set the parent's PIN with a random 16-byte salt.
   static Future<void> setPin(String pin) async {
-    final userId = SupabaseClientWrapper.currentUserId;
-    if (userId == null) return;
+    final user = SupabaseClientWrapper.currentUser;
+    if (user == null) {
+      throw StateError('Cannot set PIN without an authenticated user.');
+    }
+    final email = user.email;
+    if (email == null || email.isEmpty) {
+      throw StateError('Authenticated user is missing an email address.');
+    }
 
     final salt = Uint8List(16);
     final rng = Random.secure();
@@ -48,10 +74,29 @@ class ParentalControlService {
     final hash = await hashPin(pin, salt);
     final saltHex = Pbkdf2.toHex(salt);
 
-    await SupabaseClientWrapper.client
+    final persisted = await SupabaseClientWrapper.client
         .from('parent_profiles')
-        .update({'pin_hash': hash, 'pin_salt': saltHex})
-        .eq('id', userId);
+        .upsert(
+          _parentProfilePayload(
+            userId: user.id,
+            email: email,
+            userMetadata: user.userMetadata ?? const {},
+            hash: hash,
+            saltHex: saltHex,
+          ),
+          onConflict: 'id',
+        )
+        .select('pin_hash, pin_salt')
+        .single();
+
+    if (persisted['pin_hash'] != hash || persisted['pin_salt'] != saltHex) {
+      throw StateError('PIN update did not persist correctly.');
+    }
+
+    final verified = await verifyPin(pin);
+    if (!verified) {
+      throw StateError('PIN verification failed immediately after saving.');
+    }
   }
 
   /// Verify a PIN against the stored hash.
@@ -62,11 +107,17 @@ class ParentalControlService {
     final userId = SupabaseClientWrapper.currentUserId;
     if (userId == null) return false;
 
-    final row = await SupabaseClientWrapper.client
-        .from('parent_profiles')
-        .select('pin_hash, pin_salt')
-        .eq('id', userId)
-        .maybeSingle();
+    Map<String, dynamic>? row;
+    try {
+      row = await SupabaseClientWrapper.client
+          .from('parent_profiles')
+          .select('pin_hash, pin_salt')
+          .eq('id', userId)
+          .maybeSingle();
+    } catch (e) {
+      debugPrint('verifyPin failed to load parent profile: $e');
+      return false;
+    }
 
     if (row == null || row['pin_hash'] == null) return false;
 
@@ -95,11 +146,17 @@ class ParentalControlService {
     final userId = SupabaseClientWrapper.currentUserId;
     if (userId == null) return false;
 
-    final row = await SupabaseClientWrapper.client
-        .from('parent_profiles')
-        .select('pin_hash')
-        .eq('id', userId)
-        .maybeSingle();
+    Map<String, dynamic>? row;
+    try {
+      row = await SupabaseClientWrapper.client
+          .from('parent_profiles')
+          .select('pin_hash')
+          .eq('id', userId)
+          .maybeSingle();
+    } catch (e) {
+      debugPrint('hasPinSet failed to load parent profile: $e');
+      return false;
+    }
 
     return row != null && row['pin_hash'] != null;
   }

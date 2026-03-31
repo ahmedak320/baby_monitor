@@ -42,6 +42,18 @@ Future<T?> showSettledDialog<T extends Object?>({
 /// 3. Confirm the new PIN
 /// Returns true if the PIN was successfully reset.
 Future<bool> showPinResetFlow(BuildContext context) async {
+  return showPinResetFlowWithSaver(
+    context,
+    persistPin: ParentalControlService.setPin,
+    verifyPin: ParentalControlService.verifyPin,
+  );
+}
+
+Future<bool> showPinResetFlowWithSaver(
+  BuildContext context, {
+  required Future<void> Function(String pin) persistPin,
+  required Future<bool> Function(String pin) verifyPin,
+}) async {
   // Phase 1: Math problem
   final mathPassed = await _showMathChallenge(context);
   if (!mathPassed || !context.mounted) return false;
@@ -51,8 +63,27 @@ Future<bool> showPinResetFlow(BuildContext context) async {
   if (newPin == null || !context.mounted) return false;
 
   // Save the new PIN
-  await ParentalControlService.setPin(newPin);
-  return true;
+  try {
+    await persistPin(newPin);
+    final verified = await verifyPin(newPin);
+    if (!verified && context.mounted) {
+      ScaffoldMessenger.maybeOf(context)?.showSnackBar(
+        const SnackBar(
+          content: Text('The new PIN could not be verified. Please try again.'),
+        ),
+      );
+    }
+    return verified;
+  } catch (_) {
+    if (context.mounted) {
+      ScaffoldMessenger.maybeOf(context)?.showSnackBar(
+        const SnackBar(
+          content: Text('Failed to save the new PIN. Please try again.'),
+        ),
+      );
+    }
+    return false;
+  }
 }
 
 /// Shows a dialog to create + confirm a new PIN (no math gate).

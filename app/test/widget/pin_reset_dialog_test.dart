@@ -137,5 +137,125 @@ void main() {
         expect(tester.takeException(), isNull);
       },
     );
+
+    testWidgets(
+      'forgot PIN flow returns success only after save and verify succeed',
+      (tester) async {
+        bool? result;
+        String? savedPin;
+
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: Builder(
+                builder: (context) => ElevatedButton(
+                  onPressed: () async {
+                    result = await showPinResetFlowWithSaver(
+                      context,
+                      persistPin: (pin) async {
+                        savedPin = pin;
+                      },
+                      verifyPin: (pin) async => pin == savedPin,
+                    );
+                  },
+                  child: const Text('Open'),
+                ),
+              ),
+            ),
+          ),
+        );
+
+        await tester.tap(find.text('Open'));
+        await tester.pumpAndSettle();
+
+        final questionText = tester
+            .widget<Text>(
+              find.byWidgetPredicate(
+                (widget) =>
+                    widget is Text && (widget.data?.endsWith(' = ?') ?? false),
+              ),
+            )
+            .data!;
+        final match = RegExp(r'(\d+) \+ (\d+) = \?').firstMatch(questionText)!;
+        final answer = (int.parse(match.group(1)!) + int.parse(match.group(2)!))
+            .toString();
+
+        await tester.enterText(find.byType(TextField), answer);
+        await tester.tap(find.text('Submit'));
+        await tester.pumpAndSettle();
+
+        await tester.enterText(find.byType(TextField), '2468');
+        await tester.tap(find.text('Next'));
+        await tester.pumpAndSettle();
+
+        await tester.enterText(find.byType(TextField), '2468');
+        await tester.tap(find.text('Next'));
+        await tester.pumpAndSettle();
+
+        expect(savedPin, equals('2468'));
+        expect(result, isTrue);
+        expect(tester.takeException(), isNull);
+      },
+    );
+
+    testWidgets(
+      'forgot PIN flow shows an error when save succeeds but verify fails',
+      (tester) async {
+        bool? result;
+
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: Builder(
+                builder: (context) => ElevatedButton(
+                  onPressed: () async {
+                    result = await showPinResetFlowWithSaver(
+                      context,
+                      persistPin: (_) async {},
+                      verifyPin: (_) async => false,
+                    );
+                  },
+                  child: const Text('Open'),
+                ),
+              ),
+            ),
+          ),
+        );
+
+        await tester.tap(find.text('Open'));
+        await tester.pumpAndSettle();
+
+        final questionText = tester
+            .widget<Text>(
+              find.byWidgetPredicate(
+                (widget) =>
+                    widget is Text && (widget.data?.endsWith(' = ?') ?? false),
+              ),
+            )
+            .data!;
+        final match = RegExp(r'(\d+) \+ (\d+) = \?').firstMatch(questionText)!;
+        final answer = (int.parse(match.group(1)!) + int.parse(match.group(2)!))
+            .toString();
+
+        await tester.enterText(find.byType(TextField), answer);
+        await tester.tap(find.text('Submit'));
+        await tester.pumpAndSettle();
+
+        await tester.enterText(find.byType(TextField), '1357');
+        await tester.tap(find.text('Next'));
+        await tester.pumpAndSettle();
+
+        await tester.enterText(find.byType(TextField), '1357');
+        await tester.tap(find.text('Next'));
+        await tester.pumpAndSettle();
+
+        expect(result, isFalse);
+        expect(
+          find.text('The new PIN could not be verified. Please try again.'),
+          findsOneWidget,
+        );
+        expect(tester.takeException(), isNull);
+      },
+    );
   });
 }

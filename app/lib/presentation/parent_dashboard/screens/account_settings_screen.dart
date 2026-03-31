@@ -219,11 +219,21 @@ class _AccountSettingsScreenState extends ConsumerState<AccountSettingsScreen> {
     // Show create + confirm new PIN flow
     final newPin = await showCreatePinDialog(context);
     if (newPin != null && mounted) {
-      await ParentalControlService.setPin(newPin);
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('PIN updated successfully.')),
-        );
+      try {
+        await ParentalControlService.setPin(newPin);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('PIN updated successfully.')),
+          );
+        }
+      } catch (_) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Failed to save the new PIN. Please try again.'),
+            ),
+          );
+        }
       }
     }
   }
