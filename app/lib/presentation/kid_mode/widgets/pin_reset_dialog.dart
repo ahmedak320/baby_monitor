@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 
 import '../../../domain/services/parental_control_service.dart';
@@ -15,17 +13,27 @@ void _popDialog<T extends Object?>(BuildContext ctx, [T? result]) {
   Navigator.pop(ctx, result);
 }
 
-/// Wait for two full frames to complete (build → layout → paint → repeat).
+/// Push a dialog route and wait until its exit transition fully completes.
 ///
-/// Two frames ensures that both deactivation AND unmounting of previous
-/// dialog widgets complete before a new dialog opens, preventing the
-/// "dependents.isEmpty is not true" assertion when chaining dialogs.
-Future<void> _waitForFrameCompletion() async {
-  for (var i = 0; i < 2; i++) {
-    final completer = Completer<void>();
-    WidgetsBinding.instance.addPostFrameCallback((_) => completer.complete());
-    await completer.future;
-  }
+/// `showDialog` completes when the route is popped, which is earlier than the
+/// route's final disposal. Chained dialogs with focused `TextField`s can then
+/// trip `_dependents.isEmpty` while the previous route is still unwinding.
+Future<T?> showSettledDialog<T extends Object?>({
+  required BuildContext context,
+  required WidgetBuilder builder,
+  bool barrierDismissible = false,
+}) async {
+  final navigator = Navigator.of(context, rootNavigator: true);
+  final route = DialogRoute<T>(
+    context: context,
+    builder: builder,
+    barrierDismissible: barrierDismissible,
+    themes: InheritedTheme.capture(from: context, to: navigator.context),
+  );
+
+  final result = await navigator.push<T>(route);
+  await route.completed;
+  return result;
 }
 
 /// Shows a "Forgot PIN?" flow:
@@ -34,17 +42,9 @@ Future<void> _waitForFrameCompletion() async {
 /// 3. Confirm the new PIN
 /// Returns true if the PIN was successfully reset.
 Future<bool> showPinResetFlow(BuildContext context) async {
-  // Wait for any previous dialog (e.g. verify-PIN) to fully dispose
-  // before opening the math challenge dialog.
-  await _waitForFrameCompletion();
-  if (!context.mounted) return false;
-
   // Phase 1: Math problem
   final mathPassed = await _showMathChallenge(context);
   if (!mathPassed || !context.mounted) return false;
-
-  await _waitForFrameCompletion();
-  if (!context.mounted) return false;
 
   // Phase 2 + 3: Create and confirm new PIN
   final newPin = await _showCreatePinFlow(context);
@@ -73,7 +73,7 @@ Future<bool> _showMathChallenge(BuildContext context) async {
   int attempts = 0;
   String? errorText;
 
-  final result = await showDialog<bool>(
+  final result = await showSettledDialog<bool>(
     context: context,
     barrierDismissible: false,
     builder: (ctx) => StatefulBuilder(
@@ -175,9 +175,6 @@ Future<String?> _showCreatePinFlow(BuildContext context) async {
   );
   if (newPin == null || !context.mounted) return null;
 
-  await _waitForFrameCompletion();
-  if (!context.mounted) return null;
-
   // Phase 3: Confirm new PIN
   final confirmed = await _showPinEntryDialog(
     context,
@@ -189,8 +186,6 @@ Future<String?> _showCreatePinFlow(BuildContext context) async {
   if (newPin != confirmed) {
     if (context.mounted) {
       // Retry the whole create flow
-      await _waitForFrameCompletion();
-      if (!context.mounted) return null;
       return _showCreatePinFlow(context);
     }
     return null;
@@ -208,7 +203,7 @@ Future<String?> _showPinEntryDialog(
   final controller = TextEditingController();
   String? errorText;
 
-  final result = await showDialog<String?>(
+  final result = await showSettledDialog<String?>(
     context: context,
     barrierDismissible: false,
     builder: (ctx) => StatefulBuilder(

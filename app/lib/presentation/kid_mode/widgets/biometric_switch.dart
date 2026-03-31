@@ -100,7 +100,7 @@ class BiometricSwitch extends StatelessWidget {
     String? errorText;
     bool isVerifying = false;
 
-    final result = await showDialog<Object>(
+    final result = await showSettledDialog<Object>(
       context: context,
       barrierDismissible: false,
       builder: (dialogCtx) => StatefulBuilder(

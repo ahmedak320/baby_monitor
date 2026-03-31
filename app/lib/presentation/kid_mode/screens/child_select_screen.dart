@@ -181,7 +181,7 @@ Future<bool> _showPinFallbackDialog(BuildContext context) async {
   String? errorText;
   bool isVerifying = false;
 
-  final result = await showDialog<Object>(
+  final result = await showSettledDialog<Object>(
     context: context,
     barrierDismissible: false,
     builder: (ctx) => StatefulBuilder(

@@ -2,6 +2,12 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Tooling folders
+
+- Project-local Codex files belong in `.codex/`.
+- Keep tracked Codex setup or shared assistant context under `.codex/`.
+- Treat `.codex/cache/`, `.codex/state/`, and `.codex/tmp/` as machine-local paths that should not be committed.
+
 ## Commands
 
 ### Flutter (app/)

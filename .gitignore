@@ -42,6 +42,9 @@ supabase/.temp/
 .claude/
 PROMPT.md
 .superpowers/
+.codex/cache/
+.codex/state/
+.codex/tmp/
 
 # Playwright MCP logs
 .playwright-mcp/

@@ -251,9 +251,10 @@ baby_monitor/
 │   ├── coppa-compliance.md           # COPPA data map + compliance checklist
 │   └── superpowers/specs/            # Design specification
 │
+├── .codex/README.md                  # Codex project-file convention
 ├── .github/workflows/ci.yml         # CI pipeline (Flutter + Python)
 ├── .env.example                      # Root env template
-└── CLAUDE.md                         # AI assistant project context
+└── CLAUDE.md                         # Claude Code project context
 ```
 
 ---
