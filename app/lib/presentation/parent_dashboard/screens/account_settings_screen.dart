@@ -20,6 +20,18 @@ class _AccountSettingsScreenState extends ConsumerState<AccountSettingsScreen> {
   bool _isDeletingChild = false;
   bool _isDeletingAccount = false;
 
+  // Brute-force protection for PIN fallback
+  static int _pinAttempts = 0;
+  static DateTime? _lockoutUntil;
+  static int _lockoutDurationSeconds = 30;
+  static const int _maxPinAttempts = 5;
+
+  static void _resetPinCounters() {
+    _pinAttempts = 0;
+    _lockoutUntil = null;
+    _lockoutDurationSeconds = 30;
+  }
+
   /// Re-authenticate the user via biometrics or a PIN dialog fallback.
   /// Returns true if the user successfully authenticated.
   Future<bool> _reauthenticate() async {
@@ -28,44 +40,113 @@ class _AccountSettingsScreenState extends ConsumerState<AccountSettingsScreen> {
     );
     if (biometricSuccess) return true;
 
+    // Check lockout before showing PIN dialog
+    if (_lockoutUntil != null && DateTime.now().isBefore(_lockoutUntil!)) {
+      final remaining = _lockoutUntil!.difference(DateTime.now()).inSeconds;
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Too many failed attempts. Try again in $remaining seconds.',
+            ),
+          ),
+        );
+      }
+      return false;
+    }
+
     // Fallback: show a PIN dialog that verifies against the stored hash
     if (!mounted) return false;
     final pinController = TextEditingController();
     final result = await showDialog<bool>(
       context: context,
       builder: (ctx) {
-        return AlertDialog(
-          title: const Text('Enter PIN'),
-          content: TextField(
-            controller: pinController,
-            obscureText: true,
-            maxLength: 4,
-            keyboardType: TextInputType.number,
-            decoration: const InputDecoration(hintText: '4-digit PIN'),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Cancel'),
-            ),
-            ElevatedButton(
-              onPressed: () async {
-                final pin = pinController.text;
-                if (pin.length != 4) return;
-                final verified = await ParentalControlService.verifyPin(pin);
-                if (ctx.mounted) {
-                  if (verified) {
-                    Navigator.pop(ctx, true);
-                  } else {
-                    ScaffoldMessenger.of(ctx).showSnackBar(
-                      const SnackBar(content: Text('Incorrect PIN')),
-                    );
-                  }
-                }
-              },
-              child: const Text('Confirm'),
-            ),
-          ],
+        return StatefulBuilder(
+          builder: (ctx, setDialogState) {
+            final remainingAttempts = _maxPinAttempts - _pinAttempts;
+            return AlertDialog(
+              title: const Text('Enter PIN'),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextField(
+                    controller: pinController,
+                    obscureText: true,
+                    maxLength: 4,
+                    keyboardType: TextInputType.number,
+                    decoration:
+                        const InputDecoration(hintText: '4-digit PIN'),
+                  ),
+                  if (remainingAttempts < _maxPinAttempts)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 8),
+                      child: Text(
+                        '$remainingAttempts attempts remaining',
+                        style: TextStyle(
+                          color: remainingAttempts <= 2
+                              ? Colors.red
+                              : Colors.orange,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(ctx, false),
+                  child: const Text('Cancel'),
+                ),
+                ElevatedButton(
+                  onPressed: () async {
+                    final pin = pinController.text;
+                    if (pin.length != 4) return;
+                    final verified =
+                        await ParentalControlService.verifyPin(pin);
+                    if (ctx.mounted) {
+                      if (verified) {
+                        _resetPinCounters();
+                        Navigator.pop(ctx, true);
+                      } else {
+                        _pinAttempts++;
+                        if (_pinAttempts >= _maxPinAttempts) {
+                          _lockoutUntil = DateTime.now().add(
+                            Duration(seconds: _lockoutDurationSeconds),
+                          );
+                          _lockoutDurationSeconds =
+                              (_lockoutDurationSeconds * 2).clamp(30, 3600);
+                          _pinAttempts = 0;
+                          if (ctx.mounted) {
+                            Navigator.pop(ctx, false);
+                            ScaffoldMessenger.of(ctx).showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  'Too many failed attempts. Locked for '
+                                  '${_lockoutDurationSeconds ~/ 2} seconds.',
+                                ),
+                              ),
+                            );
+                          }
+                        } else {
+                          pinController.clear();
+                          setDialogState(() {});
+                          ScaffoldMessenger.of(ctx).showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                'Incorrect PIN. '
+                                '${_maxPinAttempts - _pinAttempts} attempts remaining.',
+                              ),
+                            ),
+                          );
+                        }
+                      }
+                    }
+                  },
+                  child: const Text('Confirm'),
+                ),
+              ],
+            );
+          },
         );
       },
     );

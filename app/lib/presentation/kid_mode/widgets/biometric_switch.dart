@@ -65,15 +65,16 @@ class BiometricSwitch extends StatelessWidget {
       if (success) {
         _resetCounters();
         onAuthenticated();
+        return;
       }
-    } else {
-      // Fallback: show a simple PIN dialog
-      if (context.mounted) {
-        final passed = await _showPinDialog(context);
-        if (passed) {
-          _resetCounters();
-          onAuthenticated();
-        }
+    }
+
+    // Biometric failed or unavailable — fall back to PIN dialog
+    if (context.mounted) {
+      final passed = await _showPinDialog(context);
+      if (passed) {
+        _resetCounters();
+        onAuthenticated();
       }
     }
   }
@@ -95,89 +96,95 @@ class BiometricSwitch extends StatelessWidget {
     }
 
     final controller = TextEditingController();
-    final remainingAttempts = _maxAttempts - _pinAttempts;
 
     final result = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Enter Parent PIN'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: controller,
-              keyboardType: TextInputType.number,
-              obscureText: true,
-              maxLength: 4,
-              decoration: const InputDecoration(hintText: '4-digit PIN'),
-            ),
-            if (remainingAttempts < _maxAttempts)
-              Padding(
-                padding: const EdgeInsets.only(top: 8),
-                child: Text(
-                  '$remainingAttempts attempts remaining',
-                  style: TextStyle(
-                    color: remainingAttempts <= 2 ? Colors.red : Colors.orange,
-                    fontSize: 13,
-                  ),
+      builder: (dialogCtx) => StatefulBuilder(
+        builder: (dialogCtx, setDialogState) {
+          final remainingAttempts = _maxAttempts - _pinAttempts;
+          return AlertDialog(
+            title: const Text('Enter Parent PIN'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: controller,
+                  keyboardType: TextInputType.number,
+                  obscureText: true,
+                  maxLength: 4,
+                  decoration: const InputDecoration(hintText: '4-digit PIN'),
                 ),
-              ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              final pin = controller.text;
-              if (pin.length != 4) {
-                return;
-              }
-              final verified = await ParentalControlService.verifyPin(pin);
-              if (context.mounted) {
-                if (verified) {
-                  Navigator.pop(context, true);
-                } else {
-                  _pinAttempts++;
-                  if (_pinAttempts >= _maxAttempts) {
-                    // Apply lockout with exponential backoff (max 1 hour)
-                    _lockoutUntil = DateTime.now().add(
-                      Duration(seconds: _lockoutDurationSeconds),
-                    );
-                    _lockoutDurationSeconds = min(
-                      _lockoutDurationSeconds * 2,
-                      3600,
-                    );
-                    _pinAttempts = 0; // Reset attempt count for next round
-                    if (context.mounted) {
-                      Navigator.pop(context, false);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(
-                            'Too many failed attempts. Locked for '
-                            '${_lockoutDurationSeconds ~/ 2} seconds.',
-                          ),
-                        ),
-                      );
-                    }
-                  } else {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(
-                          'Incorrect PIN. '
-                          '${_maxAttempts - _pinAttempts} attempts remaining.',
-                        ),
+                if (remainingAttempts < _maxAttempts)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 8),
+                    child: Text(
+                      '$remainingAttempts attempts remaining',
+                      style: TextStyle(
+                        color:
+                            remainingAttempts <= 2 ? Colors.red : Colors.orange,
+                        fontSize: 13,
                       ),
-                    );
+                    ),
+                  ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(dialogCtx, false),
+                child: const Text('Cancel'),
+              ),
+              ElevatedButton(
+                onPressed: () async {
+                  final pin = controller.text;
+                  if (pin.length != 4) {
+                    return;
                   }
-                }
-              }
-            },
-            child: const Text('Verify'),
-          ),
-        ],
+                  final verified = await ParentalControlService.verifyPin(pin);
+                  if (dialogCtx.mounted) {
+                    if (verified) {
+                      Navigator.pop(dialogCtx, true);
+                    } else {
+                      _pinAttempts++;
+                      if (_pinAttempts >= _maxAttempts) {
+                        _lockoutUntil = DateTime.now().add(
+                          Duration(seconds: _lockoutDurationSeconds),
+                        );
+                        _lockoutDurationSeconds = min(
+                          _lockoutDurationSeconds * 2,
+                          3600,
+                        );
+                        _pinAttempts = 0;
+                        if (dialogCtx.mounted) {
+                          Navigator.pop(dialogCtx, false);
+                          ScaffoldMessenger.of(dialogCtx).showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                'Too many failed attempts. Locked for '
+                                '${_lockoutDurationSeconds ~/ 2} seconds.',
+                              ),
+                            ),
+                          );
+                        }
+                      } else {
+                        controller.clear();
+                        setDialogState(() {});
+                        ScaffoldMessenger.of(dialogCtx).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              'Incorrect PIN. '
+                              '${_maxAttempts - _pinAttempts} attempts remaining.',
+                            ),
+                          ),
+                        );
+                      }
+                    }
+                  }
+                },
+                child: const Text('Verify'),
+              ),
+            ],
+          );
+        },
       ),
     );
     controller.dispose();
