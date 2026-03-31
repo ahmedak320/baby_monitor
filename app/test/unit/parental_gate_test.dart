@@ -90,8 +90,9 @@ void main() {
       expect(result, isTrue);
     });
 
-    testWidgets('wrong answer shows error and decrements attempts',
-        (tester) async {
+    testWidgets('wrong answer shows error and decrements attempts', (
+      tester,
+    ) async {
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(

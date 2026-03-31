@@ -120,8 +120,9 @@ class BiometricSwitch extends StatelessWidget {
                     child: Text(
                       '$remainingAttempts attempts remaining',
                       style: TextStyle(
-                        color:
-                            remainingAttempts <= 2 ? Colors.red : Colors.orange,
+                        color: remainingAttempts <= 2
+                            ? Colors.red
+                            : Colors.orange,
                         fontSize: 13,
                       ),
                     ),

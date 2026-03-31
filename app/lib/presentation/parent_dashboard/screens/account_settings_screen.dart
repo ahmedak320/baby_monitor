@@ -74,8 +74,7 @@ class _AccountSettingsScreenState extends ConsumerState<AccountSettingsScreen> {
                     obscureText: true,
                     maxLength: 4,
                     keyboardType: TextInputType.number,
-                    decoration:
-                        const InputDecoration(hintText: '4-digit PIN'),
+                    decoration: const InputDecoration(hintText: '4-digit PIN'),
                   ),
                   if (remainingAttempts < _maxPinAttempts)
                     Padding(
@@ -101,8 +100,9 @@ class _AccountSettingsScreenState extends ConsumerState<AccountSettingsScreen> {
                   onPressed: () async {
                     final pin = pinController.text;
                     if (pin.length != 4) return;
-                    final verified =
-                        await ParentalControlService.verifyPin(pin);
+                    final verified = await ParentalControlService.verifyPin(
+                      pin,
+                    );
                     if (ctx.mounted) {
                       if (verified) {
                         _resetPinCounters();
