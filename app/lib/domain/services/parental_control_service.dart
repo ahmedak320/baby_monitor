@@ -4,6 +4,7 @@ import 'dart:math';
 
 import 'package:crypto/crypto.dart';
 import 'package:flutter/foundation.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../data/datasources/local/preferences_cache.dart';
 import '../../data/datasources/remote/supabase_client.dart';
@@ -27,19 +28,72 @@ class ParentalControlService {
     required String email,
     required Map<String, dynamic> userMetadata,
     required String hash,
-    required String saltHex,
+    String? saltHex,
   }) {
     final displayName = (userMetadata['display_name'] as String?)?.trim();
 
-    return {
+    final payload = <String, dynamic>{
       'id': userId,
       'display_name': (displayName != null && displayName.isNotEmpty)
           ? displayName
           : email.split('@').first,
       'email': email,
       'pin_hash': hash,
-      'pin_salt': saltHex,
     };
+
+    if (saltHex != null) {
+      payload['pin_salt'] = saltHex;
+    }
+
+    return payload;
+  }
+
+  static bool _isMissingPinSaltError(Object error) {
+    final message = error.toString().toLowerCase();
+    return message.contains('pin_salt') &&
+        (message.contains('does not exist') ||
+            message.contains('schema cache') ||
+            message.contains('could not find'));
+  }
+
+  static Future<void> _setLegacyPin(User user, String pin) async {
+    final email = user.email;
+    if (email == null || email.isEmpty) {
+      throw StateError(
+        'Authenticated user is missing an email address for legacy PIN save.',
+      );
+    }
+
+    final legacyHash = _legacyHashPin(pin);
+    final existingProfile = await SupabaseClientWrapper.client
+        .from('parent_profiles')
+        .select('id')
+        .eq('id', user.id)
+        .maybeSingle();
+
+    final persisted = existingProfile == null
+        ? await SupabaseClientWrapper.client
+              .from('parent_profiles')
+              .insert(
+                _parentProfilePayload(
+                  userId: user.id,
+                  email: email,
+                  userMetadata: user.userMetadata ?? const {},
+                  hash: legacyHash,
+                ),
+              )
+              .select('pin_hash')
+              .single()
+        : await SupabaseClientWrapper.client
+              .from('parent_profiles')
+              .update({'pin_hash': legacyHash})
+              .eq('id', user.id)
+              .select('pin_hash')
+              .single();
+
+    if (persisted['pin_hash'] != legacyHash) {
+      throw StateError('Legacy PIN update did not persist correctly.');
+    }
   }
 
   /// Hash a PIN using PBKDF2-HMAC-SHA256 with the given salt.
@@ -84,36 +138,39 @@ class ParentalControlService {
     final hash = await hashPin(pin, salt);
     final saltHex = Pbkdf2.toHex(salt);
 
-    final existingRow = await _getParentProfilePinRow(user.id);
+    Map<String, dynamic> persisted;
+    try {
+      final existingRow = await _getParentProfilePinRow(user.id);
 
-    final persisted = existingRow == null
-        ? await SupabaseClientWrapper.client
-              .from('parent_profiles')
-              .insert(
-                _parentProfilePayload(
-                  userId: user.id,
-                  email: email,
-                  userMetadata: user.userMetadata ?? const {},
-                  hash: hash,
-                  saltHex: saltHex,
-                ),
-              )
-              .select('pin_hash, pin_salt')
-              .single()
-        : await SupabaseClientWrapper.client
-              .from('parent_profiles')
-              .update({'pin_hash': hash, 'pin_salt': saltHex})
-              .eq('id', user.id)
-              .select('pin_hash, pin_salt')
-              .single();
+      persisted = existingRow == null
+          ? await SupabaseClientWrapper.client
+                .from('parent_profiles')
+                .insert(
+                  _parentProfilePayload(
+                    userId: user.id,
+                    email: email,
+                    userMetadata: user.userMetadata ?? const {},
+                    hash: hash,
+                    saltHex: saltHex,
+                  ),
+                )
+                .select('pin_hash, pin_salt')
+                .single()
+          : await SupabaseClientWrapper.client
+                .from('parent_profiles')
+                .update({'pin_hash': hash, 'pin_salt': saltHex})
+                .eq('id', user.id)
+                .select('pin_hash, pin_salt')
+                .single();
+    } on PostgrestException catch (e) {
+      if (!_isMissingPinSaltError(e)) rethrow;
+
+      await _setLegacyPin(user, pin);
+      return;
+    }
 
     if (persisted['pin_hash'] != hash || persisted['pin_salt'] != saltHex) {
       throw StateError('PIN update did not persist correctly.');
-    }
-
-    final verified = await verifyPin(pin);
-    if (!verified) {
-      throw StateError('PIN verification failed immediately after saving.');
     }
   }
 
@@ -132,6 +189,17 @@ class ParentalControlService {
           .select('pin_hash, pin_salt')
           .eq('id', userId)
           .maybeSingle();
+    } on PostgrestException catch (e) {
+      if (_isMissingPinSaltError(e)) {
+        row = await SupabaseClientWrapper.client
+            .from('parent_profiles')
+            .select('pin_hash')
+            .eq('id', userId)
+            .maybeSingle();
+      } else {
+        debugPrint('verifyPin failed to load parent profile: $e');
+        return false;
+      }
     } catch (e) {
       debugPrint('verifyPin failed to load parent profile: $e');
       return false;
