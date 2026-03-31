@@ -4,13 +4,28 @@ import 'package:flutter/material.dart';
 
 import '../../../domain/services/parental_control_service.dart';
 
-/// Wait for the current frame to fully complete (build → layout → paint).
-/// More reliable than [Future.delayed(Duration.zero)] for avoiding the
+/// Unfocus any active text field, then pop the dialog.
+///
+/// Clearing focus before popping prevents the "dependents.isEmpty" assertion
+/// that occurs when a focused TextField's InheritedWidget dependencies
+/// (FocusMarker, FocusInheritedScope) race with the dialog route's
+/// deactivation.
+void _popDialog<T extends Object?>(BuildContext ctx, [T? result]) {
+  FocusManager.instance.primaryFocus?.unfocus();
+  Navigator.pop(ctx, result);
+}
+
+/// Wait for two full frames to complete (build → layout → paint → repeat).
+///
+/// Two frames ensures that both deactivation AND unmounting of previous
+/// dialog widgets complete before a new dialog opens, preventing the
 /// "dependents.isEmpty is not true" assertion when chaining dialogs.
-Future<void> _waitForFrameCompletion() {
-  final completer = Completer<void>();
-  WidgetsBinding.instance.addPostFrameCallback((_) => completer.complete());
-  return completer.future;
+Future<void> _waitForFrameCompletion() async {
+  for (var i = 0; i < 2; i++) {
+    final completer = Completer<void>();
+    WidgetsBinding.instance.addPostFrameCallback((_) => completer.complete());
+    await completer.future;
+  }
 }
 
 /// Shows a "Forgot PIN?" flow:
@@ -118,18 +133,18 @@ Future<bool> _showMathChallenge(BuildContext context) async {
           ),
           actions: [
             TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
+              onPressed: () => _popDialog(ctx, false),
               child: const Text('Cancel'),
             ),
             ElevatedButton(
               onPressed: () {
                 final answer = int.tryParse(controller.text.trim());
                 if (answer == problem.answer) {
-                  Navigator.pop(ctx, true);
+                  _popDialog(ctx, true);
                 } else {
                   attempts++;
                   if (attempts >= 3) {
-                    Navigator.pop(ctx, false);
+                    _popDialog(ctx, false);
                   } else {
                     controller.clear();
                     setDialogState(
@@ -231,14 +246,14 @@ Future<String?> _showPinEntryDialog(
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(ctx, null),
+            onPressed: () => _popDialog(ctx, null),
             child: const Text('Cancel'),
           ),
           ElevatedButton(
             onPressed: () {
               final pin = controller.text;
               if (pin.length == 4) {
-                Navigator.pop(ctx, pin);
+                _popDialog(ctx, pin);
               } else {
                 setState(() => errorText = 'PIN must be 4 digits');
               }

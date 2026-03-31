@@ -146,13 +146,19 @@ class BiometricSwitch extends StatelessWidget {
               TextButton(
                 onPressed: isVerifying
                     ? null
-                    : () => Navigator.pop(dialogCtx, false),
+                    : () {
+                        FocusManager.instance.primaryFocus?.unfocus();
+                        Navigator.pop(dialogCtx, false);
+                      },
                 child: const Text('Cancel'),
               ),
               TextButton(
                 onPressed: isVerifying
                     ? null
-                    : () => Navigator.pop(dialogCtx, 'forgot'),
+                    : () {
+                        FocusManager.instance.primaryFocus?.unfocus();
+                        Navigator.pop(dialogCtx, 'forgot');
+                      },
                 child: const Text('Forgot PIN?'),
               ),
               ElevatedButton(
@@ -190,6 +196,7 @@ class BiometricSwitch extends StatelessWidget {
                         if (!dialogCtx.mounted) return;
 
                         if (verified) {
+                          FocusManager.instance.primaryFocus?.unfocus();
                           Navigator.pop(dialogCtx, true);
                         } else {
                           _pinAttempts++;
@@ -202,6 +209,7 @@ class BiometricSwitch extends StatelessWidget {
                               3600,
                             );
                             _pinAttempts = 0;
+                            FocusManager.instance.primaryFocus?.unfocus();
                             Navigator.pop(dialogCtx, false);
                           } else {
                             controller.clear();

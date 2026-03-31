@@ -225,13 +225,21 @@ Future<bool> _showPinFallbackDialog(BuildContext context) async {
           ),
           actions: [
             TextButton(
-              onPressed: isVerifying ? null : () => Navigator.pop(ctx, false),
+              onPressed: isVerifying
+                  ? null
+                  : () {
+                      FocusManager.instance.primaryFocus?.unfocus();
+                      Navigator.pop(ctx, false);
+                    },
               child: const Text('Cancel'),
             ),
             TextButton(
               onPressed: isVerifying
                   ? null
-                  : () => Navigator.pop(ctx, 'forgot'),
+                  : () {
+                      FocusManager.instance.primaryFocus?.unfocus();
+                      Navigator.pop(ctx, 'forgot');
+                    },
               child: const Text('Forgot PIN?'),
             ),
             ElevatedButton(
@@ -267,6 +275,7 @@ Future<bool> _showPinFallbackDialog(BuildContext context) async {
 
                       if (verified) {
                         _resetPinCounters();
+                        FocusManager.instance.primaryFocus?.unfocus();
                         Navigator.pop(ctx, true);
                       } else {
                         _pinAttempts++;
@@ -279,6 +288,7 @@ Future<bool> _showPinFallbackDialog(BuildContext context) async {
                             3600,
                           );
                           _pinAttempts = 0;
+                          FocusManager.instance.primaryFocus?.unfocus();
                           Navigator.pop(ctx, false);
                         } else {
                           setDialogState(() {

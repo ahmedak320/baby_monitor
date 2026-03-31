@@ -111,13 +111,19 @@ class _AccountSettingsScreenState extends ConsumerState<AccountSettingsScreen> {
                 TextButton(
                   onPressed: isVerifying
                       ? null
-                      : () => Navigator.pop(ctx, false),
+                      : () {
+                          FocusManager.instance.primaryFocus?.unfocus();
+                          Navigator.pop(ctx, false);
+                        },
                   child: const Text('Cancel'),
                 ),
                 TextButton(
                   onPressed: isVerifying
                       ? null
-                      : () => Navigator.pop(ctx, 'forgot'),
+                      : () {
+                          FocusManager.instance.primaryFocus?.unfocus();
+                          Navigator.pop(ctx, 'forgot');
+                        },
                   child: const Text('Forgot PIN?'),
                 ),
                 ElevatedButton(
@@ -156,6 +162,7 @@ class _AccountSettingsScreenState extends ConsumerState<AccountSettingsScreen> {
 
                           if (verified) {
                             _resetPinCounters();
+                            FocusManager.instance.primaryFocus?.unfocus();
                             Navigator.pop(ctx, true);
                           } else {
                             _pinAttempts++;
@@ -168,6 +175,7 @@ class _AccountSettingsScreenState extends ConsumerState<AccountSettingsScreen> {
                                 3600,
                               );
                               _pinAttempts = 0;
+                              FocusManager.instance.primaryFocus?.unfocus();
                               Navigator.pop(ctx, false);
                             } else {
                               pinController.clear();
