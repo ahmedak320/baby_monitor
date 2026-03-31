@@ -8,10 +8,7 @@ void main() {
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
-            body: ParentalGate(
-              onPassed: () {},
-              onCancelled: () {},
-            ),
+            body: ParentalGate(onPassed: () {}, onCancelled: () {}),
           ),
         ),
       );
@@ -25,10 +22,7 @@ void main() {
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
-            body: ParentalGate(
-              onPassed: () {},
-              onCancelled: () {},
-            ),
+            body: ParentalGate(onPassed: () {}, onCancelled: () {}),
           ),
         ),
       );
@@ -43,8 +37,9 @@ void main() {
       expect(problemFinder, findsOneWidget);
     });
 
-    testWidgets('onPassed called when correct answer submitted',
-        (tester) async {
+    testWidgets('onPassed called when correct answer submitted', (
+      tester,
+    ) async {
       bool passed = false;
 
       await tester.pumpWidget(
@@ -69,8 +64,7 @@ void main() {
       final problemText = (tester.widget(problemFinder) as Text).data!;
       final cleaned = problemText.replaceAll('= ?', '').trim();
       final parts = cleaned.split('+');
-      final answer =
-          int.parse(parts[0].trim()) + int.parse(parts[1].trim());
+      final answer = int.parse(parts[0].trim()) + int.parse(parts[1].trim());
 
       await tester.enterText(find.byType(TextField), answer.toString());
       await tester.tap(find.text('Submit'));
@@ -79,8 +73,9 @@ void main() {
       expect(passed, isTrue);
     });
 
-    testWidgets('onCancelled called when cancel button pressed',
-        (tester) async {
+    testWidgets('onCancelled called when cancel button pressed', (
+      tester,
+    ) async {
       bool cancelled = false;
 
       await tester.pumpWidget(
@@ -104,10 +99,7 @@ void main() {
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
-            body: ParentalGate(
-              onPassed: () {},
-              onCancelled: () {},
-            ),
+            body: ParentalGate(onPassed: () {}, onCancelled: () {}),
           ),
         ),
       );
@@ -123,10 +115,7 @@ void main() {
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
-            body: ParentalGate(
-              onPassed: () {},
-              onCancelled: () {},
-            ),
+            body: ParentalGate(onPassed: () {}, onCancelled: () {}),
           ),
         ),
       );
@@ -190,8 +179,7 @@ void main() {
   });
 
   group('showParentalGate', () {
-    testWidgets('dialog is not dismissible by tapping outside',
-        (tester) async {
+    testWidgets('dialog is not dismissible by tapping outside', (tester) async {
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(

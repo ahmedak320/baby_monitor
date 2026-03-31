@@ -187,8 +187,9 @@ Future<bool> _showPinFallbackDialog(BuildContext context) async {
                   child: Text(
                     '$remainingAttempts attempts remaining',
                     style: TextStyle(
-                      color:
-                          remainingAttempts <= 2 ? Colors.red : Colors.orange,
+                      color: remainingAttempts <= 2
+                          ? Colors.red
+                          : Colors.orange,
                       fontSize: 13,
                     ),
                   ),

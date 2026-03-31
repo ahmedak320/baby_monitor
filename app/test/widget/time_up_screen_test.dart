@@ -7,9 +7,7 @@ void main() {
   group('TimeUpScreen', () {
     testWidgets('displays time up message', (tester) async {
       await tester.pumpWidget(
-        MaterialApp(
-          home: TimeUpScreen(onParentOverride: () {}),
-        ),
+        MaterialApp(home: TimeUpScreen(onParentOverride: () {})),
       );
 
       expect(find.text('All done for today!'), findsOneWidget);
@@ -18,9 +16,7 @@ void main() {
 
     testWidgets('parent tap triggers parental gate', (tester) async {
       await tester.pumpWidget(
-        MaterialApp(
-          home: TimeUpScreen(onParentOverride: () {}),
-        ),
+        MaterialApp(home: TimeUpScreen(onParentOverride: () {})),
       );
 
       await tester.tap(find.text('Parent? Tap here'));
@@ -30,12 +26,11 @@ void main() {
       expect(find.text('Parent Verification'), findsOneWidget);
     });
 
-    testWidgets('parental gate uses provided childAge for difficulty',
-        (tester) async {
+    testWidgets('parental gate uses provided childAge for difficulty', (
+      tester,
+    ) async {
       await tester.pumpWidget(
-        MaterialApp(
-          home: TimeUpScreen(childAge: 12, onParentOverride: () {}),
-        ),
+        MaterialApp(home: TimeUpScreen(childAge: 12, onParentOverride: () {})),
       );
 
       await tester.tap(find.text('Parent? Tap here'));
@@ -57,21 +52,18 @@ void main() {
   group('BedtimeScreen', () {
     testWidgets('displays bedtime message', (tester) async {
       await tester.pumpWidget(
-        MaterialApp(
-          home: BedtimeScreen(onParentOverride: () {}),
-        ),
+        MaterialApp(home: BedtimeScreen(onParentOverride: () {})),
       );
 
       expect(find.text('Time for bed!'), findsOneWidget);
       expect(find.text('Parent? Tap here'), findsOneWidget);
     });
 
-    testWidgets('parental gate uses provided childAge for difficulty',
-        (tester) async {
+    testWidgets('parental gate uses provided childAge for difficulty', (
+      tester,
+    ) async {
       await tester.pumpWidget(
-        MaterialApp(
-          home: BedtimeScreen(childAge: 10, onParentOverride: () {}),
-        ),
+        MaterialApp(home: BedtimeScreen(childAge: 10, onParentOverride: () {})),
       );
 
       await tester.tap(find.text('Parent? Tap here'));
@@ -91,9 +83,7 @@ void main() {
 
     testWidgets('default childAge is 5 (addition)', (tester) async {
       await tester.pumpWidget(
-        MaterialApp(
-          home: BedtimeScreen(onParentOverride: () {}),
-        ),
+        MaterialApp(home: BedtimeScreen(onParentOverride: () {})),
       );
 
       await tester.tap(find.text('Parent? Tap here'));
