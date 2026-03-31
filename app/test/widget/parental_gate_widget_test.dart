@@ -4,6 +4,10 @@ import 'package:baby_monitor/presentation/kid_mode/widgets/parental_gate.dart';
 
 void main() {
   group('ParentalGate widget', () {
+    setUp(() {
+      resetParentalGateState();
+    });
+
     testWidgets('shows lock icon and title', (tester) async {
       await tester.pumpWidget(
         MaterialApp(
@@ -179,6 +183,10 @@ void main() {
   });
 
   group('showParentalGate', () {
+    setUp(() {
+      resetParentalGateState();
+    });
+
     testWidgets('dialog is not dismissible by tapping outside', (tester) async {
       await tester.pumpWidget(
         MaterialApp(

@@ -1,6 +1,7 @@
 import 'dart:math';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show visibleForTesting;
 
 /// Parental gate that requires solving a math problem to exit kid mode.
 /// Uses age-appropriate math problems.
@@ -188,4 +189,11 @@ Future<bool> showParentalGate(BuildContext context, {int childAge = 5}) {
       onCancelled: () => Navigator.of(context).pop(false),
     ),
   ).then((value) => value ?? false);
+}
+
+/// Reset static gate state. Only for use in tests.
+@visibleForTesting
+void resetParentalGateState() {
+  _ParentalGateState._attempts = 0;
+  _ParentalGateState._cooldownUntil = null;
 }

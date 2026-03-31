@@ -4,10 +4,8 @@ import 'package:baby_monitor/presentation/kid_mode/widgets/parental_gate.dart';
 
 void main() {
   group('ParentalGate', () {
-    // Reset static state before each test
     setUp(() {
-      // We can't directly reset private statics, but we can test observable
-      // behavior. The widget creates fresh instances but shares static state.
+      resetParentalGateState();
     });
 
     testWidgets('displays math problem and input field', (tester) async {

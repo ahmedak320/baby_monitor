@@ -2,9 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:baby_monitor/presentation/kid_mode/screens/time_up_screen.dart';
 import 'package:baby_monitor/presentation/kid_mode/screens/bedtime_screen.dart';
+import 'package:baby_monitor/presentation/kid_mode/widgets/parental_gate.dart';
 
 void main() {
   group('TimeUpScreen', () {
+    setUp(() {
+      resetParentalGateState();
+    });
     testWidgets('displays time up message', (tester) async {
       await tester.pumpWidget(
         MaterialApp(home: TimeUpScreen(onParentOverride: () {})),
@@ -50,6 +54,10 @@ void main() {
   });
 
   group('BedtimeScreen', () {
+    setUp(() {
+      resetParentalGateState();
+    });
+
     testWidgets('displays bedtime message', (tester) async {
       await tester.pumpWidget(
         MaterialApp(home: BedtimeScreen(onParentOverride: () {})),
