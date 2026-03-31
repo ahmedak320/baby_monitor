@@ -6,6 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 - Project-local Codex files belong in `.codex/`.
 - Keep tracked Codex setup or shared assistant context under `.codex/`.
+- Project-local approved Codex command prefixes are recorded in `.codex/permissions.json`.
 - Treat `.codex/cache/`, `.codex/state/`, and `.codex/tmp/` as machine-local paths that should not be committed.
 
 ## Commands

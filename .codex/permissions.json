@@ -1,0 +1,93 @@
+{
+  "version": 1,
+  "description": "Project-local record of command prefixes approved during Codex sessions for this repository.",
+  "approved_prefixes": [
+    [".", ".venv/bin/activate"],
+    ["npm", "run", "lint"],
+    ["curl", "-I", "http://127.0.0.1:8080/ABUDHABI_3D_MAP/05_apps/cesium_offline/index.html"],
+    [
+      "/bin/bash",
+      "-lc",
+      "cd ABUDHABI_3D_MAP && . .venv/bin/activate && nohup python 05_apps/portable_server/server.py --port 8080 --root ../.. > /tmp/abudhabi_server.log 2>&1 & echo $! > /tmp/abudhabi_server.pid && sleep 1 && ps -p $(cat /tmp/abudhabi_server.pid) -o pid,cmd"
+    ],
+    [
+      "/bin/bash",
+      "-lc",
+      "cd ABUDHABI_3D_MAP && . .venv/bin/activate && (python 05_apps/portable_server/server.py --port 8080 --root ../.. >/tmp/abudhabi_server_smoke.log 2>&1 &) && srv=$! && sleep 1 && curl -I http://127.0.0.1:8080/05_apps/cesium_offline/index.html && curl -I http://127.0.0.1:8080/05_apps/cesium_live_qa/index.html && curl -I http://127.0.0.1:8080/05_apps/cesium_offline/data/fused_buildings.geojson && kill $srv"
+    ],
+    ["python", "-m", "py_compile", "03_processing/scripts/fetch_microsoft_buildings.py"],
+    [
+      "python",
+      "05_apps/portable_server/server.py",
+      "--port",
+      "8080",
+      "--root",
+      "../.."
+    ],
+    [
+      "python",
+      "03_processing/scripts/fetch_osm_overpass.py",
+      "--bbox",
+      "52.8,23.1,55.6,25.6",
+      "--out",
+      "01_raw_data/osm/osm_buildings.geojson"
+    ],
+    [
+      "python",
+      "03_processing/scripts/fetch_microsoft_buildings.py",
+      "--bbox",
+      "52.8,23.1,55.6,25.6",
+      "--country",
+      "UnitedArabEmirates",
+      "--out",
+      "01_raw_data/microsoft_buildings/microsoft_buildings.geojson"
+    ],
+    [
+      "python",
+      "-m",
+      "py_compile",
+      "03_processing/scripts/copernicus_client.py",
+      "03_processing/scripts/validate_copernicus_auth.py",
+      "03_processing/scripts/fetch_sentinel_stac.py",
+      "03_processing/scripts/fetch_copernicus_dem_metadata.py",
+      "03_processing/scripts/refresh_sources.py"
+    ],
+    [
+      "python",
+      "03_processing/scripts/fetch_microsoft_buildings.py",
+      "--bbox",
+      "52.8,23.1,55.6,25.6",
+      "--country",
+      "UnitedArabEmirates",
+      "--max-tiles",
+      "6",
+      "--tile-timeout-sec",
+      "50",
+      "--out",
+      "01_raw_data/microsoft_buildings/microsoft_buildings.geojson"
+    ],
+    ["pwd"],
+    ["rg", "--files"],
+    ["ls", "-la"],
+    ["rg", "-n"],
+    ["sed", "-n"],
+    ["find", ".codex", "-maxdepth", "3", "-type", "f"],
+    ["git", "status", "--short"],
+    ["git", "branch", "--show-current"],
+    ["git", "add"],
+    ["git", "commit", "-m"],
+    ["git", "show", "--stat", "--oneline", "--no-patch", "HEAD"],
+    ["git", "diff", "--"],
+    ["flutter", "test"],
+    ["git", "push", "origin", "main"],
+    ["nl", "-ba", ".gitignore"],
+    ["nl", "-ba", ".codex/README.md"],
+    ["nl", "-ba", "README.md"],
+    ["nl", "-ba", "CLAUDE.md"],
+    ["nl", "-ba", "app/lib/presentation/kid_mode/widgets/pin_reset_dialog.dart"],
+    ["nl", "-ba", "app/lib/presentation/kid_mode/screens/child_select_screen.dart"],
+    ["nl", "-ba", "app/lib/presentation/kid_mode/widgets/biometric_switch.dart"],
+    ["nl", "-ba", "app/lib/presentation/parent_dashboard/screens/account_settings_screen.dart"],
+    ["nl", "-ba", "app/test/widget/pin_reset_dialog_test.dart"]
+  ]
+}
