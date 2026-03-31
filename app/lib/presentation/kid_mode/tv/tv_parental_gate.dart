@@ -148,6 +148,7 @@ class _TvParentalGateState extends State<TvParentalGate> {
             ],
             const SizedBox(height: 24),
             TvPinPad(
+              key: ValueKey('${_a}_$_b'), // Force rebuild on new problem
               pinLength:
                   3, // Fixed length — never reveals the answer digit count
               onSubmit: _checkAnswer,

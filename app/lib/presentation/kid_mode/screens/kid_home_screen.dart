@@ -4,9 +4,12 @@ import 'package:go_router/go_router.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 
 import '../../../config/theme/kid_theme.dart';
+import '../../../domain/services/parental_control_service.dart';
 import '../../../domain/services/screen_time_service.dart';
 import '../../../domain/services/feed_curation_service.dart';
+import '../../../providers/current_child_provider.dart';
 import '../../../routing/route_names.dart';
+import '../../../utils/age_calculator.dart';
 import '../../../utils/duration_formatter.dart';
 import '../../../utils/thumbnail_preloader.dart';
 import '../providers/kid_feed_provider.dart';
@@ -34,19 +37,32 @@ class _KidHomeScreenState extends ConsumerState<KidHomeScreen> {
   Widget build(BuildContext context) {
     final screenTime = ref.watch(screenTimeProvider);
 
+    final currentChild = ref.watch(currentChildProvider);
+    final childAge = currentChild != null
+        ? AgeCalculator.yearsFromDob(currentChild.dateOfBirth)
+        : 5;
+
     // Screen time overlays take priority
     if (screenTime.status == ScreenTimeStatus.breakTime) {
       return BreakScreen(breakDurationSeconds: screenTime.breakDurationSeconds);
     }
     if (screenTime.status == ScreenTimeStatus.timeUp) {
       return TimeUpScreen(
-        onParentOverride: () => context.goNamed(RouteNames.dashboard),
+        childAge: childAge,
+        onParentOverride: () async {
+          await ParentalControlService.exitKidMode();
+          if (context.mounted) context.goNamed(RouteNames.dashboard);
+        },
       );
     }
     if (screenTime.status == ScreenTimeStatus.bedtime ||
         screenTime.status == ScreenTimeStatus.beforeWakeup) {
       return BedtimeScreen(
-        onParentOverride: () => context.goNamed(RouteNames.dashboard),
+        childAge: childAge,
+        onParentOverride: () async {
+          await ParentalControlService.exitKidMode();
+          if (context.mounted) context.goNamed(RouteNames.dashboard);
+        },
       );
     }
 

@@ -27,7 +27,9 @@ class _ParentalGateState extends State<ParentalGate> {
   late String _operation;
   final _answerController = TextEditingController();
   String? _error;
-  int _attempts = 0;
+
+  /// Track attempts across dialog re-opens to prevent bypass by cancelling.
+  static int _attempts = 0;
 
   /// Cooldown after 3 failed attempts (30 seconds).
   static DateTime? _cooldownUntil;

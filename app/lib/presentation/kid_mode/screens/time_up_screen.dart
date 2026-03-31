@@ -6,8 +6,13 @@ import '../widgets/parental_gate.dart';
 /// Cannot be dismissed by the child.
 class TimeUpScreen extends StatelessWidget {
   final VoidCallback onParentOverride;
+  final int childAge;
 
-  const TimeUpScreen({super.key, required this.onParentOverride});
+  const TimeUpScreen({
+    super.key,
+    required this.onParentOverride,
+    this.childAge = 5,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -42,7 +47,10 @@ class TimeUpScreen extends StatelessWidget {
                 // Hidden parent override
                 TextButton(
                   onPressed: () async {
-                    final passed = await showParentalGate(context);
+                    final passed = await showParentalGate(
+                      context,
+                      childAge: childAge,
+                    );
                     if (passed) onParentOverride();
                   },
                   child: const Text(

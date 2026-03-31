@@ -3,9 +3,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../config/theme/kid_theme.dart';
+import '../../../domain/services/parental_control_service.dart';
 import '../../../domain/services/screen_time_service.dart';
 import '../../../providers/current_child_provider.dart';
 import '../../../routing/route_names.dart';
+import '../../../utils/age_calculator.dart';
 import '../widgets/parental_gate.dart';
 
 /// "You" tab — child profile, screen time stats, exit button.
@@ -128,7 +130,7 @@ class KidProfileScreen extends ConsumerWidget {
         SizedBox(
           height: 48,
           child: OutlinedButton.icon(
-            onPressed: () => _handleExit(context),
+            onPressed: () => _handleExit(context, ref),
             icon: const Icon(Icons.exit_to_app),
             label: const Text('Exit Kid Mode'),
             style: OutlinedButton.styleFrom(
@@ -144,10 +146,17 @@ class KidProfileScreen extends ConsumerWidget {
     );
   }
 
-  Future<void> _handleExit(BuildContext context) async {
-    final passed = await showParentalGate(context);
+  Future<void> _handleExit(BuildContext context, WidgetRef ref) async {
+    final child = ref.read(currentChildProvider);
+    final age = child != null
+        ? AgeCalculator.yearsFromDob(child.dateOfBirth)
+        : 5;
+    final passed = await showParentalGate(context, childAge: age);
     if (passed && context.mounted) {
-      context.goNamed(RouteNames.dashboard);
+      await ParentalControlService.exitKidMode();
+      if (context.mounted) {
+        context.goNamed(RouteNames.dashboard);
+      }
     }
   }
 }

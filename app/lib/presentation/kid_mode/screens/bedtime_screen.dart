@@ -5,8 +5,13 @@ import '../widgets/parental_gate.dart';
 /// Full-screen overlay shown during bedtime hours.
 class BedtimeScreen extends StatelessWidget {
   final VoidCallback onParentOverride;
+  final int childAge;
 
-  const BedtimeScreen({super.key, required this.onParentOverride});
+  const BedtimeScreen({
+    super.key,
+    required this.onParentOverride,
+    this.childAge = 5,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -40,7 +45,10 @@ class BedtimeScreen extends StatelessWidget {
                 const SizedBox(height: 64),
                 TextButton(
                   onPressed: () async {
-                    final passed = await showParentalGate(context);
+                    final passed = await showParentalGate(
+                      context,
+                      childAge: childAge,
+                    );
                     if (passed) onParentOverride();
                   },
                   child: const Text(
