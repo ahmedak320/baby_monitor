@@ -126,34 +126,57 @@ $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 -- 5. Fix match_video_embeddings
 --    - Replace nonexistent va.verdict column with CASE expression
 --    - Add SET search_path = public
+--    - Skip safely when pgvector / embedding support is not installed yet
 -- ============================================
 
-CREATE OR REPLACE FUNCTION match_video_embeddings(
-  query_embedding vector(768),
-  match_threshold float DEFAULT 0.85,
-  match_count int DEFAULT 5
-)
-RETURNS TABLE (
-  video_id text,
-  verdict text,
-  similarity float
-)
-LANGUAGE sql STABLE
-SET search_path = public
-AS $$
-  SELECT
-    va.video_id,
-    CASE
-      WHEN va.is_globally_blacklisted THEN 'reject'
-      WHEN va.confidence >= 0.85 THEN 'approve'
-      ELSE 'needs_review'
-    END as verdict,
-    1 - (va.embedding <=> query_embedding) as similarity
-  FROM video_analyses va
-  WHERE va.embedding IS NOT NULL
-    AND 1 - (va.embedding <=> query_embedding) > match_threshold
-  ORDER BY va.embedding <=> query_embedding
-  LIMIT match_count;
+DO $$
+BEGIN
+  -- `vector` is provided by the pgvector extension from migration 006.
+  -- When this migration is run manually against a project that has not had
+  -- embedding support installed yet, skip this function so the pin_salt fix
+  -- and the other security fixes can still be applied successfully.
+  IF EXISTS (
+    SELECT 1
+    FROM pg_extension
+    WHERE extname = 'vector'
+  ) AND EXISTS (
+    SELECT 1
+    FROM information_schema.columns
+    WHERE table_schema = 'public'
+      AND table_name = 'video_analyses'
+      AND column_name = 'embedding'
+  ) THEN
+    EXECUTE $fn$
+      CREATE OR REPLACE FUNCTION match_video_embeddings(
+        query_embedding vector(768),
+        match_threshold float DEFAULT 0.85,
+        match_count int DEFAULT 5
+      )
+      RETURNS TABLE (
+        video_id text,
+        verdict text,
+        similarity float
+      )
+      LANGUAGE sql STABLE
+      SET search_path = public
+      AS $sql$
+        SELECT
+          va.video_id,
+          CASE
+            WHEN va.is_globally_blacklisted THEN 'reject'
+            WHEN va.confidence >= 0.85 THEN 'approve'
+            ELSE 'needs_review'
+          END as verdict,
+          1 - (va.embedding <=> query_embedding) as similarity
+        FROM video_analyses va
+        WHERE va.embedding IS NOT NULL
+          AND 1 - (va.embedding <=> query_embedding) > match_threshold
+        ORDER BY va.embedding <=> query_embedding
+        LIMIT match_count;
+      $sql$;
+    $fn$;
+  END IF;
+END;
 $$;
 
 

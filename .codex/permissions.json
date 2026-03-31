@@ -80,6 +80,7 @@
     ["git", "diff", "--"],
     ["flutter", "test"],
     ["git", "push", "origin", "main"],
+    ["git", "log", "--oneline", "-3"],
     ["nl", "-ba", ".gitignore"],
     ["nl", "-ba", ".codex/README.md"],
     ["nl", "-ba", "README.md"],
@@ -88,6 +89,23 @@
     ["nl", "-ba", "app/lib/presentation/kid_mode/screens/child_select_screen.dart"],
     ["nl", "-ba", "app/lib/presentation/kid_mode/widgets/biometric_switch.dart"],
     ["nl", "-ba", "app/lib/presentation/parent_dashboard/screens/account_settings_screen.dart"],
-    ["nl", "-ba", "app/test/widget/pin_reset_dialog_test.dart"]
+    ["nl", "-ba", "app/test/widget/pin_reset_dialog_test.dart"],
+    ["ls", "-la", "supabase/.temp"],
+    ["cat", "supabase/.temp/project-ref"],
+    ["cat", "supabase/.temp/pooler-url"],
+    ["which", "psql"],
+    ["sed", "-n", "app/.env"],
+    ["sed", "-n", "app/lib/config/supabase_config.dart"],
+    ["sed", "-n", "app/lib/data/repositories/auth_repository.dart"],
+    ["sed", "-n", "supabase/migrations/009_security_fixes.sql"],
+    ["sed", "-n", "supabase/migrations/006_embedding_support.sql"]
+  ],
+  "session_approved_commands": [
+    {
+      "description": "Live Supabase REST probes used to inspect parent_profiles, verify the missing pin_salt column, update the test account PIN, and restore it afterward.",
+      "commands": [
+        "python3 inline script using app/.env credentials to log into test2@test.com via /auth/v1/token, query /rest/v1/parent_profiles, patch pin_hash and pin_salt, and verify the stored values"
+      ]
+    }
   ]
 }
