@@ -80,7 +80,7 @@ class VideoRepository {
     // Check Supabase first
     final row = await _client
         .from('yt_videos')
-        .select()
+        .select('*, yt_channels(title)')
         .eq('video_id', videoId)
         .maybeSingle();
 
@@ -121,7 +121,7 @@ class VideoRepository {
     if (cachedIds.isNotEmpty && !includeMetadataApproved) {
       final rows = await _client
           .from('yt_videos')
-          .select()
+          .select('*, yt_channels(title)')
           .inFilter('video_id', cachedIds.take(limit).toList())
           .limit(limit);
 
@@ -136,7 +136,7 @@ class VideoRepository {
     //   (a 7-year-old can still enjoy content for ages 3+)
     final completedRows = await _client
         .from('yt_videos')
-        .select('*, video_analyses!inner(*)')
+        .select('*, yt_channels(title), video_analyses!inner(*)')
         .eq('analysis_status', 'completed')
         .lte('video_analyses.age_min_appropriate', childAge)
         .gte('video_analyses.age_max_appropriate', (childAge - 4).clamp(0, 18))
@@ -153,7 +153,7 @@ class VideoRepository {
         final remaining = limit - videos.length;
         final metadataRows = await _client
             .from('yt_videos')
-            .select('*, yt_channels!inner(*)')
+            .select('*, yt_channels!inner(title)')
             .eq('analysis_status', 'metadata_approved')
             .eq('metadata_gate_passed', true)
             .gte('yt_channels.global_trust_score', 0.7)
@@ -178,7 +178,7 @@ class VideoRepository {
         final existingIds = videos.map((v) => v.videoId).toSet();
         final pendingRows = await _client
             .from('yt_videos')
-            .select()
+            .select('*, yt_channels(title)')
             .inFilter('analysis_status', ['pending', 'analyzing'])
             .limit(remaining);
 
@@ -268,22 +268,13 @@ class VideoRepository {
     bool metadataGatePassed = false,
     String? metadataGateReason,
   }) async {
-    final row = video.toSupabaseRow(source: source);
-    row['analysis_status'] = analysisStatus;
-    row['metadata_gate_passed'] = metadataGatePassed;
-    if (metadataGateReason != null) {
-      row['metadata_gate_reason'] = metadataGateReason;
-    }
-
-    // Upsert channel if we have channel info
-    if (video.channelId.isNotEmpty) {
-      await _client.from('yt_channels').upsert({
-        'channel_id': video.channelId,
-        'title': video.channelTitle,
-      }, onConflict: 'channel_id');
-    }
-
-    await _client.from('yt_videos').upsert(row, onConflict: 'video_id');
+    await _ingestVideoCacheEntry(
+      video,
+      source: source,
+      analysisStatus: analysisStatus,
+      metadataGatePassed: metadataGatePassed,
+      metadataGateReason: metadataGateReason,
+    );
   }
 
   /// Log a video interruption (when analysis rejects mid-play).
@@ -395,19 +386,64 @@ class VideoRepository {
 
   Future<void> _upsertVideo(VideoMetadata video) async {
     if (video.videoId.isEmpty) return;
+    await _ingestVideoCacheEntry(video);
+  }
 
-    // Upsert channel first if we have channel data
-    if (video.channelId.isNotEmpty) {
-      await _client.from('yt_channels').upsert({
-        'channel_id': video.channelId,
-        'title': video.channelTitle.isNotEmpty
+  Future<void> ingestDiscoveredVideo(
+    VideoMetadata video, {
+    required String source,
+    required String analysisStatus,
+    required bool metadataGatePassed,
+    String? metadataGateReason,
+    int? queuePriority,
+    String? queueSource,
+  }) async {
+    await _ingestVideoCacheEntry(
+      video,
+      source: source,
+      analysisStatus: analysisStatus,
+      metadataGatePassed: metadataGatePassed,
+      metadataGateReason: metadataGateReason,
+      queuePriority: queuePriority,
+      queueSource: queueSource,
+    );
+  }
+
+  Future<void> _ingestVideoCacheEntry(
+    VideoMetadata video, {
+    String source = 'manual',
+    String analysisStatus = 'pending',
+    bool metadataGatePassed = false,
+    String? metadataGateReason,
+    int? queuePriority,
+    String? queueSource,
+  }) async {
+    await _client.rpc(
+      'ingest_video_cache_entry',
+      params: {
+        'p_video_id': video.videoId,
+        'p_title': video.title,
+        'p_channel_id': video.channelId.isNotEmpty ? video.channelId : null,
+        'p_channel_title': video.channelTitle.isNotEmpty
             ? video.channelTitle
-            : 'Unknown Channel',
-      }, onConflict: 'channel_id');
-    }
-
-    await _client
-        .from('yt_videos')
-        .upsert(video.toSupabaseRow(), onConflict: 'video_id');
+            : null,
+        'p_description': video.description,
+        'p_thumbnail_url': video.thumbnailUrl,
+        'p_duration_seconds': video.durationSeconds,
+        'p_published_at': video.publishedAt?.toIso8601String(),
+        'p_tags': video.tags,
+        'p_category_id': video.categoryId,
+        'p_has_captions': video.hasCaptions,
+        'p_view_count': video.viewCount,
+        'p_like_count': video.likeCount,
+        'p_is_short': video.detectedAsShort,
+        'p_discovery_source': source,
+        'p_analysis_status': analysisStatus,
+        'p_metadata_gate_passed': metadataGatePassed,
+        'p_metadata_gate_reason': metadataGateReason,
+        'p_queue_priority': queuePriority,
+        'p_queue_source': queueSource,
+      },
+    );
   }
 }
