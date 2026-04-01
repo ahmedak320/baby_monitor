@@ -4,6 +4,8 @@ import 'package:go_router/go_router.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 
 import '../../../config/theme/kid_theme.dart';
+import '../../../data/datasources/local/preferences_cache.dart';
+import '../../../data/repositories/profile_repository.dart';
 import '../../../domain/services/parental_control_service.dart';
 import '../../../domain/services/screen_time_service.dart';
 import '../../../domain/services/feed_curation_service.dart';
@@ -32,6 +34,35 @@ class KidHomeScreen extends ConsumerStatefulWidget {
 
 class _KidHomeScreenState extends ConsumerState<KidHomeScreen> {
   int _currentTab = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _rehydrateCurrentChild();
+  }
+
+  Future<void> _rehydrateCurrentChild() async {
+    if (ref.read(currentChildProvider) != null) return;
+
+    final lastChildId = PreferencesCache.lastChildId;
+    if (lastChildId == null) return;
+
+    try {
+      final children = await ProfileRepository().getChildren();
+      ChildProfile? match;
+      for (final child in children) {
+        if (child.id == lastChildId) {
+          match = child;
+          break;
+        }
+      }
+      if (match != null && mounted) {
+        ref.read(currentChildProvider.notifier).setChild(match);
+      }
+    } catch (_) {
+      // Leave state unset; downstream providers already handle null safely.
+    }
+  }
 
   @override
   Widget build(BuildContext context) {

@@ -12,6 +12,11 @@ class VideoDiscoveryService {
 
   DateTime? _lastTrendingFetch;
   static const _trendingCooldown = Duration(hours: 1);
+  static const _shortQueries = [
+    'kids shorts songs',
+    'educational shorts for kids',
+    'animal shorts for kids',
+  ];
 
   VideoDiscoveryService({
     YouTubeDataService? ytService,
@@ -43,6 +48,26 @@ class VideoDiscoveryService {
     } catch (_) {
       return [];
     }
+  }
+
+  /// Fetch short-form videos when the Shorts feed is empty.
+  Future<List<VideoMetadata>> discoverShorts() async {
+    final discovered = <String, VideoMetadata>{};
+
+    for (final query in _shortQueries) {
+      try {
+        final result = await _ytService.search(query, maxResults: 12);
+        final shorts = result.videos.where((video) => video.detectedAsShort);
+        for (final video in shorts) {
+          discovered[video.videoId] = video;
+        }
+      } catch (_) {
+        // Continue to the next query.
+      }
+    }
+
+    if (discovered.isEmpty) return [];
+    return _ingestVideos(discovered.values.toList(), 'shorts_discovery');
   }
 
   /// Submit a YouTube link from a parent.
@@ -77,8 +102,14 @@ class VideoDiscoveryService {
     // Fetch video metadata and queue for analysis
     try {
       final video = await _ytService.getVideoDetails(videoId);
-      await _videoRepo.upsertVideo(video, source: 'parent_submitted');
-      await _videoRepo.requestAnalysis(videoId, priority: 3, source: 'parent');
+      await _videoRepo.ingestDiscoveredVideo(
+        video,
+        source: 'parent_submitted',
+        analysisStatus: 'pending',
+        metadataGatePassed: false,
+        queuePriority: 3,
+        queueSource: 'parent',
+      );
     } catch (_) {
       // Video might not exist or API failed
     }
@@ -106,20 +137,14 @@ class VideoDiscoveryService {
 
       // Upsert to database
       final status = gate.passed ? 'metadata_approved' : 'pending';
-      await _videoRepo.upsertVideo(
+      await _videoRepo.ingestDiscoveredVideo(
         video,
         source: source,
         analysisStatus: status,
         metadataGatePassed: gate.passed,
         metadataGateReason: gate.reason,
-      );
-
-      // Queue for full analysis
-      final priority = source == 'search' ? 2 : (source == 'related' ? 5 : 8);
-      await _videoRepo.requestAnalysis(
-        video.videoId,
-        priority: priority,
-        source: source,
+        queuePriority: source == 'search' ? 2 : (source == 'related' ? 5 : 8),
+        queueSource: source,
       );
 
       ingested.add(video);

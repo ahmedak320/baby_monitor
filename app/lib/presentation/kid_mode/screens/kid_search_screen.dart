@@ -281,7 +281,7 @@ class _KidSearchScreenState extends ConsumerState<KidSearchScreen> {
     try {
       final response = await SupabaseClientWrapper.client
           .from('yt_videos')
-          .select('*, video_analyses!inner(*)')
+          .select('*, yt_channels(title), video_analyses!inner(*)')
           .ilike('title', '%${_escapeLike(query.trim())}%')
           .eq('analysis_status', 'completed')
           .lte('video_analyses.age_min_appropriate', childAge)
@@ -354,22 +354,17 @@ class _KidSearchScreenState extends ConsumerState<KidSearchScreen> {
           gated.add(video);
           _pendingAnalysis.add(video.videoId);
 
-          // Upsert video metadata regardless of quota
-          videoRepo.upsertVideo(
+          await videoRepo.ingestDiscoveredVideo(
             video,
             source: 'search',
             analysisStatus: 'metadata_approved',
             metadataGatePassed: true,
             metadataGateReason: gate.reason,
+            queuePriority: canAnalyze ? 2 : null,
+            queueSource: canAnalyze ? 'search' : null,
           );
 
-          // Only queue for analysis if quota allows
           if (canAnalyze) {
-            videoRepo.requestAnalysis(
-              video.videoId,
-              priority: 2,
-              source: 'search',
-            );
             subService.recordAnalysisUsage();
             queued++;
           }

@@ -63,12 +63,23 @@ class VideoMetadata {
   };
 
   factory VideoMetadata.fromSupabaseRow(Map<String, dynamic> row) {
+    final joinedChannel = row['yt_channels'];
+    String channelTitle = '';
+    if (joinedChannel is Map<String, dynamic>) {
+      channelTitle = joinedChannel['title'] as String? ?? '';
+    } else if (joinedChannel is List && joinedChannel.isNotEmpty) {
+      final first = joinedChannel.first;
+      if (first is Map<String, dynamic>) {
+        channelTitle = first['title'] as String? ?? '';
+      }
+    }
+
     return VideoMetadata(
       videoId: row['video_id'] as String,
       title: row['title'] as String? ?? '',
       description: row['description'] as String? ?? '',
       channelId: row['channel_id'] as String? ?? '',
-      channelTitle: '', // not stored in yt_videos, joined from yt_channels
+      channelTitle: channelTitle,
       thumbnailUrl: row['thumbnail_url'] as String? ?? '',
       durationSeconds: row['duration_seconds'] as int? ?? 0,
       publishedAt: row['published_at'] != null

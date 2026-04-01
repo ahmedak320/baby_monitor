@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -11,6 +12,7 @@ import '../../../data/repositories/video_repository.dart';
 import '../../../providers/current_child_provider.dart';
 import '../../../utils/platform_info.dart';
 import '../tv/dpad_handler.dart';
+import '../widgets/kid_youtube_player.dart';
 
 class KidVideoPlayerScreen extends ConsumerStatefulWidget {
   final String videoId;
@@ -30,7 +32,7 @@ class KidVideoPlayerScreen extends ConsumerStatefulWidget {
 }
 
 class _KidVideoPlayerScreenState extends ConsumerState<KidVideoPlayerScreen> {
-  late YoutubePlayerController _controller;
+  YoutubePlayerController? _controller;
   final _videoRepo = VideoRepository();
   Timer? _watchTimer;
   int _watchedSeconds = 0;
@@ -53,42 +55,42 @@ class _KidVideoPlayerScreenState extends ConsumerState<KidVideoPlayerScreen> {
       SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
     }
 
-    _controller = YoutubePlayerController.fromVideoId(
-      videoId: widget.videoId,
-      autoPlay: true,
-      params: YoutubePlayerParams(
-        mute: false,
-        showControls: !widget.isShort,
-        showFullscreenButton: !widget.isShort,
-        loop: false,
-        enableCaption: true,
-        playsInline: true,
-      ),
-    );
+    if (!kIsWeb) {
+      _controller = YoutubePlayerController.fromVideoId(
+        videoId: widget.videoId,
+        autoPlay: true,
+        params: YoutubePlayerParams(
+          mute: false,
+          showControls: !widget.isShort,
+          showFullscreenButton: !widget.isShort,
+          loop: false,
+          enableCaption: true,
+          playsInline: true,
+        ),
+      );
 
-    _playerStateSub = _controller.listen((event) {
-      _onPlayerStateChange(event);
-    });
+      _playerStateSub = _controller!.listen((event) {
+        _onPlayerStateChange(event);
+      });
 
-    // Track playing state via videoStateStream (fires every 100ms while playing)
-    _videoStateSub = _controller.videoStateStream.listen((state) {
-      if (!mounted) return;
-      if (!_isPlaying) {
-        _errorTimer?.cancel();
-        setState(() => _isPlaying = true);
-      }
-    });
+      // Track playing state via videoStateStream (fires every 100ms while playing)
+      _videoStateSub = _controller!.videoStateStream.listen((state) {
+        if (!mounted) return;
+        if (!_isPlaying) {
+          _errorTimer?.cancel();
+          setState(() => _isPlaying = true);
+        }
+      });
 
-    // Fallback error detection: if player doesn't start within 8 seconds
-    _errorTimer = Timer(const Duration(seconds: 8), () {
-      if (mounted && !_isPlaying && !_isInterrupted && !_hasError) {
-        _showError('This video is unavailable');
-      }
-    });
+      // Fallback error detection: if player doesn't start within 8 seconds
+      _errorTimer = Timer(const Duration(seconds: 8), () {
+        if (mounted && !_isPlaying && !_isInterrupted && !_hasError) {
+          _showError('This video is unavailable');
+        }
+      });
+    }
 
     // Autoplay is on, so assume playing after a short delay.
-    // Stream events update _isPlaying when available (native platforms),
-    // but on web postMessage may be blocked by cross-origin restrictions.
     Future.delayed(const Duration(seconds: 2), () {
       if (mounted && !_isPlaying && !_isInterrupted && !_hasError) {
         _errorTimer?.cancel();
@@ -147,7 +149,7 @@ class _KidVideoPlayerScreenState extends ConsumerState<KidVideoPlayerScreen> {
     });
 
     // Pause the player
-    _controller.pauseVideo();
+    _controller?.pauseVideo();
 
     // Log the interruption
     final child = ref.read(currentChildProvider);
@@ -172,7 +174,7 @@ class _KidVideoPlayerScreenState extends ConsumerState<KidVideoPlayerScreen> {
       _hasError = true;
       _errorMessage = message;
     });
-    _controller.pauseVideo();
+    _controller?.pauseVideo();
     Future.delayed(const Duration(seconds: 3), () {
       if (mounted) Navigator.of(context).pop();
     });
@@ -214,7 +216,7 @@ class _KidVideoPlayerScreenState extends ConsumerState<KidVideoPlayerScreen> {
     _videoStateSub?.cancel();
     _watchTimer?.cancel();
     _errorTimer?.cancel();
-    _controller.close();
+    _controller?.close();
     SystemChrome.setPreferredOrientations([]);
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     super.dispose();
@@ -244,20 +246,26 @@ class _KidVideoPlayerScreenState extends ConsumerState<KidVideoPlayerScreen> {
     switch (action) {
       case TvMediaAction.playPause:
         if (_isPlaying) {
-          _controller.pauseVideo();
+          _controller?.pauseVideo();
         } else {
-          _controller.playVideo();
+          _controller?.playVideo();
         }
         return KeyEventResult.handled;
       case TvMediaAction.seekBack:
-        _controller.currentTime.then((t) {
-          _controller.seekTo(seconds: (t - 10).clamp(0, double.infinity));
-        });
+        final controller = _controller;
+        if (controller != null) {
+          controller.currentTime.then((t) {
+            controller.seekTo(seconds: (t - 10).clamp(0, double.infinity));
+          });
+        }
         return KeyEventResult.handled;
       case TvMediaAction.seekForward:
-        _controller.currentTime.then((t) {
-          _controller.seekTo(seconds: t + 10);
-        });
+        final controller = _controller;
+        if (controller != null) {
+          controller.currentTime.then((t) {
+            controller.seekTo(seconds: t + 10);
+          });
+        }
         return KeyEventResult.handled;
     }
   }
@@ -284,10 +292,10 @@ class _KidVideoPlayerScreenState extends ConsumerState<KidVideoPlayerScreen> {
                             onBack: () => Navigator.of(context).pop(),
                           ),
                         Expanded(
-                          child: YoutubePlayer(
+                          child: KidYoutubePlayer(
                             controller: _controller,
-                            aspectRatio: widget.isShort ? 9 / 16 : 16 / 9,
-                            backgroundColor: Colors.black,
+                            videoId: widget.videoId,
+                            isShort: widget.isShort,
                           ),
                         ),
                         if (!widget.isShort)

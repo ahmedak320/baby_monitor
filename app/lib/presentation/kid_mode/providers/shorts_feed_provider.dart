@@ -19,6 +19,7 @@ final shortsFeedProvider = FutureProvider<List<FeedItem>>((ref) async {
   final videoRepo = VideoRepository();
   final filterService = ContentFilterService();
   final channelRepo = ChannelRepository();
+  final discovery = ref.read(videoDiscoveryProvider);
   final childAge = AgeCalculator.yearsFromDob(child.dateOfBirth);
 
   try {
@@ -31,8 +32,20 @@ final shortsFeedProvider = FutureProvider<List<FeedItem>>((ref) async {
       includePending: true,
     );
 
-    // Filter for shorts only
-    final shorts = videos.where((v) => v.detectedAsShort).toList();
+    var shorts = videos.where((v) => v.detectedAsShort).toList();
+
+    if (shorts.isEmpty) {
+      await discovery.discoverShorts();
+      final refreshed = await videoRepo.getApprovedVideos(
+        childId: child.id,
+        childAge: childAge,
+        limit: 100,
+        includeMetadataApproved: true,
+        includePending: true,
+      );
+      shorts = refreshed.where((v) => v.detectedAsShort).toList();
+    }
+
     final channelPrefs = await channelRepo.getChannelPrefsMap(child.parentId);
 
     final feedItems = <FeedItem>[];
