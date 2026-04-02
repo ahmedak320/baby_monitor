@@ -24,6 +24,7 @@ dependencies:
   # YouTube player
   youtube_player_iframe: ^5.0.0
   webview_flutter: ^4.13.1
+  webview_flutter_android: ^4.10.15
 
   # Local storage
   hive_flutter: ^1.1.0

@@ -3,6 +3,7 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:webview_flutter/webview_flutter.dart';
+import 'package:webview_flutter_android/webview_flutter_android.dart';
 
 import 'kid_youtube_player_controller.dart';
 
@@ -75,9 +76,17 @@ class _KidYoutubePlayerState extends State<KidYoutubePlayer>
               const Duration(milliseconds: 500),
               (_) => unawaited(_probeEmbedState()),
             );
+            unawaited(play());
           },
         ),
       );
+    final platformController = _webViewController.platform;
+    if (platformController is AndroidWebViewController) {
+      AndroidWebViewController.enableDebugging(false);
+      unawaited(
+        platformController.setMediaPlaybackRequiresUserGesture(false),
+      );
+    }
     _loadPlayer();
   }
 
