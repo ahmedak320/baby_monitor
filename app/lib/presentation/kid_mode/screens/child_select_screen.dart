@@ -33,9 +33,8 @@ class ChildSelectScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final childrenAsync = ref.watch(childrenProvider);
     final dashboardStatsAsync = ref.watch(dashboardStatsProvider);
-    final fallbackChildren = dashboardStatsAsync.valueOrNull
-            ?.map((stats) => stats.child)
-            .toList() ??
+    final fallbackChildren =
+        dashboardStatsAsync.valueOrNull?.map((stats) => stats.child).toList() ??
         const <ChildProfile>[];
 
     return Scaffold(
