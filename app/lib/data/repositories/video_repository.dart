@@ -281,7 +281,9 @@ class VideoRepository {
           .eq('video_id', videoId);
       await PlayabilityCache.clearPendingSyncVideoId(videoId);
     } catch (e) {
-      debugPrint('VideoRepository.markVideoUnembeddable failed for $videoId: $e');
+      debugPrint(
+        'VideoRepository.markVideoUnembeddable failed for $videoId: $e',
+      );
     }
   }
 
@@ -318,6 +320,8 @@ class VideoRepository {
     String analysisStatus = 'pending',
     bool metadataGatePassed = false,
     String? metadataGateReason,
+    double? metadataGateConfidence,
+    DateTime? metadataCheckedAt,
   }) async {
     await _ingestVideoCacheEntry(
       video,
@@ -325,6 +329,8 @@ class VideoRepository {
       analysisStatus: analysisStatus,
       metadataGatePassed: metadataGatePassed,
       metadataGateReason: metadataGateReason,
+      metadataGateConfidence: metadataGateConfidence,
+      metadataCheckedAt: metadataCheckedAt,
     );
   }
 
@@ -446,6 +452,8 @@ class VideoRepository {
     required String analysisStatus,
     required bool metadataGatePassed,
     String? metadataGateReason,
+    double? metadataGateConfidence,
+    DateTime? metadataCheckedAt,
     int? queuePriority,
     String? queueSource,
   }) async {
@@ -455,6 +463,8 @@ class VideoRepository {
       analysisStatus: analysisStatus,
       metadataGatePassed: metadataGatePassed,
       metadataGateReason: metadataGateReason,
+      metadataGateConfidence: metadataGateConfidence,
+      metadataCheckedAt: metadataCheckedAt,
       queuePriority: queuePriority,
       queueSource: queueSource,
     );
@@ -466,6 +476,8 @@ class VideoRepository {
     String analysisStatus = 'pending',
     bool metadataGatePassed = false,
     String? metadataGateReason,
+    double? metadataGateConfidence,
+    DateTime? metadataCheckedAt,
     int? queuePriority,
     String? queueSource,
   }) async {
@@ -497,17 +509,39 @@ class VideoRepository {
       'p_made_for_kids': video.madeForKids,
       'p_last_playability_check_at': video.lastPlayabilityCheckAt
           ?.toIso8601String(),
+      'p_metadata_gate_confidence':
+          metadataGateConfidence ?? video.metadataGateConfidence,
+      'p_metadata_checked_at': (metadataCheckedAt ?? video.metadataCheckedAt)
+          ?.toIso8601String(),
     };
 
     try {
       await _client.rpc('ingest_video_cache_entry', params: params);
-    } catch (_) {
+    } catch (e) {
       params.remove('p_is_embeddable');
       params.remove('p_privacy_status');
       params.remove('p_made_for_kids');
       params.remove('p_last_playability_check_at');
-      await _client.rpc('ingest_video_cache_entry', params: params);
+      params.remove('p_metadata_gate_confidence');
+      params.remove('p_metadata_checked_at');
+      try {
+        await _client.rpc('ingest_video_cache_entry', params: params);
+      } catch (fallbackError) {
+        final summary = _summarizeIngestError(fallbackError);
+        debugPrint(
+          'VideoRepository: cache ingest skipped for ${video.videoId}: '
+          '$summary',
+        );
+      }
     }
+  }
+
+  String _summarizeIngestError(Object error) {
+    final message = error.toString();
+    if (message.contains('PGRST203')) {
+      return 'remote ingest RPC signature mismatch';
+    }
+    return message;
   }
 
   List<VideoMetadata> _filterPlayable(List<VideoMetadata> videos) {

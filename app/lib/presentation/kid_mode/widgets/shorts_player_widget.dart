@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:cached_network_image/cached_network_image.dart';
 
 import '../../../config/theme/kid_theme.dart';
 import '../../../domain/services/feed_curation_service.dart';
+import '../../common/widgets/resolved_thumbnail_image.dart';
 
 /// A single Short in the vertical swipe feed.
 /// Displays the video thumbnail/player with overlays for creator info,
@@ -234,11 +234,11 @@ class _VideoBackground extends StatelessWidget {
     if (thumbnailUrl.isEmpty) {
       return Container(color: KidTheme.background);
     }
-    return CachedNetworkImage(
-      imageUrl: thumbnailUrl.replaceAll('_live.jpg', '.jpg'),
+    return ResolvedThumbnailImage(
+      thumbnailUrl: thumbnailUrl,
       fit: BoxFit.cover,
-      placeholder: (_, _) => Container(color: KidTheme.background),
-      errorWidget: (_, _, _) => Container(color: KidTheme.background),
+      placeholder: Container(color: KidTheme.background),
+      errorWidget: Container(color: KidTheme.background),
     );
   }
 }

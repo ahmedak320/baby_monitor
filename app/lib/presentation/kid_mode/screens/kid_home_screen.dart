@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:cached_network_image/cached_network_image.dart';
 
 import '../../../config/theme/kid_theme.dart';
 import '../../../data/datasources/local/preferences_cache.dart';
@@ -9,6 +8,7 @@ import '../../../data/repositories/profile_repository.dart';
 import '../../../domain/services/parental_control_service.dart';
 import '../../../domain/services/screen_time_service.dart';
 import '../../../domain/services/feed_curation_service.dart';
+import '../../common/widgets/resolved_thumbnail_image.dart';
 import '../../../providers/current_child_provider.dart';
 import '../../../routing/route_names.dart';
 import '../../../utils/age_calculator.dart';
@@ -173,8 +173,8 @@ class _HomeTabContentState extends ConsumerState<_HomeTabContent> {
   void _preloadThumbnails(List<FeedItem> items) {
     if (_thumbnailsPreloaded || !mounted) return;
     _thumbnailsPreloaded = true;
-    final urls = items.map((i) => i.video.thumbnailUrl).toList();
-    ThumbnailPreloader.preloadThumbnails(context, urls, maxPreload: 8);
+    final videos = items.map((item) => item.video).toList();
+    ThumbnailPreloader.preloadVideoThumbnails(context, videos, maxPreload: 8);
   }
 
   @override
@@ -397,14 +397,11 @@ class _ShortsPreviewCard extends StatelessWidget {
           fit: StackFit.expand,
           children: [
             if (item.video.thumbnailUrl.isNotEmpty)
-              CachedNetworkImage(
-                imageUrl: item.video.thumbnailUrl.replaceAll(
-                  '_live.jpg',
-                  '.jpg',
-                ),
+              ResolvedThumbnailImage(
+                thumbnailUrl: item.video.thumbnailUrl,
                 fit: BoxFit.cover,
-                placeholder: (_, _) => Container(color: KidTheme.surface),
-                errorWidget: (_, _, _) => Container(color: KidTheme.surface),
+                placeholder: Container(color: KidTheme.surface),
+                errorWidget: Container(color: KidTheme.surface),
               ),
             // Gradient overlay at bottom
             Positioned(
@@ -505,21 +502,11 @@ class _YouTubeVideoCard extends StatelessWidget {
                   fit: StackFit.expand,
                   children: [
                     if (item.video.thumbnailUrl.isNotEmpty)
-                      CachedNetworkImage(
-                        imageUrl: item.video.thumbnailUrl.replaceAll(
-                          '_live.jpg',
-                          '.jpg',
-                        ),
+                      ResolvedThumbnailImage(
+                        thumbnailUrl: item.video.thumbnailUrl,
                         fit: BoxFit.cover,
-                        placeholder: (_, _) =>
-                            Container(color: KidTheme.surface),
-                        errorWidget: (_, _, _) => Container(
-                          color: KidTheme.surface,
-                          child: const Icon(
-                            Icons.broken_image,
-                            color: Colors.grey,
-                          ),
-                        ),
+                        placeholder: Container(color: KidTheme.surface),
+                        errorWidget: Container(color: KidTheme.surface),
                       ),
                     // Duration badge
                     if (item.video.durationSeconds > 0)

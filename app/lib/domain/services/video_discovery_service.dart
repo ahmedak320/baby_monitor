@@ -51,14 +51,18 @@ class VideoDiscoveryService {
     }
 
     if (discovered.isEmpty) return [];
-    return _ingestVideos(discovered.values.toList(), 'curated_trending');
+    final enriched = await _ytService.enrichCandidates(
+      discovered.values.toList(),
+    );
+    return _ingestVideos(enriched, 'curated_trending');
   }
 
   /// Fetch related/sidebar videos for a given video.
   Future<List<VideoMetadata>> discoverRelated(String videoId) async {
     try {
       final videos = await _ytService.getRelatedVideos(videoId);
-      return _ingestVideos(videos, 'related');
+      final enriched = await _ytService.enrichCandidates(videos);
+      return _ingestVideos(enriched, 'related');
     } catch (_) {
       return [];
     }
@@ -81,7 +85,10 @@ class VideoDiscoveryService {
     }
 
     if (discovered.isEmpty) return [];
-    return _ingestVideos(discovered.values.toList(), 'shorts_discovery');
+    final enriched = await _ytService.enrichCandidates(
+      discovered.values.toList(),
+    );
+    return _ingestVideos(enriched, 'shorts_discovery');
   }
 
   /// Submit a YouTube link from a parent.
@@ -158,6 +165,8 @@ class VideoDiscoveryService {
         analysisStatus: status,
         metadataGatePassed: gate.passed,
         metadataGateReason: gate.reason,
+        metadataGateConfidence: gate.confidence,
+        metadataCheckedAt: DateTime.now(),
         queuePriority: source == 'search' ? 2 : (source == 'related' ? 5 : 8),
         queueSource: source,
       );

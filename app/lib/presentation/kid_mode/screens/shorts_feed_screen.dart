@@ -4,9 +4,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../config/theme/kid_theme.dart';
+import '../../../domain/services/feed_curation_service.dart';
 import '../../../domain/services/screen_time_service.dart';
 import '../../../routing/route_names.dart';
 import '../../../utils/platform_info.dart';
+import '../../../utils/thumbnail_preloader.dart';
 import '../providers/shorts_feed_provider.dart';
 import '../widgets/shorts_player_widget.dart';
 
@@ -20,6 +22,7 @@ class ShortsFeedScreen extends ConsumerStatefulWidget {
 
 class _ShortsFeedScreenState extends ConsumerState<ShortsFeedScreen> {
   final _pageController = PageController();
+  int _lastPreloadedIndex = -1;
 
   @override
   void dispose() {
@@ -55,6 +58,7 @@ class _ShortsFeedScreenState extends ConsumerState<ShortsFeedScreen> {
 
     return shortsAsync.when(
       data: (shorts) {
+        _preloadLookahead(shorts, 0);
         if (shorts.isEmpty) {
           return Center(
             child: Column(
@@ -87,6 +91,12 @@ class _ShortsFeedScreenState extends ConsumerState<ShortsFeedScreen> {
             controller: _pageController,
             scrollDirection: Axis.vertical,
             itemCount: shorts.length + 1, // +1 for end card
+            onPageChanged: (index) {
+              _preloadLookahead(shorts, index);
+              if (index + 10 >= shorts.length) {
+                ref.invalidate(shortsFeedProvider);
+              }
+            },
             itemBuilder: (context, index) {
               if (index >= shorts.length) {
                 // End card
@@ -149,6 +159,21 @@ class _ShortsFeedScreenState extends ConsumerState<ShortsFeedScreen> {
           style: TextStyle(color: KidTheme.textSecondary),
         ),
       ),
+    );
+  }
+
+  void _preloadLookahead(List<FeedItem> shorts, int startIndex) {
+    if (!mounted || startIndex <= _lastPreloadedIndex) return;
+    _lastPreloadedIndex = startIndex;
+    final window = shorts
+        .skip(startIndex)
+        .take(11)
+        .map((item) => item.video)
+        .toList();
+    ThumbnailPreloader.preloadVideoThumbnails(
+      context,
+      window,
+      maxPreload: window.length,
     );
   }
 }

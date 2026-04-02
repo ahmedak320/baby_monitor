@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:cached_network_image/cached_network_image.dart';
 
 import '../../../config/theme/kid_theme.dart';
 import '../../../data/repositories/watch_history_repository.dart';
 import '../../../providers/current_child_provider.dart';
 import '../../../routing/route_names.dart';
 import '../../../utils/duration_formatter.dart';
+import '../../common/widgets/resolved_thumbnail_image.dart';
 
 /// Provider for the child's watch history.
 final watchHistoryProvider = FutureProvider<List<WatchHistoryEntry>>((
@@ -173,12 +173,11 @@ class _HistoryVideoTile extends StatelessWidget {
                 fit: StackFit.expand,
                 children: [
                   if (thumbnailUrl.isNotEmpty)
-                    CachedNetworkImage(
-                      imageUrl: thumbnailUrl.replaceAll('_live.jpg', '.jpg'),
+                    ResolvedThumbnailImage(
+                      thumbnailUrl: thumbnailUrl,
                       fit: BoxFit.cover,
-                      placeholder: (_, _) => Container(color: KidTheme.surface),
-                      errorWidget: (_, _, _) =>
-                          Container(color: KidTheme.surface),
+                      placeholder: Container(color: KidTheme.surface),
+                      errorWidget: Container(color: KidTheme.surface),
                     ),
                   if (duration > 0)
                     Positioned(

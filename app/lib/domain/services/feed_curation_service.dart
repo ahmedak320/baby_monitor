@@ -49,6 +49,12 @@ class FeedCurationService {
     bool includeMetadataApproved = false,
   }) async {
     final childAge = AgeCalculator.yearsFromDob(child.dateOfBirth);
+    final history = await _videoRepo.getWatchHistory(child.id, limit: 20);
+    final fallbackRecentIds = history
+        .map(_extractHistoryVideoId)
+        .whereType<String>()
+        .toList();
+    final effectiveRecentIds = recentlyWatchedIds ?? fallbackRecentIds;
 
     // Fetch parent's channel preferences for filtering
     final channelPrefs = await _channelRepo.getChannelPrefsMap(child.parentId);
@@ -78,14 +84,25 @@ class FeedCurationService {
       }
     }
     final feedItems = <FeedItem>[];
-    final usedCategories = <String>{};
-    final recentSet = recentlyWatchedIds?.toSet() ?? {};
+    final recentSet = effectiveRecentIds.toSet();
+    final recentChannelCounts = <String, int>{};
+    for (final row in history) {
+      final joined = row['yt_videos'];
+      if (joined is Map<String, dynamic>) {
+        final channelId = joined['channel_id'] as String?;
+        if (channelId != null && channelId.isNotEmpty) {
+          recentChannelCounts[channelId] =
+              (recentChannelCounts[channelId] ?? 0) + 1;
+        }
+      }
+    }
 
     for (final video in videos) {
       if (feedItems.length >= limit) break;
 
       // Skip recently watched
       if (recentSet.contains(video.videoId)) continue;
+      if (channelPrefs[video.channelId] == 'blocked') continue;
 
       // Get analysis (may be null for metadata-approved videos)
       final analysis = await _videoRepo.getAnalysis(video.videoId);
@@ -135,7 +152,7 @@ class FeedCurationService {
     }
 
     // Sort: preferred content first, then variety
-    _sortForEngagement(feedItems, contentPreferences, usedCategories);
+    _sortForEngagement(feedItems, contentPreferences, recentChannelCounts);
 
     return feedItems;
   }
@@ -153,6 +170,7 @@ class FeedCurationService {
       childId: child.id,
       childAge: childAge,
       limit: 20,
+      includeMetadataApproved: true,
       includePending: false,
     );
 
@@ -163,6 +181,7 @@ class FeedCurationService {
       if (suggestions.length >= count) break;
 
       final analysis = await _videoRepo.getAnalysis(video.videoId);
+      if (channelPrefs[video.channelId] == 'blocked') continue;
 
       // If analyzed, run content filter; if not, allow through
       if (analysis != null) {
@@ -200,10 +219,17 @@ class FeedCurationService {
       final bOverlap = b.contentLabels
           .where((l) => currentLabels.contains(l))
           .length;
-      return bOverlap.compareTo(aOverlap);
+      if (aOverlap != bOverlap) {
+        return bOverlap.compareTo(aOverlap);
+      }
+      return _engagementScore(
+        b,
+        null,
+        const {},
+      ).compareTo(_engagementScore(a, null, const {}));
     });
 
-    return suggestions.take(count).toList();
+    return _spreadChannels(suggestions).take(count).toList();
   }
 
   /// Get videos from parent-approved channels.
@@ -225,7 +251,7 @@ class FeedCurationService {
         childId: child.id,
         childAge: childAge,
         limit: limit * 3,
-        includeMetadataApproved: false,
+        includeMetadataApproved: true,
       );
 
       final channelPrefs = await _channelRepo.getChannelPrefsMap(
@@ -274,22 +300,94 @@ class FeedCurationService {
   void _sortForEngagement(
     List<FeedItem> items,
     Map<String, String>? prefs,
-    Set<String> usedCategories,
+    Map<String, int> recentChannelCounts,
   ) {
-    final rng = Random();
-
     items.sort((a, b) {
-      // Preferred content gets a boost
-      final aPreferred =
-          prefs != null && a.contentLabels.any((l) => prefs[l] == 'preferred');
-      final bPreferred =
-          prefs != null && b.contentLabels.any((l) => prefs[l] == 'preferred');
+      final scoreDelta = _engagementScore(
+        b,
+        prefs,
+        recentChannelCounts,
+      ).compareTo(_engagementScore(a, prefs, recentChannelCounts));
+      if (scoreDelta != 0) return scoreDelta;
 
-      if (aPreferred && !bPreferred) return -1;
-      if (!aPreferred && bPreferred) return 1;
-
-      // Mix in some randomness to prevent staleness
-      return rng.nextInt(3) - 1;
+      return a.video.title.compareTo(b.video.title);
     });
+
+    final spread = _spreadChannels(items);
+    items
+      ..clear()
+      ..addAll(spread);
+  }
+
+  double _engagementScore(
+    FeedItem item,
+    Map<String, String>? prefs,
+    Map<String, int> recentChannelCounts,
+  ) {
+    var score = 0.0;
+    final video = item.video;
+
+    final isPreferred =
+        prefs != null &&
+        item.contentLabels.any((label) => prefs[label] == 'preferred');
+    if (isPreferred) score += 4;
+
+    if (!item.isPendingAnalysis) {
+      score += 2;
+    } else {
+      score += 0.75;
+    }
+
+    if (video.viewCount > 0) {
+      score += log(video.viewCount + 1) / ln10;
+    }
+
+    if (video.publishedAt != null) {
+      final ageInDays = DateTime.now().difference(video.publishedAt!).inDays;
+      score += max(0, 3 - (ageInDays / 7));
+    }
+
+    if (video.durationSeconds > 0 && video.durationSeconds <= 20 * 60) {
+      score += 0.5;
+    }
+
+    score -= (recentChannelCounts[video.channelId] ?? 0) * 0.9;
+    score += item.contentLabels.isNotEmpty
+        ? min(item.contentLabels.length, 2) * 0.25
+        : 0;
+
+    return score;
+  }
+
+  List<FeedItem> _spreadChannels(List<FeedItem> items) {
+    if (items.length < 3) return items;
+
+    final remaining = List<FeedItem>.from(items);
+    final ordered = <FeedItem>[];
+    String? lastChannelId;
+
+    while (remaining.isNotEmpty) {
+      final nextIndex = remaining.indexWhere(
+        (item) => item.video.channelId != lastChannelId,
+      );
+      final selected = remaining.removeAt(nextIndex == -1 ? 0 : nextIndex);
+      ordered.add(selected);
+      lastChannelId = selected.video.channelId;
+    }
+
+    return ordered;
+  }
+
+  String? _extractHistoryVideoId(Map<String, dynamic> row) {
+    final direct = row['video_id'];
+    if (direct is String && direct.isNotEmpty) return direct;
+
+    final joined = row['yt_videos'];
+    if (joined is Map<String, dynamic>) {
+      final nested = joined['video_id'];
+      if (nested is String && nested.isNotEmpty) return nested;
+    }
+
+    return null;
   }
 }

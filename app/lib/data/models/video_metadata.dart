@@ -18,6 +18,8 @@ class VideoMetadata {
   final String? privacyStatus;
   final bool? madeForKids;
   final DateTime? lastPlayabilityCheckAt;
+  final double? metadataGateConfidence;
+  final DateTime? metadataCheckedAt;
   final String? analysisStatus;
   final String? discoverySource;
   final DateTime? lastFetchedAt;
@@ -41,6 +43,8 @@ class VideoMetadata {
     this.privacyStatus,
     this.madeForKids,
     this.lastPlayabilityCheckAt,
+    this.metadataGateConfidence,
+    this.metadataCheckedAt,
     this.analysisStatus,
     this.discoverySource,
     this.lastFetchedAt,
@@ -71,6 +75,8 @@ class VideoMetadata {
       'privacy_status': privacyStatus,
       'made_for_kids': madeForKids,
       'last_playability_check_at': lastPlayabilityCheckAt?.toIso8601String(),
+      'metadata_gate_confidence': metadataGateConfidence,
+      'metadata_checked_at': metadataCheckedAt?.toIso8601String(),
       'last_fetched_at': DateTime.now().toIso8601String(),
     };
     if (source != null) {
@@ -113,6 +119,11 @@ class VideoMetadata {
       madeForKids: row['made_for_kids'] as bool?,
       lastPlayabilityCheckAt: row['last_playability_check_at'] != null
           ? DateTime.tryParse(row['last_playability_check_at'] as String)
+          : null,
+      metadataGateConfidence: (row['metadata_gate_confidence'] as num?)
+          ?.toDouble(),
+      metadataCheckedAt: row['metadata_checked_at'] != null
+          ? DateTime.tryParse(row['metadata_checked_at'] as String)
           : null,
       analysisStatus: row['analysis_status'] as String?,
       discoverySource: row['discovery_source'] as String?,

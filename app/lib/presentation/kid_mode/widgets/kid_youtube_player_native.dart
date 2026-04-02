@@ -6,6 +6,7 @@ import 'package:webview_flutter/webview_flutter.dart';
 import 'package:webview_flutter_android/webview_flutter_android.dart';
 
 import 'kid_youtube_player_controller.dart';
+import 'kid_youtube_player_diagnostics.dart';
 
 class KidYoutubePlayer extends StatefulWidget {
   final KidYoutubePlayerController controller;
@@ -59,6 +60,12 @@ class _KidYoutubePlayerState extends State<KidYoutubePlayer>
             return NavigationDecision.prevent;
           },
           onWebResourceError: (error) {
+            final isFatal =
+                KidYoutubePlayerDiagnostics.shouldTreatWebResourceErrorAsFatal(
+                  isForMainFrame: error.isForMainFrame ?? true,
+                  description: error.description,
+                );
+            if (!isFatal) return;
             widget.onError?.call(
               error.description.isEmpty
                   ? 'This video can\'t be played right now'
@@ -83,9 +90,7 @@ class _KidYoutubePlayerState extends State<KidYoutubePlayer>
     final platformController = _webViewController.platform;
     if (platformController is AndroidWebViewController) {
       AndroidWebViewController.enableDebugging(false);
-      unawaited(
-        platformController.setMediaPlaybackRequiresUserGesture(false),
-      );
+      unawaited(platformController.setMediaPlaybackRequiresUserGesture(false));
     }
     _loadPlayer();
   }
@@ -142,12 +147,12 @@ class _KidYoutubePlayerState extends State<KidYoutubePlayer>
 
       widget.controller.updateCurrentSeconds(currentTime);
 
-      if (_looksLikeConfigurationError(pageText)) {
+      if (KidYoutubePlayerDiagnostics.looksLikeConfigurationError(pageText)) {
         widget.onError?.call('Video player configuration error');
         return;
       }
 
-      if (_looksLikeEmbedRestrictedError(pageText)) {
+      if (KidYoutubePlayerDiagnostics.looksLikeEmbedRestrictedError(pageText)) {
         widget.onError?.call('This video can\'t be embedded by the channel');
         return;
       }
@@ -168,20 +173,6 @@ class _KidYoutubePlayerState extends State<KidYoutubePlayer>
     } catch (_) {
       // Best effort probing only.
     }
-  }
-
-  bool _looksLikeConfigurationError(String text) {
-    return text.contains('error 153') ||
-        text.contains('error 152') ||
-        text.contains('video player configuration error') ||
-        text.contains('missing referer');
-  }
-
-  bool _looksLikeEmbedRestrictedError(String text) {
-    return text.contains('playback on other websites has been disabled') ||
-        text.contains('owner has restricted playback') ||
-        text.contains('embedding disabled') ||
-        text.contains('watch on youtube');
   }
 
   @override

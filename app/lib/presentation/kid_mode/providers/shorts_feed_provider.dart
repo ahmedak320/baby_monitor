@@ -27,8 +27,8 @@ final shortsFeedProvider = FutureProvider<List<FeedItem>>((ref) async {
     final videos = await videoRepo.getApprovedVideos(
       childId: child.id,
       childAge: childAge,
-      limit: 100,
-      includeMetadataApproved: false,
+      limit: 120,
+      includeMetadataApproved: true,
       includePending: false,
     );
 
@@ -39,8 +39,8 @@ final shortsFeedProvider = FutureProvider<List<FeedItem>>((ref) async {
       final refreshed = await videoRepo.getApprovedVideos(
         childId: child.id,
         childAge: childAge,
-        limit: 100,
-        includeMetadataApproved: false,
+        limit: 120,
+        includeMetadataApproved: true,
         includePending: false,
       );
       shorts = refreshed.where((v) => v.detectedAsShort).toList();

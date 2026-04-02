@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -158,6 +160,24 @@ class YouTubeDataService {
         .toList();
   }
 
+  /// Enrich lightweight discovery/search rows with full details when possible.
+  Future<List<VideoMetadata>> enrichCandidates(
+    List<VideoMetadata> candidates,
+  ) async {
+    final ids = candidates
+        .map((candidate) => candidate.videoId)
+        .where((id) => id.isNotEmpty)
+        .toList();
+    if (ids.isEmpty) return candidates;
+
+    final fullDetails = await getVideoDetailsBatch(ids);
+    final byId = {for (final video in fullDetails) video.videoId: video};
+
+    return candidates
+        .map((candidate) => byId[candidate.videoId] ?? candidate)
+        .toList();
+  }
+
   /// Get channel info with full tier chain.
   Future<ChannelMetadata> getChannelInfo(String channelId) async {
     // Tier 0: Fresh cache
@@ -301,6 +321,10 @@ class YouTubeDataService {
 
   /// Fire-and-forget upsert of video metadata to cache.
   void _upsertVideoAsync(VideoMetadata video) {
+    unawaited(_upsertVideoAsyncImpl(video));
+  }
+
+  Future<void> _upsertVideoAsyncImpl(VideoMetadata video) async {
     final params = {
       'p_video_id': video.videoId,
       'p_title': video.title,
@@ -328,26 +352,32 @@ class YouTubeDataService {
           ?.toIso8601String(),
     };
 
-    _supabase
-        .rpc('ingest_video_cache_entry', params: params)
-        .then((_) {})
-        .catchError((e) {
-          params.remove('p_is_embeddable');
-          params.remove('p_privacy_status');
-          params.remove('p_made_for_kids');
-          params.remove('p_last_playability_check_at');
-          _supabase
-              .rpc('ingest_video_cache_entry', params: params)
-              .then((_) {})
-              .catchError((fallbackError) {
-                debugPrint(
-                  'YouTubeDataService: cache upsert failed: $fallbackError',
-                );
-              });
-          debugPrint(
-            'YouTubeDataService: cache upsert retrying without playability fields: $e',
-          );
-        });
+    try {
+      await _supabase.rpc('ingest_video_cache_entry', params: params);
+    } catch (e) {
+      params.remove('p_is_embeddable');
+      params.remove('p_privacy_status');
+      params.remove('p_made_for_kids');
+      params.remove('p_last_playability_check_at');
+
+      try {
+        await _supabase.rpc('ingest_video_cache_entry', params: params);
+      } catch (fallbackError) {
+        final summary = _summarizeCacheUpsertError(fallbackError);
+        debugPrint(
+          'YouTubeDataService: cache upsert skipped for ${video.videoId}: '
+          '$summary',
+        );
+      }
+    }
+  }
+
+  String _summarizeCacheUpsertError(Object error) {
+    final message = error.toString();
+    if (message.contains('PGRST203')) {
+      return 'remote ingest RPC signature mismatch';
+    }
+    return message;
   }
 
   /// Fire-and-forget upsert of channel metadata to cache.

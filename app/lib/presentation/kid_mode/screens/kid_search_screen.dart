@@ -3,7 +3,6 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:cached_network_image/cached_network_image.dart';
 
 import '../../../config/theme/kid_theme.dart';
 import '../../../data/datasources/remote/supabase_client.dart';
@@ -14,12 +13,12 @@ import '../../../data/repositories/video_repository.dart';
 import '../../../data/repositories/channel_repository.dart';
 import '../../../domain/services/content_filter_service.dart';
 import '../../../domain/services/metadata_gate_service.dart';
-import '../../../domain/services/subscription_service.dart';
 import '../../../providers/current_child_provider.dart';
-import '../../../providers/subscription_provider.dart';
 import '../../../routing/route_names.dart';
 import '../../../utils/age_calculator.dart';
 import '../../../utils/duration_formatter.dart';
+import '../../../utils/thumbnail_preloader.dart';
+import '../../common/widgets/resolved_thumbnail_image.dart';
 
 /// Hybrid search: shows pre-approved results first, then live YouTube
 /// results that pass the metadata gate. Queues all live results for
@@ -328,17 +327,20 @@ class _KidSearchScreenState extends ConsumerState<KidSearchScreen> {
     try {
       final ytService = YouTubeDataService();
       final result = await ytService.search(query, maxResults: 10);
+      final enriched = await ytService.enrichCandidates(result.videos);
 
       final gated = <VideoMetadata>[];
       final videoRepo = VideoRepository();
-      final subService = SubscriptionService();
-      final canAnalyze = await subService.canAnalyze();
-      int queued = 0;
+      final child = ref.read(currentChildProvider);
+      final channelPrefs = child != null
+          ? await ChannelRepository().getChannelPrefsMap(child.parentId)
+          : <String, String>{};
 
-      for (final video in result.videos) {
+      for (final video in enriched) {
         if (video.videoId.isEmpty) continue;
         // Skip videos already in approved results
         if (_approvedResults.any((a) => a.videoId == video.videoId)) continue;
+        if (channelPrefs[video.channelId] == 'blocked') continue;
 
         // Run metadata gate
         final gate = MetadataGateService.check(
@@ -360,20 +362,32 @@ class _KidSearchScreenState extends ConsumerState<KidSearchScreen> {
             analysisStatus: 'metadata_approved',
             metadataGatePassed: true,
             metadataGateReason: gate.reason,
-            queuePriority: canAnalyze ? 2 : null,
-            queueSource: canAnalyze ? 'search' : null,
+            metadataGateConfidence: gate.confidence,
+            metadataCheckedAt: DateTime.now(),
+            queuePriority: 2,
+            queueSource: 'search',
           );
-
-          if (canAnalyze) {
-            subService.recordAnalysisUsage();
-            queued++;
-          }
+        } else {
+          await videoRepo.ingestDiscoveredVideo(
+            video,
+            source: 'search',
+            analysisStatus: 'pending',
+            metadataGatePassed: false,
+            metadataGateReason: gate.reason,
+            metadataGateConfidence: gate.confidence,
+            metadataCheckedAt: DateTime.now(),
+            queuePriority: 2,
+            queueSource: 'search',
+          );
         }
       }
 
-      // Refresh subscription counter in UI if we queued any videos
-      if (queued > 0) {
-        ref.invalidate(subscriptionProvider);
+      if (mounted && gated.isNotEmpty) {
+        await ThumbnailPreloader.preloadVideoThumbnails(
+          context,
+          gated,
+          maxPreload: gated.length.clamp(0, 10),
+        );
       }
 
       if (mounted) {
@@ -505,12 +519,11 @@ class _SearchResultTile extends StatelessWidget {
                     fit: StackFit.expand,
                     children: [
                       video.thumbnailUrl.isNotEmpty
-                          ? CachedNetworkImage(
-                              imageUrl: video.thumbnailUrl.replaceAll(
-                                '_live.jpg',
-                                '.jpg',
-                              ),
+                          ? ResolvedThumbnailImage(
+                              thumbnailUrl: video.thumbnailUrl,
                               fit: BoxFit.cover,
+                              placeholder: Container(color: KidTheme.surface),
+                              errorWidget: Container(color: KidTheme.surface),
                             )
                           : Container(
                               color: KidTheme.surface,
