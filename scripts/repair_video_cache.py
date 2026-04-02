@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 from pathlib import Path
 from datetime import datetime, timezone
 from typing import Any
@@ -71,6 +72,8 @@ TITLE_BLOCKLIST = (
     "disturbing",
     "suicide",
 )
+
+WORD_RE = re.compile(r"[a-z0-9+]+")
 
 
 def rest(path: str, method: str = "GET", body: Any | None = None) -> Any:
@@ -141,8 +144,11 @@ def passes_gate(item: dict[str, Any]) -> tuple[bool, str]:
     if status.get("madeForKids"):
         return True, "made_for_kids"
 
+    title_words = set(WORD_RE.findall(title))
+    description_words = set(WORD_RE.findall(description))
+
     for word in TITLE_BLOCKLIST:
-        if word in title or word in description:
+        if word in title_words or word in description_words:
             return False, f"blocked term: {word}"
 
     signals = 0
