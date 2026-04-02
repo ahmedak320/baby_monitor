@@ -28,8 +28,8 @@ final shortsFeedProvider = FutureProvider<List<FeedItem>>((ref) async {
       childId: child.id,
       childAge: childAge,
       limit: 100,
-      includeMetadataApproved: true,
-      includePending: true,
+      includeMetadataApproved: false,
+      includePending: false,
     );
 
     var shorts = videos.where((v) => v.detectedAsShort).toList();
@@ -40,8 +40,8 @@ final shortsFeedProvider = FutureProvider<List<FeedItem>>((ref) async {
         childId: child.id,
         childAge: childAge,
         limit: 100,
-        includeMetadataApproved: true,
-        includePending: true,
+        includeMetadataApproved: false,
+        includePending: false,
       );
       shorts = refreshed.where((v) => v.detectedAsShort).toList();
     }

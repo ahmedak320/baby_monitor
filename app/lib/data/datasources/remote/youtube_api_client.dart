@@ -507,6 +507,7 @@ class YouTubeApiClient {
     final contentDetails =
         item['contentDetails'] as Map<String, dynamic>? ?? {};
     final stats = item['statistics'] as Map<String, dynamic>? ?? {};
+    final status = item['status'] as Map<String, dynamic>? ?? {};
 
     return VideoMetadata(
       videoId: item['id'] as String? ?? '',
@@ -524,6 +525,10 @@ class YouTubeApiClient {
       hasCaptions: contentDetails['caption'] == 'true',
       viewCount: int.tryParse(stats['viewCount'] as String? ?? '0') ?? 0,
       likeCount: int.tryParse(stats['likeCount'] as String? ?? '0') ?? 0,
+      isEmbeddable: status['embeddable'] as bool?,
+      privacyStatus: status['privacyStatus'] as String?,
+      madeForKids: status['madeForKids'] as bool?,
+      lastPlayabilityCheckAt: status.isNotEmpty ? DateTime.now() : null,
     );
   }
 

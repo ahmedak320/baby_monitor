@@ -1,4 +1,7 @@
+import 'package:flutter/foundation.dart' show debugPrint;
+
 import '../datasources/local/approved_cache.dart';
+import '../datasources/local/playability_cache.dart';
 import '../datasources/remote/supabase_client.dart';
 import '../../domain/services/youtube_data_service.dart';
 import '../models/video_metadata.dart';
@@ -116,18 +119,28 @@ class VideoRepository {
     bool includeMetadataApproved = false,
     bool includePending = false,
   }) async {
+    await _syncPendingPlayabilityMarks();
+
     // Check local cache first for offline support
     final cachedIds = ApprovedCache.getApprovedVideoIds(childId);
     if (cachedIds.isNotEmpty && !includeMetadataApproved) {
-      final rows = await _client
-          .from('yt_videos')
-          .select('*, yt_channels(title)')
-          .inFilter('video_id', cachedIds.take(limit).toList())
-          .limit(limit);
+      try {
+        final rows = await _client
+            .from('yt_videos')
+            .select('*, yt_channels(title)')
+            .inFilter('video_id', cachedIds.take(limit).toList())
+            .limit(limit);
 
-      return (rows as List)
-          .map((r) => VideoMetadata.fromSupabaseRow(r as Map<String, dynamic>))
-          .toList();
+        return _filterPlayable(
+          (rows as List)
+              .map(
+                (r) => VideoMetadata.fromSupabaseRow(r as Map<String, dynamic>),
+              )
+              .toList(),
+        );
+      } catch (e) {
+        debugPrint('VideoRepository.getApprovedVideos cache fetch failed: $e');
+      }
     }
 
     // Query fully analyzed + approved videos
@@ -143,9 +156,11 @@ class VideoRepository {
         .eq('video_analyses.is_globally_blacklisted', false)
         .limit(limit);
 
-    final videos = (completedRows as List)
-        .map((r) => VideoMetadata.fromSupabaseRow(r as Map<String, dynamic>))
-        .toList();
+    final videos = _filterPlayable(
+      (completedRows as List)
+          .map((r) => VideoMetadata.fromSupabaseRow(r as Map<String, dynamic>))
+          .toList(),
+    );
 
     // Optionally include metadata-approved videos from trusted channels
     if (includeMetadataApproved && videos.length < limit) {
@@ -159,11 +174,13 @@ class VideoRepository {
             .gte('yt_channels.global_trust_score', 0.7)
             .limit(remaining);
 
-        final metadataVideos = (metadataRows as List)
-            .map(
-              (r) => VideoMetadata.fromSupabaseRow(r as Map<String, dynamic>),
-            )
-            .toList();
+        final metadataVideos = _filterPlayable(
+          (metadataRows as List)
+              .map(
+                (r) => VideoMetadata.fromSupabaseRow(r as Map<String, dynamic>),
+              )
+              .toList(),
+        );
 
         videos.addAll(metadataVideos);
       } catch (_) {
@@ -182,12 +199,14 @@ class VideoRepository {
             .inFilter('analysis_status', ['pending', 'analyzing'])
             .limit(remaining);
 
-        final pendingVideos = (pendingRows as List)
-            .map(
-              (r) => VideoMetadata.fromSupabaseRow(r as Map<String, dynamic>),
-            )
-            .where((v) => !existingIds.contains(v.videoId))
-            .toList();
+        final pendingVideos = _filterPlayable(
+          (pendingRows as List)
+              .map(
+                (r) => VideoMetadata.fromSupabaseRow(r as Map<String, dynamic>),
+              )
+              .where((v) => !existingIds.contains(v.videoId))
+              .toList(),
+        );
 
         videos.addAll(pendingVideos);
       } catch (_) {
@@ -224,14 +243,46 @@ class VideoRepository {
 
   /// Get the community analysis for a video.
   Future<VideoAnalysis?> getAnalysis(String videoId) async {
-    final row = await _client
-        .from('video_analyses')
-        .select()
-        .eq('video_id', videoId)
-        .maybeSingle();
+    try {
+      final row = await _client
+          .from('video_analyses')
+          .select()
+          .eq('video_id', videoId)
+          .maybeSingle();
 
-    if (row == null) return null;
-    return VideoAnalysis.fromJson(row);
+      if (row == null) return null;
+      return VideoAnalysis.fromJson(row);
+    } catch (e) {
+      debugPrint('VideoRepository.getAnalysis failed for $videoId: $e');
+      return null;
+    }
+  }
+
+  Future<void> markVideoUnembeddable(String videoId) async {
+    await PlayabilityCache.markBlocked(videoId, pendingRemoteSync: true);
+    await _syncPlayabilityMark(videoId);
+  }
+
+  Future<void> _syncPendingPlayabilityMarks() async {
+    final pendingIds = PlayabilityCache.getPendingSyncVideoIds();
+    for (final videoId in pendingIds.take(10)) {
+      await _syncPlayabilityMark(videoId);
+    }
+  }
+
+  Future<void> _syncPlayabilityMark(String videoId) async {
+    try {
+      await _client
+          .from('yt_videos')
+          .update({
+            'is_embeddable': false,
+            'last_playability_check_at': DateTime.now().toIso8601String(),
+          })
+          .eq('video_id', videoId);
+      await PlayabilityCache.clearPendingSyncVideoId(videoId);
+    } catch (e) {
+      debugPrint('VideoRepository.markVideoUnembeddable failed for $videoId: $e');
+    }
   }
 
   /// Request analysis for a video (add to queue).
@@ -418,32 +469,54 @@ class VideoRepository {
     int? queuePriority,
     String? queueSource,
   }) async {
-    await _client.rpc(
-      'ingest_video_cache_entry',
-      params: {
-        'p_video_id': video.videoId,
-        'p_title': video.title,
-        'p_channel_id': video.channelId.isNotEmpty ? video.channelId : null,
-        'p_channel_title': video.channelTitle.isNotEmpty
-            ? video.channelTitle
-            : null,
-        'p_description': video.description,
-        'p_thumbnail_url': video.thumbnailUrl,
-        'p_duration_seconds': video.durationSeconds,
-        'p_published_at': video.publishedAt?.toIso8601String(),
-        'p_tags': video.tags,
-        'p_category_id': video.categoryId,
-        'p_has_captions': video.hasCaptions,
-        'p_view_count': video.viewCount,
-        'p_like_count': video.likeCount,
-        'p_is_short': video.detectedAsShort,
-        'p_discovery_source': source,
-        'p_analysis_status': analysisStatus,
-        'p_metadata_gate_passed': metadataGatePassed,
-        'p_metadata_gate_reason': metadataGateReason,
-        'p_queue_priority': queuePriority,
-        'p_queue_source': queueSource,
-      },
-    );
+    final params = {
+      'p_video_id': video.videoId,
+      'p_title': video.title,
+      'p_channel_id': video.channelId.isNotEmpty ? video.channelId : null,
+      'p_channel_title': video.channelTitle.isNotEmpty
+          ? video.channelTitle
+          : null,
+      'p_description': video.description,
+      'p_thumbnail_url': video.thumbnailUrl,
+      'p_duration_seconds': video.durationSeconds,
+      'p_published_at': video.publishedAt?.toIso8601String(),
+      'p_tags': video.tags,
+      'p_category_id': video.categoryId,
+      'p_has_captions': video.hasCaptions,
+      'p_view_count': video.viewCount,
+      'p_like_count': video.likeCount,
+      'p_is_short': video.detectedAsShort,
+      'p_discovery_source': source,
+      'p_analysis_status': analysisStatus,
+      'p_metadata_gate_passed': metadataGatePassed,
+      'p_metadata_gate_reason': metadataGateReason,
+      'p_queue_priority': queuePriority,
+      'p_queue_source': queueSource,
+      'p_is_embeddable': video.isEmbeddable,
+      'p_privacy_status': video.privacyStatus,
+      'p_made_for_kids': video.madeForKids,
+      'p_last_playability_check_at': video.lastPlayabilityCheckAt
+          ?.toIso8601String(),
+    };
+
+    try {
+      await _client.rpc('ingest_video_cache_entry', params: params);
+    } catch (_) {
+      params.remove('p_is_embeddable');
+      params.remove('p_privacy_status');
+      params.remove('p_made_for_kids');
+      params.remove('p_last_playability_check_at');
+      await _client.rpc('ingest_video_cache_entry', params: params);
+    }
+  }
+
+  List<VideoMetadata> _filterPlayable(List<VideoMetadata> videos) {
+    return videos
+        .where(
+          (video) =>
+              video.isEmbeddable != false &&
+              !PlayabilityCache.isBlocked(video.videoId),
+        )
+        .toList();
   }
 }

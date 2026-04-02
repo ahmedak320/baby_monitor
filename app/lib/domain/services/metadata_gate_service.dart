@@ -26,9 +26,11 @@ class MetadataGateService {
     required List<String> tags,
     required int categoryId,
     bool isKidsChannel = false,
+    bool madeForKids = false,
     double channelTrustScore = 0.0,
   }) {
     final titleLower = title.toLowerCase();
+    final channelLower = channelTitle.toLowerCase();
     final descLower = description.toLowerCase();
 
     // 1. Title keyword blocklist — immediate reject
@@ -63,46 +65,41 @@ class MetadataGateService {
     }
 
     // 4. Trusted channel — high confidence pass
-    if (isKidsChannel || channelTrustScore >= 0.8) {
+    if (madeForKids || isKidsChannel || channelTrustScore >= 0.8) {
       return MetadataGateResult(
         passed: true,
-        reason: 'Trusted kids channel (score: $channelTrustScore)',
-        confidence: 0.85,
+        reason: madeForKids
+            ? 'YouTube marked the video as made for kids'
+            : 'Trusted kids channel (score: $channelTrustScore)',
+        confidence: madeForKids ? 0.9 : 0.85,
       );
     }
 
-    // 5. YouTube category check — safer categories
-    // 10=Music, 1=Film, 24=Entertainment, 22=People, 27=Education
-    final safeCategories = {10, 24, 27, 1};
-    if (safeCategories.contains(categoryId)) {
-      // Safe category + no blocklist hits — moderate confidence
+    final titleSignals = _kidsIndicators.where(titleLower.contains).length;
+    final channelSignals = _kidsIndicators.where(channelLower.contains).length;
+    final descriptionSignals = _kidsIndicators.where(descLower.contains).length;
+    final tagSignals = tags.where((tag) {
+      final lower = tag.toLowerCase();
+      return _kidsIndicators.any(lower.contains);
+    }).length;
+    final totalSignals =
+        titleSignals + channelSignals + descriptionSignals + tagSignals;
+
+    // 5. Strong kids metadata signal.
+    if (totalSignals >= 2) {
       return MetadataGateResult(
         passed: true,
-        reason: 'Safe YouTube category ($categoryId)',
-        confidence: 0.65,
+        reason: 'Multiple kids-specific metadata signals found',
+        confidence: 0.7,
       );
     }
 
-    // 6. Tags check — if tags contain kids-related terms
-    final kidsTags = tags.where((t) {
-      final tl = t.toLowerCase();
-      return _kidsIndicators.any((k) => tl.contains(k));
-    }).toList();
-
-    if (kidsTags.length >= 2) {
+    // 6. Narrow category-based approval to obviously kid-oriented metadata.
+    if ((categoryId == 10 || categoryId == 27) && totalSignals >= 1) {
       return MetadataGateResult(
         passed: true,
-        reason: 'Multiple kids-related tags found',
+        reason: 'Kid-oriented metadata in a safer YouTube category',
         confidence: 0.6,
-      );
-    }
-
-    // 7. Title has kids indicators
-    if (_kidsIndicators.any((k) => titleLower.contains(k))) {
-      return MetadataGateResult(
-        passed: true,
-        reason: 'Title indicates kids content',
-        confidence: 0.55,
       );
     }
 

@@ -13,6 +13,10 @@ if not env_path.exists():
 load_dotenv(env_path)
 
 
+def _split_urls(raw: str) -> list[str]:
+    return [part.strip() for part in raw.split(",") if part.strip()]
+
+
 @dataclass
 class Settings:
     """Application settings from environment variables."""
@@ -44,14 +48,14 @@ class Settings:
         )
     )
     piped_instances: list[str] = field(
-        default_factory=lambda: [
-            u.strip()
-            for u in os.getenv(
-                "PIPED_INSTANCES",
-                os.getenv("PIPED_API_URL", "https://pipedapi.kavin.rocks"),
-            ).split(",")
-            if u.strip()
-        ]
+        default_factory=lambda: (
+            _split_urls(os.getenv("PIPED_INSTANCES", ""))
+            or _split_urls(os.getenv("PIPED_API_URL", ""))
+            or [
+                "https://pipedapi.kavin.rocks",
+                "https://pipedapi.adminforge.de",
+            ]
+        )
     )
 
     # AI Providers

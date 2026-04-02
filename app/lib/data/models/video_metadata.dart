@@ -14,6 +14,10 @@ class VideoMetadata {
   final int viewCount;
   final int likeCount;
   final bool isShort;
+  final bool? isEmbeddable;
+  final String? privacyStatus;
+  final bool? madeForKids;
+  final DateTime? lastPlayabilityCheckAt;
   final String? analysisStatus;
   final String? discoverySource;
   final DateTime? lastFetchedAt;
@@ -33,6 +37,10 @@ class VideoMetadata {
     this.viewCount = 0,
     this.likeCount = 0,
     this.isShort = false,
+    this.isEmbeddable,
+    this.privacyStatus,
+    this.madeForKids,
+    this.lastPlayabilityCheckAt,
     this.analysisStatus,
     this.discoverySource,
     this.lastFetchedAt,
@@ -44,23 +52,32 @@ class VideoMetadata {
       durationSeconds > 0 && durationSeconds <= 60 ||
       title.toLowerCase().contains('#shorts');
 
-  Map<String, dynamic> toSupabaseRow({String? source}) => {
-    'video_id': videoId,
-    'channel_id': channelId.isNotEmpty ? channelId : null,
-    'title': title,
-    'description': description,
-    'thumbnail_url': thumbnailUrl,
-    'duration_seconds': durationSeconds,
-    'published_at': publishedAt?.toIso8601String(),
-    'tags': tags,
-    'category_id': categoryId,
-    'has_captions': hasCaptions,
-    'view_count': viewCount,
-    'like_count': likeCount,
-    'is_short': detectedAsShort,
-    if (source != null) 'discovery_source': source,
-    'last_fetched_at': DateTime.now().toIso8601String(),
-  };
+  Map<String, dynamic> toSupabaseRow({String? source}) {
+    final data = <String, dynamic>{
+      'video_id': videoId,
+      'channel_id': channelId.isNotEmpty ? channelId : null,
+      'title': title,
+      'description': description,
+      'thumbnail_url': thumbnailUrl,
+      'duration_seconds': durationSeconds,
+      'published_at': publishedAt?.toIso8601String(),
+      'tags': tags,
+      'category_id': categoryId,
+      'has_captions': hasCaptions,
+      'view_count': viewCount,
+      'like_count': likeCount,
+      'is_short': detectedAsShort,
+      'is_embeddable': isEmbeddable,
+      'privacy_status': privacyStatus,
+      'made_for_kids': madeForKids,
+      'last_playability_check_at': lastPlayabilityCheckAt?.toIso8601String(),
+      'last_fetched_at': DateTime.now().toIso8601String(),
+    };
+    if (source != null) {
+      data['discovery_source'] = source;
+    }
+    return data;
+  }
 
   factory VideoMetadata.fromSupabaseRow(Map<String, dynamic> row) {
     final joinedChannel = row['yt_channels'];
@@ -91,6 +108,12 @@ class VideoMetadata {
       viewCount: row['view_count'] as int? ?? 0,
       likeCount: row['like_count'] as int? ?? 0,
       isShort: row['is_short'] as bool? ?? false,
+      isEmbeddable: row['is_embeddable'] as bool?,
+      privacyStatus: row['privacy_status'] as String?,
+      madeForKids: row['made_for_kids'] as bool?,
+      lastPlayabilityCheckAt: row['last_playability_check_at'] != null
+          ? DateTime.tryParse(row['last_playability_check_at'] as String)
+          : null,
       analysisStatus: row['analysis_status'] as String?,
       discoverySource: row['discovery_source'] as String?,
       lastFetchedAt: row['last_fetched_at'] != null

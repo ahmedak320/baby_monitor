@@ -21,7 +21,7 @@ class SupabaseConfig {
   );
   static const pipedInstances = String.fromEnvironment(
     'PIPED_INSTANCES',
-    defaultValue: 'https://pipedapi.kavin.rocks',
+    defaultValue: 'https://pipedapi.kavin.rocks,https://pipedapi.adminforge.de',
   );
   static const revenueCatApiKey = String.fromEnvironment(
     'REVENUECAT_API_KEY',

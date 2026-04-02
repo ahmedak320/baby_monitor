@@ -301,34 +301,52 @@ class YouTubeDataService {
 
   /// Fire-and-forget upsert of video metadata to cache.
   void _upsertVideoAsync(VideoMetadata video) {
+    final params = {
+      'p_video_id': video.videoId,
+      'p_title': video.title,
+      'p_channel_id': video.channelId.isNotEmpty ? video.channelId : null,
+      'p_channel_title': video.channelTitle.isNotEmpty
+          ? video.channelTitle
+          : null,
+      'p_description': video.description,
+      'p_thumbnail_url': video.thumbnailUrl,
+      'p_duration_seconds': video.durationSeconds,
+      'p_published_at': video.publishedAt?.toIso8601String(),
+      'p_tags': video.tags,
+      'p_category_id': video.categoryId,
+      'p_has_captions': video.hasCaptions,
+      'p_view_count': video.viewCount,
+      'p_like_count': video.likeCount,
+      'p_is_short': video.detectedAsShort,
+      'p_discovery_source': 'cache_refresh',
+      'p_analysis_status': video.analysisStatus ?? 'pending',
+      'p_metadata_gate_passed': false,
+      'p_is_embeddable': video.isEmbeddable,
+      'p_privacy_status': video.privacyStatus,
+      'p_made_for_kids': video.madeForKids,
+      'p_last_playability_check_at': video.lastPlayabilityCheckAt
+          ?.toIso8601String(),
+    };
+
     _supabase
-        .rpc(
-          'ingest_video_cache_entry',
-          params: {
-            'p_video_id': video.videoId,
-            'p_title': video.title,
-            'p_channel_id': video.channelId.isNotEmpty ? video.channelId : null,
-            'p_channel_title': video.channelTitle.isNotEmpty
-                ? video.channelTitle
-                : null,
-            'p_description': video.description,
-            'p_thumbnail_url': video.thumbnailUrl,
-            'p_duration_seconds': video.durationSeconds,
-            'p_published_at': video.publishedAt?.toIso8601String(),
-            'p_tags': video.tags,
-            'p_category_id': video.categoryId,
-            'p_has_captions': video.hasCaptions,
-            'p_view_count': video.viewCount,
-            'p_like_count': video.likeCount,
-            'p_is_short': video.detectedAsShort,
-            'p_discovery_source': 'cache_refresh',
-            'p_analysis_status': video.analysisStatus ?? 'pending',
-            'p_metadata_gate_passed': false,
-          },
-        )
+        .rpc('ingest_video_cache_entry', params: params)
         .then((_) {})
         .catchError((e) {
-          debugPrint('YouTubeDataService: cache upsert failed: $e');
+          params.remove('p_is_embeddable');
+          params.remove('p_privacy_status');
+          params.remove('p_made_for_kids');
+          params.remove('p_last_playability_check_at');
+          _supabase
+              .rpc('ingest_video_cache_entry', params: params)
+              .then((_) {})
+              .catchError((fallbackError) {
+                debugPrint(
+                  'YouTubeDataService: cache upsert failed: $fallbackError',
+                );
+              });
+          debugPrint(
+            'YouTubeDataService: cache upsert retrying without playability fields: $e',
+          );
         });
   }
 

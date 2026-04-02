@@ -61,7 +61,7 @@ class FeedCurationService {
         childAge: childAge,
         limit: limit * 3,
         includeMetadataApproved: includeMetadataApproved,
-        includePending: true,
+        includePending: false,
       );
     } catch (e) {
       // Fallback: try without metadata-approved if query fails
@@ -77,7 +77,6 @@ class FeedCurationService {
         return [];
       }
     }
-
     final feedItems = <FeedItem>[];
     final usedCategories = <String>{};
     final recentSet = recentlyWatchedIds?.toSet() ?? {};
@@ -154,7 +153,7 @@ class FeedCurationService {
       childId: child.id,
       childAge: childAge,
       limit: 20,
-      includePending: true,
+      includePending: false,
     );
 
     final suggestions = <FeedItem>[];

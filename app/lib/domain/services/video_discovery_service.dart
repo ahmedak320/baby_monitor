@@ -17,6 +17,12 @@ class VideoDiscoveryService {
     'educational shorts for kids',
     'animal shorts for kids',
   ];
+  static const _trendingQueries = [
+    'nursery rhymes for kids',
+    'educational videos for kids',
+    'science for kids',
+    'animal videos for kids',
+  ];
 
   VideoDiscoveryService({
     YouTubeDataService? ytService,
@@ -32,12 +38,20 @@ class VideoDiscoveryService {
     }
     _lastTrendingFetch = DateTime.now();
 
-    try {
-      final videos = await _ytService.getTrending();
-      return _ingestVideos(videos, 'trending');
-    } catch (_) {
-      return [];
+    final discovered = <String, VideoMetadata>{};
+    for (final query in _trendingQueries) {
+      try {
+        final result = await _ytService.search(query, maxResults: 8);
+        for (final video in result.videos) {
+          discovered[video.videoId] = video;
+        }
+      } catch (_) {
+        // Continue trying the next curated query.
+      }
     }
+
+    if (discovered.isEmpty) return [];
+    return _ingestVideos(discovered.values.toList(), 'curated_trending');
   }
 
   /// Fetch related/sidebar videos for a given video.
@@ -133,6 +147,7 @@ class VideoDiscoveryService {
         durationSeconds: video.durationSeconds,
         tags: video.tags,
         categoryId: video.categoryId,
+        madeForKids: video.madeForKids ?? false,
       );
 
       // Upsert to database

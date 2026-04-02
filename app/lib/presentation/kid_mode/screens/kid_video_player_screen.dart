@@ -1,18 +1,19 @@
 import 'dart:async';
 
-import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:youtube_player_iframe/youtube_player_iframe.dart';
 
 import '../../../data/datasources/local/approved_cache.dart';
 import '../../../data/datasources/remote/analysis_api.dart';
 import '../../../data/repositories/video_repository.dart';
 import '../../../providers/current_child_provider.dart';
 import '../../../utils/platform_info.dart';
+import '../providers/kid_feed_provider.dart';
+import '../providers/shorts_feed_provider.dart';
 import '../tv/dpad_handler.dart';
 import '../widgets/kid_youtube_player.dart';
+import '../widgets/kid_youtube_player_controller.dart';
 
 class KidVideoPlayerScreen extends ConsumerStatefulWidget {
   final String videoId;
@@ -32,7 +33,7 @@ class KidVideoPlayerScreen extends ConsumerStatefulWidget {
 }
 
 class _KidVideoPlayerScreenState extends ConsumerState<KidVideoPlayerScreen> {
-  YoutubePlayerController? _controller;
+  final _controller = KidYoutubePlayerController();
   final _videoRepo = VideoRepository();
   Timer? _watchTimer;
   int _watchedSeconds = 0;
@@ -43,8 +44,6 @@ class _KidVideoPlayerScreenState extends ConsumerState<KidVideoPlayerScreen> {
   String? _errorMessage;
   Timer? _errorTimer;
   StreamSubscription<String>? _analysisSub;
-  StreamSubscription<YoutubePlayerValue>? _playerStateSub;
-  StreamSubscription<YoutubeVideoState>? _videoStateSub;
 
   @override
   void initState() {
@@ -55,46 +54,10 @@ class _KidVideoPlayerScreenState extends ConsumerState<KidVideoPlayerScreen> {
       SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
     }
 
-    if (!kIsWeb) {
-      _controller = YoutubePlayerController.fromVideoId(
-        videoId: widget.videoId,
-        autoPlay: true,
-        params: YoutubePlayerParams(
-          mute: false,
-          showControls: !widget.isShort,
-          showFullscreenButton: !widget.isShort,
-          loop: false,
-          enableCaption: true,
-          playsInline: true,
-        ),
-      );
-
-      _playerStateSub = _controller!.listen((event) {
-        _onPlayerStateChange(event);
-      });
-
-      // Track playing state via videoStateStream (fires every 100ms while playing)
-      _videoStateSub = _controller!.videoStateStream.listen((state) {
-        if (!mounted) return;
-        if (!_isPlaying) {
-          _errorTimer?.cancel();
-          setState(() => _isPlaying = true);
-        }
-      });
-
-      // Fallback error detection: if player doesn't start within 8 seconds
-      _errorTimer = Timer(const Duration(seconds: 8), () {
-        if (mounted && !_isPlaying && !_isInterrupted && !_hasError) {
-          _showError('This video is unavailable');
-        }
-      });
-    }
-
-    // Autoplay is on, so assume playing after a short delay.
-    Future.delayed(const Duration(seconds: 2), () {
+    // Fallback error detection: if player doesn't start within 8 seconds
+    _errorTimer = Timer(const Duration(seconds: 8), () {
       if (mounted && !_isPlaying && !_isInterrupted && !_hasError) {
-        _errorTimer?.cancel();
-        setState(() => _isPlaying = true);
+        _showError('This video is unavailable');
       }
     });
 
@@ -149,7 +112,7 @@ class _KidVideoPlayerScreenState extends ConsumerState<KidVideoPlayerScreen> {
     });
 
     // Pause the player
-    _controller?.pauseVideo();
+    unawaited(_controller.pause());
 
     // Log the interruption
     final child = ref.read(currentChildProvider);
@@ -174,30 +137,40 @@ class _KidVideoPlayerScreenState extends ConsumerState<KidVideoPlayerScreen> {
       _hasError = true;
       _errorMessage = message;
     });
-    _controller?.pauseVideo();
+    unawaited(_controller.pause());
+    if (_isEmbeddingRestriction(message)) {
+      unawaited(_handleEmbeddingRestriction());
+    }
     Future.delayed(const Duration(seconds: 3), () {
       if (mounted) Navigator.of(context).pop();
     });
   }
 
-  void _onPlayerStateChange(YoutubePlayerValue value) {
+  Future<void> _handleEmbeddingRestriction() async {
+    await _videoRepo.markVideoUnembeddable(widget.videoId);
+    final child = ref.read(currentChildProvider);
+    if (child != null) {
+      await ApprovedCache.removeApprovedVideoId(child.id, widget.videoId);
+    }
+    ref.invalidate(kidFeedProvider);
+    ref.invalidate(shortsFeedProvider);
+  }
+
+  bool _isEmbeddingRestriction(String message) {
+    final normalized = message.toLowerCase();
+    return normalized.contains('embedded by the channel') ||
+        normalized.contains('disabled on other websites') ||
+        normalized.contains('owner has restricted playback') ||
+        normalized.contains('embedding disabled');
+  }
+
+  void _onPlayerStateChange(bool isPlaying) {
     if (!mounted) return;
-
-    // Detect YouTube embed errors (e.g., 150/152 = not embeddable)
-    if (value.hasError) {
-      _showError("This video can't be played right now");
-      return;
-    }
-
-    final playing = value.playerState == PlayerState.playing;
-    if (_isPlaying != playing) {
-      if (playing) _errorTimer?.cancel();
-      setState(() => _isPlaying = playing);
-    }
-
-    if (value.playerState == PlayerState.ended) {
-      _saveWatchRecord(completed: true);
-      _onVideoEnded();
+    if (_isPlaying != isPlaying) {
+      if (isPlaying) {
+        _errorTimer?.cancel();
+      }
+      setState(() => _isPlaying = isPlaying);
     }
   }
 
@@ -212,11 +185,8 @@ class _KidVideoPlayerScreenState extends ConsumerState<KidVideoPlayerScreen> {
   @override
   void dispose() {
     _analysisSub?.cancel();
-    _playerStateSub?.cancel();
-    _videoStateSub?.cancel();
     _watchTimer?.cancel();
     _errorTimer?.cancel();
-    _controller?.close();
     SystemChrome.setPreferredOrientations([]);
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     super.dispose();
@@ -246,26 +216,16 @@ class _KidVideoPlayerScreenState extends ConsumerState<KidVideoPlayerScreen> {
     switch (action) {
       case TvMediaAction.playPause:
         if (_isPlaying) {
-          _controller?.pauseVideo();
+          unawaited(_controller.pause());
         } else {
-          _controller?.playVideo();
+          unawaited(_controller.play());
         }
         return KeyEventResult.handled;
       case TvMediaAction.seekBack:
-        final controller = _controller;
-        if (controller != null) {
-          controller.currentTime.then((t) {
-            controller.seekTo(seconds: (t - 10).clamp(0, double.infinity));
-          });
-        }
+        unawaited(_controller.seekBy(-10));
         return KeyEventResult.handled;
       case TvMediaAction.seekForward:
-        final controller = _controller;
-        if (controller != null) {
-          controller.currentTime.then((t) {
-            controller.seekTo(seconds: t + 10);
-          });
-        }
+        unawaited(_controller.seekBy(10));
         return KeyEventResult.handled;
     }
   }
@@ -296,6 +256,9 @@ class _KidVideoPlayerScreenState extends ConsumerState<KidVideoPlayerScreen> {
                             controller: _controller,
                             videoId: widget.videoId,
                             isShort: widget.isShort,
+                            onPlayStateChanged: _onPlayerStateChange,
+                            onEnded: _onVideoEnded,
+                            onError: _showError,
                           ),
                         ),
                         if (!widget.isShort)

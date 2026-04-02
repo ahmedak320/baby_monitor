@@ -4,12 +4,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../data/repositories/profile_repository.dart';
 import '../../../domain/services/parental_control_service.dart';
 import '../../../providers/current_child_provider.dart';
 import '../../../providers/current_user_provider.dart';
 import '../../../routing/route_names.dart';
 import '../../../utils/age_calculator.dart';
 import '../../../utils/biometric_helper.dart';
+import '../../parent_dashboard/providers/dashboard_provider.dart';
 import '../widgets/pin_reset_dialog.dart';
 
 // Brute-force protection state for PIN fallback dialog
@@ -30,6 +32,11 @@ class ChildSelectScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final childrenAsync = ref.watch(childrenProvider);
+    final dashboardStatsAsync = ref.watch(dashboardStatsProvider);
+    final fallbackChildren = dashboardStatsAsync.valueOrNull
+            ?.map((stats) => stats.child)
+            .toList() ??
+        const <ChildProfile>[];
 
     return Scaffold(
       appBar: AppBar(
@@ -40,88 +47,109 @@ class ChildSelectScreen extends ConsumerWidget {
         ),
       ),
       body: childrenAsync.when(
-        data: (children) {
-          if (children.isEmpty) {
-            return Center(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Icon(Icons.child_care, size: 64, color: Colors.grey),
-                  const SizedBox(height: 16),
-                  const Text(
-                    'No children added yet.',
-                    style: TextStyle(fontSize: 16),
-                  ),
-                  const SizedBox(height: 12),
-                  ElevatedButton.icon(
-                    onPressed: () => context.pushNamed(RouteNames.addChild),
-                    icon: const Icon(Icons.add),
-                    label: const Text('Add a child'),
-                  ),
-                ],
-              ),
-            );
+        data: (children) => _buildChildrenGrid(context, ref, children),
+        loading: () {
+          if (fallbackChildren.isNotEmpty) {
+            return _buildChildrenGrid(context, ref, fallbackChildren);
           }
-
-          return Padding(
-            padding: const EdgeInsets.all(24),
+          return const Center(child: CircularProgressIndicator());
+        },
+        error: (e, _) {
+          if (fallbackChildren.isNotEmpty) {
+            return _buildChildrenGrid(context, ref, fallbackChildren);
+          }
+          return Center(
             child: Column(
+              mainAxisSize: MainAxisSize.min,
               children: [
-                const SizedBox(height: 32),
-                const Text(
-                  'Tap a profile to start watching',
-                  style: TextStyle(fontSize: 16, color: Colors.grey),
-                ),
-                const SizedBox(height: 32),
-                Expanded(
-                  child: GridView.builder(
-                    gridDelegate:
-                        const SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 2,
-                          childAspectRatio: 0.9,
-                          crossAxisSpacing: 20,
-                          mainAxisSpacing: 20,
-                        ),
-                    itemCount: children.length,
-                    itemBuilder: (context, index) {
-                      final child = children[index];
-                      final age = AgeCalculator.yearsFromDob(child.dateOfBirth);
-                      final bracket = AgeCalculator.ageBracket(
-                        child.dateOfBirth,
-                      );
-
-                      return _ChildAvatar(
-                        name: child.name,
-                        age: age,
-                        bracket: bracket,
-                        colorIndex: index,
-                        onTap: () async {
-                          final authenticated = await _authenticateParent(
-                            context,
-                            child.name,
-                          );
-                          if (authenticated && context.mounted) {
-                            ref
-                                .read(currentChildProvider.notifier)
-                                .setChild(child);
-                            await ParentalControlService.enterKidMode();
-                            if (context.mounted) {
-                              context.goNamed(RouteNames.kidHome);
-                            }
-                          }
-                        },
-                      );
-                    },
-                  ),
+                const Text('Something went wrong. Please try again.'),
+                const SizedBox(height: 12),
+                ElevatedButton(
+                  onPressed: () => ref.invalidate(childrenProvider),
+                  child: const Text('Retry'),
                 ),
               ],
             ),
           );
         },
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => const Center(
-          child: Text('Something went wrong. Please try again.'),
+      ),
+    );
+  }
+
+  Widget _buildChildrenGrid(
+    BuildContext context,
+    WidgetRef ref,
+    List<ChildProfile> children,
+  ) {
+    if (children.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.child_care, size: 64, color: Colors.grey),
+            const SizedBox(height: 16),
+            const Text(
+              'No children added yet.',
+              style: TextStyle(fontSize: 16),
+            ),
+            const SizedBox(height: 12),
+            ElevatedButton.icon(
+              onPressed: () => context.pushNamed(RouteNames.addChild),
+              icon: const Icon(Icons.add),
+              label: const Text('Add a child'),
+            ),
+          ],
         ),
+      );
+    }
+
+    return Padding(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        children: [
+          const SizedBox(height: 32),
+          const Text(
+            'Tap a profile to start watching',
+            style: TextStyle(fontSize: 16, color: Colors.grey),
+          ),
+          const SizedBox(height: 32),
+          Expanded(
+            child: GridView.builder(
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 2,
+                childAspectRatio: 0.9,
+                crossAxisSpacing: 20,
+                mainAxisSpacing: 20,
+              ),
+              itemCount: children.length,
+              itemBuilder: (context, index) {
+                final child = children[index];
+                final age = AgeCalculator.yearsFromDob(child.dateOfBirth);
+                final bracket = AgeCalculator.ageBracket(child.dateOfBirth);
+
+                return _ChildAvatar(
+                  name: child.name,
+                  age: age,
+                  bracket: bracket,
+                  colorIndex: index,
+                  onTap: () async {
+                    final authenticated = await _authenticateParent(
+                      context,
+                      child.name,
+                    );
+                    if (authenticated && context.mounted) {
+                      ref.read(currentChildProvider.notifier).setChild(child);
+                      await ParentalControlService.enterKidMode();
+                      if (context.mounted) {
+                        context.goNamed(RouteNames.kidHome);
+                      }
+                    }
+                  },
+                );
+              },
+            ),
+          ),
+        ],
       ),
     );
   }
