@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:cached_network_image/cached_network_image.dart';
 
 import '../../../data/repositories/screen_time_repository.dart';
 import '../../../data/repositories/video_repository.dart';
 import '../../../utils/duration_formatter.dart';
+import '../../common/widgets/resolved_thumbnail_image.dart';
 
 class ChildActivityScreen extends ConsumerStatefulWidget {
   final String childId;
@@ -141,9 +141,11 @@ class _ChildActivityScreenState extends ConsumerState<ChildActivityScreen>
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(6),
                 child: video?['thumbnail_url'] != null
-                    ? CachedNetworkImage(
-                        imageUrl: video!['thumbnail_url'] as String,
+                    ? ResolvedThumbnailImage(
+                        thumbnailUrl: video!['thumbnail_url'] as String,
                         fit: BoxFit.cover,
+                        placeholder: Container(color: Colors.grey[200]),
+                        errorWidget: Container(color: Colors.grey[200]),
                       )
                     : Container(color: Colors.grey[200]),
               ),
@@ -187,9 +189,11 @@ class _ChildActivityScreenState extends ConsumerState<ChildActivityScreen>
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(6),
                 child: video?['thumbnail_url'] != null
-                    ? CachedNetworkImage(
-                        imageUrl: video!['thumbnail_url'] as String,
+                    ? ResolvedThumbnailImage(
+                        thumbnailUrl: video!['thumbnail_url'] as String,
                         fit: BoxFit.cover,
+                        placeholder: Container(color: Colors.grey[200]),
+                        errorWidget: Container(color: Colors.grey[200]),
                       )
                     : Container(color: Colors.grey[200]),
               ),

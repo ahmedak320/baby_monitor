@@ -16,14 +16,41 @@ void main() {
         candidates,
         contains('https://i.ytimg.com/vi/abc123/mqdefault.jpg'),
       );
+      expect(candidates, contains('https://i.ytimg.com/vi/abc123/default.jpg'));
     });
 
-    test('normalizes live thumbnails before loading', () {
+    test('rewrites broken live thumbnail variants to valid youtube urls', () {
       final candidates = ThumbnailPreloader.candidateUrls(
-        'https://i.ytimg.com/vi/abc123/hq_live.jpg',
+        '//i.ytimg.com/vi/abc123/hq_live.jpg',
       );
 
-      expect(candidates.first, 'https://i.ytimg.com/vi/abc123/hq.jpg');
+      expect(
+        candidates.first,
+        'https://i.ytimg.com/vi/abc123/hqdefault_live.jpg',
+      );
+      expect(
+        candidates,
+        contains('https://i.ytimg.com/vi/abc123/hqdefault.jpg'),
+      );
+      expect(
+        candidates,
+        isNot(contains('https://i.ytimg.com/vi/abc123/hq.jpg')),
+      );
+    });
+
+    test('keeps valid live thumbnail urls and adds non-live fallback', () {
+      final candidates = ThumbnailPreloader.candidateUrls(
+        'https://i.ytimg.com/vi/abc123/hqdefault_live.jpg',
+      );
+
+      expect(
+        candidates.first,
+        'https://i.ytimg.com/vi/abc123/hqdefault_live.jpg',
+      );
+      expect(
+        candidates,
+        contains('https://i.ytimg.com/vi/abc123/hqdefault.jpg'),
+      );
     });
   });
 }

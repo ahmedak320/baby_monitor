@@ -16,8 +16,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **Format check**: `cd app && dart format --set-exit-if-changed lib/ test/`
 - **Run all tests**: `cd app && flutter test`
 - **Run single test**: `cd app && flutter test test/path/to_test.dart`
-- **Run app (mobile)**: `cd app && flutter run --flavor mobile`
-- **Run app (TV)**: `cd app && flutter run --flavor tv` (use Android TV emulator)
+- **Run app (mobile)**: `cd app && flutter run --flavor mobile --dart-define-from-file=.env`
+- **Run app (TV)**: `cd app && flutter run --flavor tv --dart-define-from-file=.env` (use Android TV emulator)
 - **Build mobile APK**: `cd app && flutter build apk --debug --flavor mobile`
 - **Build TV APK**: `cd app && flutter build apk --debug --flavor tv`
 - **Code generation** (freezed/json_serializable/riverpod): `cd app && dart run build_runner build --delete-conflicting-outputs`
@@ -131,7 +131,7 @@ SQL functions (migration 002): `update_channel_trust_scores()`, `increment_analy
 
 ## Environment Variables
 - Store in `.env` (never commit). Use `.env.example` as template.
-- **Required (app)**: `SUPABASE_URL`, `SUPABASE_ANON_KEY`
+- **Required (app)**: `SUPABASE_URL`, `SUPABASE_ANON_KEY` via `app/.env` and `--dart-define-from-file=.env`
 - **Required (worker)**: `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `YOUTUBE_API_KEY`
 - **AI providers** (worker, at least one): `ANTHROPIC_API_KEY`, `GEMINI_API_KEY`, `OPENAI_API_KEY`
 - **AI config**: `AI_PROVIDER` (default: `claude`; options: `claude`, `gemini`, `openai`, `local`), `LOCAL_MODEL_URL` (default: `http://localhost:11434`)

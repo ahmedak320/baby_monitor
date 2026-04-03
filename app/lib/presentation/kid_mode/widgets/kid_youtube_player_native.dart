@@ -51,11 +51,17 @@ class _KidYoutubePlayerState extends State<KidYoutubePlayer>
         NavigationDelegate(
           onNavigationRequest: (request) {
             final url = request.url;
-            if (url.startsWith('https://www.youtube.com/') ||
-                url.startsWith('https://www.youtube-nocookie.com/') ||
-                url.startsWith('https://i.ytimg.com/') ||
-                url.startsWith('about:blank')) {
-              return NavigationDecision.navigate;
+            if (url == 'about:blank') return NavigationDecision.navigate;
+            final uri = Uri.tryParse(url);
+            if (uri != null && uri.scheme == 'https') {
+              const allowed = {
+                'www.youtube.com',
+                'www.youtube-nocookie.com',
+                'i.ytimg.com',
+              };
+              if (allowed.contains(uri.host)) {
+                return NavigationDecision.navigate;
+              }
             }
             return NavigationDecision.prevent;
           },

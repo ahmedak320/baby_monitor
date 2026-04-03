@@ -24,7 +24,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
   static const _rememberMeKey = 'remember_me';
   static const _savedEmailKey = 'saved_email';
-  static const _savedPasswordKey = 'saved_password';
 
   @override
   void initState() {
@@ -37,9 +36,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     final remembered = prefs.get(_rememberMeKey) as bool? ?? false;
     if (remembered) {
       _emailController.text = prefs.get(_savedEmailKey) as String? ?? '';
-      _passwordController.text = prefs.get(_savedPasswordKey) as String? ?? '';
       setState(() => _rememberMe = true);
     }
+    // Clean up any previously stored password (legacy).
+    prefs.delete('saved_password');
   }
 
   Future<void> _saveCredentials() async {
@@ -47,11 +47,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     if (_rememberMe) {
       await prefs.put(_rememberMeKey, true);
       await prefs.put(_savedEmailKey, _emailController.text.trim());
-      await prefs.put(_savedPasswordKey, _passwordController.text);
     } else {
       await prefs.delete(_rememberMeKey);
       await prefs.delete(_savedEmailKey);
-      await prefs.delete(_savedPasswordKey);
     }
   }
 

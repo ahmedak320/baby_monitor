@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../data/datasources/local/preferences_cache.dart';
 import '../../../domain/services/parental_control_service.dart';
 
 /// Unfocus any active text field, then pop the dialog.
@@ -92,6 +93,166 @@ Future<bool> showPinResetFlowWithSaver(
 /// Returns the new PIN string, or null if cancelled.
 Future<String?> showCreatePinDialog(BuildContext context) {
   return _showCreatePinFlow(context);
+}
+
+/// Shows a PIN verification dialog with lockout protection.
+///
+/// Returns true if the PIN was verified successfully (or reset via "Forgot
+/// PIN?"). The caller is responsible for resetting the lockout counter on
+/// success (via [PreferencesCache.resetPinLockout]).
+Future<bool> showPinVerificationDialog(BuildContext context) async {
+  if (PreferencesCache.isPinLockedOut) {
+    final remaining = PreferencesCache.pinLockoutRemainingSeconds;
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Too many failed attempts. Try again in $remaining seconds.',
+          ),
+        ),
+      );
+    }
+    return false;
+  }
+
+  final controller = TextEditingController();
+  String? errorText;
+  bool isVerifying = false;
+
+  final result = await showSettledDialog<Object>(
+    context: context,
+    barrierDismissible: false,
+    builder: (ctx) => StatefulBuilder(
+      builder: (ctx, setDialogState) {
+        final remainingAttempts =
+            PreferencesCache.maxPinAttempts - PreferencesCache.pinAttempts;
+        return AlertDialog(
+          title: const Text('Enter Parent PIN'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: controller,
+                keyboardType: TextInputType.number,
+                obscureText: true,
+                maxLength: 4,
+                enabled: !isVerifying,
+                decoration: const InputDecoration(hintText: '4-digit PIN'),
+              ),
+              if (remainingAttempts < PreferencesCache.maxPinAttempts)
+                Padding(
+                  padding: const EdgeInsets.only(top: 8),
+                  child: Text(
+                    '$remainingAttempts attempts remaining',
+                    style: TextStyle(
+                      color: remainingAttempts <= 2
+                          ? Colors.red
+                          : Colors.orange,
+                      fontSize: 13,
+                    ),
+                  ),
+                ),
+              if (errorText != null)
+                Padding(
+                  padding: const EdgeInsets.only(top: 8),
+                  child: Text(
+                    errorText!,
+                    style: const TextStyle(color: Colors.red, fontSize: 13),
+                  ),
+                ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: isVerifying
+                  ? null
+                  : () {
+                      FocusManager.instance.primaryFocus?.unfocus();
+                      Navigator.pop(ctx, false);
+                    },
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: isVerifying
+                  ? null
+                  : () {
+                      FocusManager.instance.primaryFocus?.unfocus();
+                      Navigator.pop(ctx, 'forgot');
+                    },
+              child: const Text('Forgot PIN?'),
+            ),
+            ElevatedButton(
+              onPressed: isVerifying
+                  ? null
+                  : () async {
+                      final pin = controller.text;
+                      if (pin.length != 4) {
+                        setDialogState(
+                          () => errorText = 'PIN must be 4 digits',
+                        );
+                        return;
+                      }
+
+                      setDialogState(() {
+                        isVerifying = true;
+                        errorText = null;
+                      });
+
+                      bool verified;
+                      try {
+                        verified = await ParentalControlService.verifyPin(pin);
+                      } catch (e) {
+                        if (!ctx.mounted) return;
+                        setDialogState(() {
+                          isVerifying = false;
+                          errorText = 'Verification failed. Please try again.';
+                        });
+                        return;
+                      }
+
+                      if (!ctx.mounted) return;
+
+                      if (verified) {
+                        FocusManager.instance.primaryFocus?.unfocus();
+                        Navigator.pop(ctx, true);
+                      } else {
+                        final locked =
+                            await PreferencesCache.incrementPinAttempts();
+                        if (locked) {
+                          FocusManager.instance.primaryFocus?.unfocus();
+                          Navigator.pop(ctx, false);
+                        } else {
+                          controller.clear();
+                          final left =
+                              PreferencesCache.maxPinAttempts -
+                              PreferencesCache.pinAttempts;
+                          setDialogState(() {
+                            isVerifying = false;
+                            errorText =
+                                'Incorrect PIN. $left attempts remaining.';
+                          });
+                        }
+                      }
+                    },
+              child: isVerifying
+                  ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Text('Verify'),
+            ),
+          ],
+        );
+      },
+    ),
+  );
+  controller.dispose();
+
+  if (result == 'forgot' && context.mounted) {
+    return showPinResetFlow(context);
+  }
+  return result == true;
 }
 
 // ---------------------------------------------------------------------------
@@ -279,10 +440,10 @@ Future<String?> _showPinEntryDialog(
           ElevatedButton(
             onPressed: () {
               final pin = controller.text;
-              if (pin.length == 4) {
+              if (RegExp(r'^\d{4}$').hasMatch(pin)) {
                 _popDialog(ctx, pin);
               } else {
-                setState(() => errorText = 'PIN must be 4 digits');
+                setState(() => errorText = 'PIN must be exactly 4 digits');
               }
             },
             child: const Text('Next'),

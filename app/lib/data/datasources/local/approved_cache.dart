@@ -26,22 +26,29 @@ class ApprovedCache {
   }
 
   /// Add a single video ID to the approved cache.
+  /// Uses a single atomic put() to prevent read-modify-write races.
   static Future<void> addApprovedVideoId(String childId, String videoId) async {
     final current = getApprovedVideoIds(childId);
-    if (!current.contains(videoId)) {
-      current.add(videoId);
-      await setApprovedVideoIds(childId, current);
-    }
+    if (current.contains(videoId)) return;
+    final updated = [...current, videoId];
+    await LocalCache.approvedVideos.put('$_keyPrefix$childId', {
+      'video_ids': updated,
+      'cached_at': DateTime.now().toIso8601String(),
+    });
   }
 
   /// Remove a single video ID from the approved cache.
+  /// Uses a single atomic put() to prevent read-modify-write races.
   static Future<void> removeApprovedVideoId(
     String childId,
     String videoId,
   ) async {
     final current = getApprovedVideoIds(childId);
-    current.remove(videoId);
-    await setApprovedVideoIds(childId, current);
+    final updated = current.where((id) => id != videoId).toList();
+    await LocalCache.approvedVideos.put('$_keyPrefix$childId', {
+      'video_ids': updated,
+      'cached_at': DateTime.now().toIso8601String(),
+    });
   }
 
   /// Check if a video is in the approved cache.

@@ -1,7 +1,6 @@
 """Recommendation engine using embedding similarity and watch history."""
 
 import logging
-from typing import Optional
 
 from utils.supabase_client import get_supabase_client
 
@@ -72,17 +71,18 @@ class RecommendationEngine:
             avg_vector = np.mean(vectors, axis=0).tolist()
 
             # Find similar videos not yet watched
+            # Clamp match_count to prevent excessive RPC results
+            clamped_count = max(1, min(limit * 2, 100))
             similar = client.rpc(
                 "match_video_embeddings",
                 {
                     "query_embedding": avg_vector,
                     "match_threshold": 0.75,
-                    "match_count": limit * 2,
+                    "match_count": clamped_count,
                 },
             ).execute()
 
             results = []
-            seen_channels = set()
 
             for match in (similar.data or []):
                 vid = match.get("video_id", "")

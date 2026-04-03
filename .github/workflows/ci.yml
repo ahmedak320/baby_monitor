@@ -141,4 +141,3 @@ jobs:
 
       - name: Audit dependencies
         run: dart pub audit
-        continue-on-error: true

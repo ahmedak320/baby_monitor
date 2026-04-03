@@ -26,7 +26,7 @@ CREATE POLICY "Service role has full access to app_config"
 -- 3. Seed default rows
 INSERT INTO app_config (key, value) VALUES
     ('youtube_api_keys', '[]'::jsonb),
-    ('piped_instances', '["https://pipedapi.kavin.rocks"]'::jsonb)
+    ('piped_instances', '[]'::jsonb)
 ON CONFLICT (key) DO NOTHING;
 
 -- 4. Auto-update updated_at on UPDATE

@@ -21,10 +21,19 @@ class SupabaseConfig {
   );
   static const pipedInstances = String.fromEnvironment(
     'PIPED_INSTANCES',
-    defaultValue: 'https://pipedapi.kavin.rocks,https://pipedapi.adminforge.de',
+    defaultValue: '',
   );
   static const revenueCatApiKey = String.fromEnvironment(
     'REVENUECAT_API_KEY',
     defaultValue: '',
   );
+
+  static List<String> get missingRequiredAppConfig {
+    final missing = <String>[];
+    if (supabaseUrl.trim().isEmpty) missing.add('SUPABASE_URL');
+    if (supabaseAnonKey.trim().isEmpty) missing.add('SUPABASE_ANON_KEY');
+    return missing;
+  }
+
+  static bool get hasRequiredAppConfig => missingRequiredAppConfig.isEmpty;
 }

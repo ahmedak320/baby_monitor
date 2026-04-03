@@ -84,6 +84,10 @@ class ScreenTimeNotifier extends StateNotifier<ScreenTimeState> {
     required String childId,
     required String deviceId,
   }) async {
+    // Cancel any existing ticker to prevent leaks from double-calls.
+    _ticker?.cancel();
+    _ticker = null;
+
     // Load rules
     _rules = await _repo.getRules(childId);
 
@@ -107,11 +111,18 @@ class ScreenTimeNotifier extends StateNotifier<ScreenTimeState> {
       }
     }
 
-    // Start a new session
-    final sessionId = await _repo.startSession(
-      childId: childId,
-      deviceId: deviceId,
-    );
+    // Start a new session — wrapped in try/catch to avoid orphaned state.
+    String? sessionId;
+    try {
+      sessionId = await _repo.startSession(
+        childId: childId,
+        deviceId: deviceId,
+      );
+    } catch (e) {
+      // Session creation failed — reset state and rethrow so callers know.
+      state = const ScreenTimeState();
+      rethrow;
+    }
 
     // Check initial status
     final initialStatus = _checkStatus(
@@ -131,7 +142,6 @@ class ScreenTimeNotifier extends StateNotifier<ScreenTimeState> {
     );
 
     // Start the per-second ticker
-    _ticker?.cancel();
     _ticker = Timer.periodic(const Duration(seconds: 1), (_) => _tick());
   }
 

@@ -2,13 +2,13 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:cached_network_image/cached_network_image.dart';
 
 import '../../../data/datasources/remote/analysis_api.dart';
 import '../../../domain/services/youtube_data_service.dart';
 import '../../../data/models/video_metadata.dart';
 import '../../../data/repositories/video_repository.dart';
 import '../../../domain/services/video_discovery_service.dart';
+import '../../common/widgets/resolved_thumbnail_image.dart';
 import '../widgets/analysis_results_card.dart';
 
 class LinkSubmissionScreen extends ConsumerStatefulWidget {
@@ -192,9 +192,11 @@ class _LinkSubmissionScreenState extends ConsumerState<LinkSubmissionScreen> {
                       ),
                       child: AspectRatio(
                         aspectRatio: 16 / 9,
-                        child: CachedNetworkImage(
-                          imageUrl: _video!.thumbnailUrl,
+                        child: ResolvedThumbnailImage(
+                          thumbnailUrl: _video!.thumbnailUrl,
                           fit: BoxFit.cover,
+                          placeholder: Container(color: Colors.grey[200]),
+                          errorWidget: Container(color: Colors.grey[200]),
                         ),
                       ),
                     ),

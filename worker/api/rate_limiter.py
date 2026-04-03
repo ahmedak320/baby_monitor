@@ -50,17 +50,31 @@ class RateLimiter(BaseHTTPMiddleware):
         if len(self._requests) > self.MAX_TRACKED_KEYS:
             self._evict_oldest()
 
+        current_count = len(self._requests[user_key])
+        remaining = max(0, self.max_requests - current_count)
+        reset_at = int(now + self.window_seconds)
+        rate_headers = {
+            "RateLimit-Limit": str(self.max_requests),
+            "RateLimit-Remaining": str(remaining),
+            "RateLimit-Reset": str(reset_at),
+        }
+
         # Check limit
-        if len(self._requests[user_key]) >= self.max_requests:
+        if current_count >= self.max_requests:
             return JSONResponse(
                 status_code=429,
                 content={"detail": f"Rate limit exceeded. Max {self.max_requests} requests per {self.window_seconds}s."},
+                headers=rate_headers,
             )
 
         # Record request
         self._requests[user_key].append(now)
+        rate_headers["RateLimit-Remaining"] = str(remaining - 1)
 
-        return await call_next(request)
+        response = await call_next(request)
+        for header, value in rate_headers.items():
+            response.headers[header] = value
+        return response
 
     def _full_cleanup(self, window_start: float) -> None:
         """Remove expired entries from all tracked keys."""

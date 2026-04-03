@@ -37,6 +37,7 @@ class ResultWriter:
                 "detected_issues": result.detected_issues,
                 "analysis_reasoning": result.analysis_reasoning[:5000],
                 "confidence": result.confidence,
+                "verdict": result.verdict.value,
                 "model_version": model_version,
             }
 

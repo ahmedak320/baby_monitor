@@ -12,6 +12,7 @@ from providers.base_provider import (
     ImageAnalysisResult,
     TextAnalysisResult,
 )
+from utils.score_validation import safe_float
 
 logger = logging.getLogger(__name__)
 
@@ -114,10 +115,10 @@ class ClaudeProvider(AnalysisProvider):
             data = json.loads(raw_text)
 
             return ImageAnalysisResult(
-                violence_score=float(data.get("violence_score", 1.0)),
-                nudity_score=float(data.get("nudity_score", 1.0)),
-                scariness_score=float(data.get("scariness_score", 1.0)),
-                overstimulation_score=float(data.get("overstimulation_score", 1.0)),
+                violence_score=safe_float(data.get("violence_score", 1.0), default=1.0, min_val=1.0),
+                nudity_score=safe_float(data.get("nudity_score", 1.0), default=1.0, min_val=1.0),
+                scariness_score=safe_float(data.get("scariness_score", 1.0), default=1.0, min_val=1.0),
+                overstimulation_score=safe_float(data.get("overstimulation_score", 1.0), default=1.0, min_val=1.0),
                 overall_verdict=data.get("overall_verdict", "APPROVE"),
                 reasoning=data.get("reasoning", ""),
                 confidence=0.90,

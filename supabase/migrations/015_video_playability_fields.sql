@@ -13,7 +13,7 @@ CREATE INDEX IF NOT EXISTS idx_yt_videos_made_for_kids
     ON yt_videos(made_for_kids);
 
 UPDATE app_config
-SET value = '["https://pipedapi.kavin.rocks", "https://pipedapi.adminforge.de"]'::jsonb,
+SET value = '[]'::jsonb,
     updated_at = NOW()
 WHERE key = 'piped_instances'
   AND value = '["https://pipedapi.kavin.rocks"]'::jsonb;

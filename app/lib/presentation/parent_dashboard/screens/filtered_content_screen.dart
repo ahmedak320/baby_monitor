@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:cached_network_image/cached_network_image.dart';
 
 import '../../../data/datasources/remote/supabase_client.dart';
 import '../../../data/repositories/video_repository.dart';
 import '../../../providers/current_user_provider.dart';
+import '../../common/widgets/resolved_thumbnail_image.dart';
 
 class FilteredContentScreen extends ConsumerStatefulWidget {
   const FilteredContentScreen({super.key});
@@ -94,10 +94,16 @@ class _FilteredContentScreenState extends ConsumerState<FilteredContentScreen> {
                                 width: 100,
                                 height: 56,
                                 child: video?['thumbnail_url'] != null
-                                    ? CachedNetworkImage(
-                                        imageUrl:
+                                    ? ResolvedThumbnailImage(
+                                        thumbnailUrl:
                                             video!['thumbnail_url'] as String,
                                         fit: BoxFit.cover,
+                                        placeholder: Container(
+                                          color: Colors.grey[200],
+                                        ),
+                                        errorWidget: Container(
+                                          color: Colors.grey[200],
+                                        ),
                                       )
                                     : Container(color: Colors.grey[200]),
                               ),

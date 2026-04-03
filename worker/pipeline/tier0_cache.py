@@ -50,11 +50,24 @@ class Tier0Cache:
 
             # Determine verdict from stored analysis
             is_blacklisted = data.get("is_globally_blacklisted", False)
-            stored_verdict = data.get("verdict", "").upper()
+            stored_verdict = (data.get("verdict") or "").upper()
 
-            if is_blacklisted or stored_verdict == "REJECT":
+            if is_blacklisted:
+                verdict = Verdict.REJECT
+            elif stored_verdict == "REJECT":
                 verdict = Verdict.REJECT
             elif stored_verdict == "APPROVE":
+                verdict = Verdict.APPROVE
+            elif stored_verdict:
+                # Known verdict string (e.g. NEEDS_VISUAL_REVIEW) -- pass through
+                try:
+                    verdict = Verdict(stored_verdict.lower())
+                except ValueError:
+                    return None  # Unrecognised verdict
+            elif confidence >= 0.7:
+                # Legacy rows written before the verdict column existed:
+                # high confidence + not blacklisted -> approve.
+                # (is_blacklisted is already handled above.)
                 verdict = Verdict.APPROVE
             else:
                 return None  # Inconclusive cached result

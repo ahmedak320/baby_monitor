@@ -104,6 +104,68 @@ class PreferencesCache {
     await LocalCache.preferences.put('yt_key_reset_date', date);
   }
 
+  // --- PIN lockout (shared across all parental gate widgets) ---
+
+  static const _pinAttemptsKey = 'pin_lockout_attempts';
+  static const _lockoutUntilKey = 'pin_lockout_until';
+  static const _lockoutDurationKey = 'pin_lockout_duration';
+  static const int maxPinAttempts = 5;
+
+  /// Current failed PIN attempts.
+  static int get pinAttempts =>
+      (LocalCache.preferences.get(_pinAttemptsKey) as int?) ?? 0;
+
+  /// Increment failed PIN attempts. Returns true if lockout was triggered.
+  static Future<bool> incrementPinAttempts() async {
+    final attempts = pinAttempts + 1;
+    await LocalCache.preferences.put(_pinAttemptsKey, attempts);
+    if (attempts >= maxPinAttempts) {
+      final duration = pinLockoutDurationSeconds;
+      await LocalCache.preferences.put(
+        _lockoutUntilKey,
+        DateTime.now().add(Duration(seconds: duration)).millisecondsSinceEpoch,
+      );
+      // Double the lockout duration for next time (max 1 hour).
+      await LocalCache.preferences.put(
+        _lockoutDurationKey,
+        (duration * 2).clamp(30, 3600),
+      );
+      await LocalCache.preferences.put(_pinAttemptsKey, 0);
+      return true;
+    }
+    return false;
+  }
+
+  /// Reset PIN lockout counters on successful authentication.
+  static Future<void> resetPinLockout() async {
+    await LocalCache.preferences.put(_pinAttemptsKey, 0);
+    await LocalCache.preferences.delete(_lockoutUntilKey);
+    await LocalCache.preferences.put(_lockoutDurationKey, 30);
+  }
+
+  /// Whether the user is currently locked out.
+  static bool get isPinLockedOut {
+    final until = lockoutUntilEpochMs;
+    if (until == null) return false;
+    return DateTime.now().millisecondsSinceEpoch < until;
+  }
+
+  /// Remaining lockout seconds, or 0 if not locked out.
+  static int get pinLockoutRemainingSeconds {
+    final until = lockoutUntilEpochMs;
+    if (until == null) return 0;
+    final remaining = (until - DateTime.now().millisecondsSinceEpoch) ~/ 1000;
+    return remaining > 0 ? remaining : 0;
+  }
+
+  /// Raw lockout-until epoch milliseconds.
+  static int? get lockoutUntilEpochMs =>
+      LocalCache.preferences.get(_lockoutUntilKey) as int?;
+
+  /// Current lockout duration in seconds (doubles each lockout).
+  static int get pinLockoutDurationSeconds =>
+      (LocalCache.preferences.get(_lockoutDurationKey) as int?) ?? 30;
+
   // --- Dev/Test Mode settings ---
 
   /// Whether to skip biometric auth during testing.

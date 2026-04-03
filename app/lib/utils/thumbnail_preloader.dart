@@ -7,22 +7,47 @@ import '../data/models/video_metadata.dart';
 class ThumbnailPreloader {
   ThumbnailPreloader._();
 
+  static String normalizeUrl(String thumbnailUrl) {
+    final trimmed = thumbnailUrl.trim();
+    if (trimmed.isEmpty) return '';
+
+    var normalized = trimmed.startsWith('//') ? 'https:$trimmed' : trimmed;
+    if (normalized.contains('/hq_live.jpg')) {
+      normalized = normalized.replaceAll('/hq_live.jpg', '/hqdefault_live.jpg');
+    }
+    return normalized;
+  }
+
   static List<String> candidateUrls(String thumbnailUrl) {
-    final normalized = thumbnailUrl.replaceAll('_live.jpg', '.jpg');
+    final normalized = normalizeUrl(thumbnailUrl);
+    if (normalized.isEmpty) return const [];
+
     final candidates = <String>{};
     void add(String url) {
       if (url.isNotEmpty) candidates.add(url);
     }
 
     add(normalized);
-    add(normalized.replaceAll('/maxresdefault.jpg', '/hqdefault.jpg'));
-    add(normalized.replaceAll('/maxresdefault.jpg', '/mqdefault.jpg'));
-    add(normalized.replaceAll('/hqdefault.jpg', '/mqdefault.jpg'));
-    add(normalized.replaceAll('/hqdefault.jpg', '/default.jpg'));
-    add(normalized.replaceAll('/mqdefault.jpg', '/default.jpg'));
+    if (_isYouTubeThumbnail(normalized)) {
+      final withoutLive = normalized.replaceAll('_live.jpg', '.jpg');
+      add(withoutLive);
+      add(withoutLive.replaceAll('/maxresdefault.jpg', '/sddefault.jpg'));
+      add(withoutLive.replaceAll('/maxresdefault.jpg', '/hqdefault.jpg'));
+      add(withoutLive.replaceAll('/maxresdefault.jpg', '/mqdefault.jpg'));
+      add(withoutLive.replaceAll('/maxresdefault.jpg', '/default.jpg'));
+      add(withoutLive.replaceAll('/sddefault.jpg', '/hqdefault.jpg'));
+      add(withoutLive.replaceAll('/sddefault.jpg', '/mqdefault.jpg'));
+      add(withoutLive.replaceAll('/sddefault.jpg', '/default.jpg'));
+      add(withoutLive.replaceAll('/hqdefault.jpg', '/mqdefault.jpg'));
+      add(withoutLive.replaceAll('/hqdefault.jpg', '/default.jpg'));
+      add(withoutLive.replaceAll('/mqdefault.jpg', '/default.jpg'));
+    }
 
     return candidates.toList();
   }
+
+  static bool _isYouTubeThumbnail(String url) =>
+      url.contains('ytimg.com/') || url.contains('img.youtube.com/');
 
   /// Preload a batch of thumbnail URLs into the image cache.
   /// Only preloads the first [maxPreload] items to avoid excessive memory usage.

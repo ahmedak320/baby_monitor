@@ -7,6 +7,7 @@ from dataclasses import dataclass
 import anthropic
 
 from config import settings
+from utils.score_validation import safe_float, safe_int
 
 logger = logging.getLogger(__name__)
 
@@ -122,14 +123,14 @@ class HaikuTextAnalyzer:
             parsed = json.loads(raw_text)
 
             result = HaikuTextResult(
-                age_min_appropriate=parsed.get("age_min_appropriate", 0),
-                age_max_appropriate=parsed.get("age_max_appropriate", 18),
-                overstimulation_score=float(parsed.get("overstimulation_score", 5)),
-                educational_score=float(parsed.get("educational_score", 5)),
-                scariness_score=float(parsed.get("scariness_score", 5)),
-                brainrot_score=float(parsed.get("brainrot_score", 5)),
-                language_safety_score=float(parsed.get("language_safety_score", 5)),
-                ad_commercial_score=float(parsed.get("ad_commercial_score", 5)),
+                age_min_appropriate=safe_int(parsed.get("age_min_appropriate", 0), default=0),
+                age_max_appropriate=safe_int(parsed.get("age_max_appropriate", 18), default=18),
+                overstimulation_score=safe_float(parsed.get("overstimulation_score", 5), default=5.0, min_val=1.0),
+                educational_score=safe_float(parsed.get("educational_score", 5), default=5.0, min_val=1.0),
+                scariness_score=safe_float(parsed.get("scariness_score", 5), default=5.0, min_val=1.0),
+                brainrot_score=safe_float(parsed.get("brainrot_score", 5), default=5.0, min_val=1.0),
+                language_safety_score=safe_float(parsed.get("language_safety_score", 5), default=5.0, min_val=1.0),
+                ad_commercial_score=safe_float(parsed.get("ad_commercial_score", 5), default=5.0, min_val=1.0),
                 content_labels=parsed.get("content_labels", []),
                 detected_issues=parsed.get("detected_issues", []),
                 overall_verdict=parsed.get("overall_verdict", "NEEDS_VISUAL_REVIEW"),

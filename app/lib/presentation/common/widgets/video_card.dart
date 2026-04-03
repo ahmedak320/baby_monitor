@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:cached_network_image/cached_network_image.dart';
 
 import '../../../utils/duration_formatter.dart';
+import 'resolved_thumbnail_image.dart';
 
 /// Reusable video thumbnail card for parent-facing screens.
 class VideoCard extends StatelessWidget {
@@ -43,13 +43,11 @@ class VideoCard extends StatelessWidget {
                     fit: StackFit.expand,
                     children: [
                       thumbnailUrl.isNotEmpty
-                          ? CachedNetworkImage(
-                              imageUrl: thumbnailUrl,
+                          ? ResolvedThumbnailImage(
+                              thumbnailUrl: thumbnailUrl,
                               fit: BoxFit.cover,
-                              placeholder: (_, _) =>
-                                  Container(color: Colors.grey[200]),
-                              errorWidget: (_, _, _) =>
-                                  Container(color: Colors.grey[200]),
+                              placeholder: Container(color: Colors.grey[200]),
+                              errorWidget: Container(color: Colors.grey[200]),
                             )
                           : Container(color: Colors.grey[200]),
                       if (durationSeconds > 0)

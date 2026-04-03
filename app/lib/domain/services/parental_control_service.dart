@@ -213,7 +213,7 @@ class ParentalControlService {
     if (storedSalt == null || storedSalt.isEmpty) {
       // Legacy: plain SHA-256 — verify and auto-upgrade
       final legacyHash = _legacyHashPin(pin);
-      if (storedHash == legacyHash) {
+      if (_constantTimeEquals(storedHash, legacyHash)) {
         // Auto-upgrade to PBKDF2
         await setPin(pin);
         return true;
@@ -221,10 +221,10 @@ class ParentalControlService {
       return false;
     }
 
-    // New: PBKDF2 verification
+    // New: PBKDF2 verification (constant-time comparison)
     final salt = Pbkdf2.fromHex(storedSalt);
     final computedHash = await hashPin(pin, salt);
-    return storedHash == computedHash;
+    return _constantTimeEquals(storedHash, computedHash);
   }
 
   /// Check if the current user has a PIN set.
@@ -263,6 +263,16 @@ class ParentalControlService {
     final a = 10 + rng.nextInt(30);
     final b = 10 + rng.nextInt(30);
     return (question: '$a + $b', answer: a + b);
+  }
+
+  /// Constant-time string comparison to prevent timing attacks on PIN hashes.
+  static bool _constantTimeEquals(String a, String b) {
+    if (a.length != b.length) return false;
+    var result = 0;
+    for (var i = 0; i < a.length; i++) {
+      result |= a.codeUnitAt(i) ^ b.codeUnitAt(i);
+    }
+    return result == 0;
   }
 
   /// Check if kid mode is currently active.

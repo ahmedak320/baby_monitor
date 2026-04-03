@@ -61,15 +61,25 @@ class QueueConsumer:
         logger.info("Processing job %s for video %s", job_id, video_id)
 
         try:
-            # Run analysis pipeline (synchronous — runs ML models)
-            result = await asyncio.get_event_loop().run_in_executor(
-                None, self._orchestrator.analyze, video_id
+            # Run analysis pipeline with a 1-hour timeout to prevent hung jobs
+            result = await asyncio.wait_for(
+                asyncio.get_event_loop().run_in_executor(
+                    None, self._orchestrator.analyze, video_id
+                ),
+                timeout=3600,  # 1 hour
             )
 
             # Mark job as completed
             self._complete_job(job_id)
             logger.info("Job %s completed: verdict=%s", job_id, result.verdict.value)
             return 1
+
+        except asyncio.TimeoutError:
+            error_msg = f"Job {job_id} timed out after 1 hour analyzing video {video_id}"
+            logger.error(error_msg)
+            self._fail_job(job_id, error_msg)
+            self._writer.mark_failed(video_id, error_msg)
+            return 0
 
         except Exception as e:
             logger.exception("Job %s failed: %s", job_id, e)

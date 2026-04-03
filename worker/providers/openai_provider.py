@@ -10,6 +10,7 @@ from providers.base_provider import (
     ImageAnalysisResult,
     TextAnalysisResult,
 )
+from utils.score_validation import safe_float, safe_int, strip_json_fences
 
 logger = logging.getLogger(__name__)
 
@@ -80,14 +81,14 @@ class OpenAIProvider(AnalysisProvider):
             data = json.loads(raw_text)
 
             return TextAnalysisResult(
-                age_min_appropriate=data.get("age_min_appropriate", 0),
-                age_max_appropriate=data.get("age_max_appropriate", 18),
-                overstimulation_score=float(data.get("overstimulation_score", 5.0)),
-                educational_score=float(data.get("educational_score", 5.0)),
-                scariness_score=float(data.get("scariness_score", 5.0)),
-                brainrot_score=float(data.get("brainrot_score", 5.0)),
-                language_safety_score=float(data.get("language_safety_score", 5.0)),
-                ad_commercial_score=float(data.get("ad_commercial_score", 5.0)),
+                age_min_appropriate=safe_int(data.get("age_min_appropriate", 0), default=0),
+                age_max_appropriate=safe_int(data.get("age_max_appropriate", 18), default=18),
+                overstimulation_score=safe_float(data.get("overstimulation_score", 5.0), default=5.0, min_val=1.0),
+                educational_score=safe_float(data.get("educational_score", 5.0), default=5.0, min_val=1.0),
+                scariness_score=safe_float(data.get("scariness_score", 5.0), default=5.0, min_val=1.0),
+                brainrot_score=safe_float(data.get("brainrot_score", 5.0), default=5.0, min_val=1.0),
+                language_safety_score=safe_float(data.get("language_safety_score", 5.0), default=5.0, min_val=1.0),
+                ad_commercial_score=safe_float(data.get("ad_commercial_score", 5.0), default=5.0, min_val=1.0),
                 content_labels=data.get("content_labels", []),
                 detected_issues=data.get("detected_issues", []),
                 overall_verdict=data.get("overall_verdict", "NEEDS_VISUAL_REVIEW"),
@@ -144,18 +145,13 @@ class OpenAIProvider(AnalysisProvider):
                 max_tokens=500,
             )
 
-            raw_text = response.choices[0].message.content.strip()
-            if raw_text.startswith("```"):
-                raw_text = raw_text.split("```")[1]
-                if raw_text.startswith("json"):
-                    raw_text = raw_text[4:]
-
+            raw_text = strip_json_fences(response.choices[0].message.content)
             data = json.loads(raw_text)
             return ImageAnalysisResult(
-                violence_score=float(data.get("violence_score", 1.0)),
-                nudity_score=float(data.get("nudity_score", 1.0)),
-                scariness_score=float(data.get("scariness_score", 1.0)),
-                overstimulation_score=float(data.get("overstimulation_score", 1.0)),
+                violence_score=safe_float(data.get("violence_score", 1.0), default=1.0, min_val=1.0),
+                nudity_score=safe_float(data.get("nudity_score", 1.0), default=1.0, min_val=1.0),
+                scariness_score=safe_float(data.get("scariness_score", 1.0), default=1.0, min_val=1.0),
+                overstimulation_score=safe_float(data.get("overstimulation_score", 1.0), default=1.0, min_val=1.0),
                 overall_verdict=data.get("overall_verdict", "APPROVE"),
                 reasoning=data.get("reasoning", ""),
                 confidence=0.88,

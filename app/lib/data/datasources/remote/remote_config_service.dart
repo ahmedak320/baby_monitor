@@ -105,9 +105,7 @@ class RemoteConfigService {
 
   /// Parse compile-time Piped instance list.
   static List<String> _buildDefaultPipedInstances() {
-    if (SupabaseConfig.pipedInstances.isEmpty) {
-      return ['https://pipedapi.kavin.rocks', 'https://pipedapi.adminforge.de'];
-    }
+    if (SupabaseConfig.pipedInstances.isEmpty) return [];
     return SupabaseConfig.pipedInstances
         .split(',')
         .map((u) => u.trim())

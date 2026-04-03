@@ -322,11 +322,11 @@ cd app
 flutter doctor
 
 # Run on the first available device/emulator
-flutter run --dart-define-from-file=.env
+flutter run --flavor mobile --dart-define-from-file=.env
 
 # Run on a specific device
 flutter devices              # List available devices
-flutter run -d <device-id> --dart-define-from-file=.env
+flutter run -d <device-id> --flavor mobile --dart-define-from-file=.env
 ```
 
 ### Running the Python Worker
@@ -349,7 +349,7 @@ This starts three concurrent processes:
 4. Run the app:
    ```bash
    cd app
-   flutter run -d emulator-5554 --dart-define-from-file=.env
+   flutter run -d emulator-5554 --flavor mobile --dart-define-from-file=.env
    ```
    (The device ID is shown by `flutter devices`)
 
@@ -362,7 +362,7 @@ emulator -list-avds
 emulator -avd <avd-name> &
 
 # Run the app
-cd app && flutter run --dart-define-from-file=.env
+cd app && flutter run --flavor mobile --dart-define-from-file=.env
 ```
 
 ### Running on iOS Simulator

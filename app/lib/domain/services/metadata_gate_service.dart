@@ -35,7 +35,7 @@ class MetadataGateService {
 
     // 1. Title keyword blocklist — immediate reject
     for (final word in _titleBlocklist) {
-      if (titleLower.contains(word)) {
+      if (_containsBlockedTerm(titleLower, word)) {
         return MetadataGateResult(
           passed: false,
           reason: 'Title contains blocked term: $word',
@@ -46,7 +46,7 @@ class MetadataGateService {
 
     // 2. Description keyword blocklist
     for (final word in _descriptionBlocklist) {
-      if (descLower.contains(word)) {
+      if (_containsBlockedTerm(descLower, word)) {
         return MetadataGateResult(
           passed: false,
           reason: 'Description contains blocked term: $word',
@@ -109,6 +109,15 @@ class MetadataGateService {
       reason: 'Insufficient metadata signals for approval',
       confidence: 0.3,
     );
+  }
+
+  /// Word-boundary check to avoid false positives (e.g. "skilled" matching
+  /// "kill"). Uses `\b` regex anchors instead of plain `.contains()`.
+  static bool _containsBlockedTerm(String lowerText, String term) {
+    return RegExp(
+      '\\b${RegExp.escape(term)}\\b',
+      caseSensitive: false,
+    ).hasMatch(lowerText);
   }
 
   static const _titleBlocklist = [

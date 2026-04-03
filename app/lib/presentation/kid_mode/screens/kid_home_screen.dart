@@ -97,61 +97,64 @@ class _KidHomeScreenState extends ConsumerState<KidHomeScreen> {
       );
     }
 
-    return Theme(
-      data: KidTheme.theme,
-      child: Scaffold(
-        backgroundColor: KidTheme.background,
-        body: SafeArea(
-          child: Column(
-            children: [
-              // Winddown banner
-              if (screenTime.status == ScreenTimeStatus.winddown)
-                WinddownBanner(
-                  minutesRemaining: screenTime.remainingMinutes ?? 5,
-                ),
+    return PopScope(
+      canPop: false,
+      child: Theme(
+        data: KidTheme.theme,
+        child: Scaffold(
+          backgroundColor: KidTheme.background,
+          body: SafeArea(
+            child: Column(
+              children: [
+                // Winddown banner
+                if (screenTime.status == ScreenTimeStatus.winddown)
+                  WinddownBanner(
+                    minutesRemaining: screenTime.remainingMinutes ?? 5,
+                  ),
 
-              // Tab content
-              Expanded(
-                child: IndexedStack(
-                  index: _currentTab,
-                  children: const [
-                    _HomeTabContent(),
-                    ShortsFeedScreen(),
-                    KidLibraryScreen(),
-                    KidProfileScreen(),
-                  ],
+                // Tab content
+                Expanded(
+                  child: IndexedStack(
+                    index: _currentTab,
+                    children: const [
+                      _HomeTabContent(),
+                      ShortsFeedScreen(),
+                      KidLibraryScreen(),
+                      KidProfileScreen(),
+                    ],
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
-        ),
-        bottomNavigationBar: Theme(
-          data: KidTheme.theme,
-          child: BottomNavigationBar(
-            currentIndex: _currentTab,
-            onTap: (index) => setState(() => _currentTab = index),
-            items: const [
-              BottomNavigationBarItem(
-                icon: Icon(Icons.home_outlined),
-                activeIcon: Icon(Icons.home),
-                label: 'Home',
-              ),
-              BottomNavigationBarItem(
-                icon: Icon(Icons.electric_bolt_outlined),
-                activeIcon: Icon(Icons.electric_bolt),
-                label: 'Shorts',
-              ),
-              BottomNavigationBarItem(
-                icon: Icon(Icons.video_library_outlined),
-                activeIcon: Icon(Icons.video_library),
-                label: 'Library',
-              ),
-              BottomNavigationBarItem(
-                icon: Icon(Icons.person_outline),
-                activeIcon: Icon(Icons.person),
-                label: 'You',
-              ),
-            ],
+          bottomNavigationBar: Theme(
+            data: KidTheme.theme,
+            child: BottomNavigationBar(
+              currentIndex: _currentTab,
+              onTap: (index) => setState(() => _currentTab = index),
+              items: const [
+                BottomNavigationBarItem(
+                  icon: Icon(Icons.home_outlined),
+                  activeIcon: Icon(Icons.home),
+                  label: 'Home',
+                ),
+                BottomNavigationBarItem(
+                  icon: Icon(Icons.electric_bolt_outlined),
+                  activeIcon: Icon(Icons.electric_bolt),
+                  label: 'Shorts',
+                ),
+                BottomNavigationBarItem(
+                  icon: Icon(Icons.video_library_outlined),
+                  activeIcon: Icon(Icons.video_library),
+                  label: 'Library',
+                ),
+                BottomNavigationBarItem(
+                  icon: Icon(Icons.person_outline),
+                  activeIcon: Icon(Icons.person),
+                  label: 'You',
+                ),
+              ],
+            ),
           ),
         ),
       ),

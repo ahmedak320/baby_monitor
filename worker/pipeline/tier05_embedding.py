@@ -73,6 +73,9 @@ class Tier05Embedding:
         try:
             client = get_supabase_client()
 
+            # Clamp limit to prevent excessive RPC results
+            clamped_limit = max(1, min(limit, 100))
+
             # Use Supabase's pgvector similarity search
             # This requires the embedding column and ivfflat index
             result = client.rpc(
@@ -80,7 +83,7 @@ class Tier05Embedding:
                 {
                     "query_embedding": embedding,
                     "match_threshold": 0.85,
-                    "match_count": limit,
+                    "match_count": clamped_limit,
                 },
             ).execute()
 

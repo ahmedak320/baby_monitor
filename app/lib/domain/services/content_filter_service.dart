@@ -84,7 +84,7 @@ class ContentFilterService {
       );
     }
 
-    // 3. Check age appropriateness
+    // 4. Check age appropriateness
     final childAge = AgeCalculator.yearsFromDob(child.dateOfBirth);
     if (childAge < analysis.ageMinAppropriate) {
       return FilterResult(
@@ -98,7 +98,7 @@ class ContentFilterService {
       // They might still enjoy younger content
     }
 
-    // 4. Low confidence — treat as pending
+    // 5. Low confidence — treat as pending
     if (analysis.confidence < 0.5) {
       return const FilterResult(
         decision: FilterDecision.pending,
@@ -107,7 +107,7 @@ class ContentFilterService {
       );
     }
 
-    // 5. Score-based filtering
+    // 6. Score-based filtering
     final sensitivity = child.filterSensitivity;
     final issues = <String>[];
 
@@ -118,8 +118,11 @@ class ContentFilterService {
 
     // Threshold = 11 - sensitivity, clamped to minimum 3 so even
     // strictest settings still allow reasonably calm content
-    final overstimThreshold = (11.0 - (sensitivity['overstimulation'] ?? 5.0))
-        .clamp(3.0, 10.0);
+    final overstimThreshold =
+        (11.0 - _safeSensitivity(sensitivity, 'overstimulation', 5.0)).clamp(
+          3.0,
+          10.0,
+        );
     if (analysis.overstimulationScore > overstimThreshold) {
       issues.add(
         'Overstimulation: ${analysis.overstimulationScore.toStringAsFixed(1)} '
@@ -127,10 +130,11 @@ class ContentFilterService {
       );
     }
 
-    final scarinessThreshold = (11.0 - (sensitivity['scariness'] ?? 3.0)).clamp(
-      3.0,
-      10.0,
-    );
+    final scarinessThreshold =
+        (11.0 - _safeSensitivity(sensitivity, 'scariness', 3.0)).clamp(
+          3.0,
+          10.0,
+        );
     if (analysis.scarinessScore > scarinessThreshold) {
       issues.add(
         'Scariness: ${analysis.scarinessScore.toStringAsFixed(1)} '
@@ -140,9 +144,11 @@ class ContentFilterService {
 
     final brainrotThreshold =
         (11.0 -
-                (sensitivity['brainrot_tolerance'] ??
-                    sensitivity['brainrot'] ??
-                    3.0))
+                _safeSensitivity(
+                  sensitivity,
+                  'brainrot_tolerance',
+                  _safeSensitivity(sensitivity, 'brainrot', 3.0),
+                ))
             .clamp(3.0, 10.0);
     if (analysis.brainrotScore > brainrotThreshold) {
       issues.add(
@@ -152,7 +158,8 @@ class ContentFilterService {
     }
 
     final languageThreshold =
-        (11.0 - (sensitivity['language_strictness'] ?? 8.0)).clamp(2.0, 10.0);
+        (11.0 - _safeSensitivity(sensitivity, 'language_strictness', 8.0))
+            .clamp(2.0, 10.0);
     if (analysis.languageSafetyScore < languageThreshold) {
       issues.add(
         'Language safety: ${analysis.languageSafetyScore.toStringAsFixed(1)} '
@@ -185,6 +192,21 @@ class ContentFilterService {
       reason: 'Passed all filters',
       confidenceScore: analysis.confidence,
     );
+  }
+
+  /// Extract a sensitivity value clamped to [0, 10], safe against bad types.
+  static double _safeSensitivity(
+    Map<String, dynamic> settings,
+    String key,
+    double defaultValue,
+  ) {
+    final value = settings[key];
+    if (value is num) {
+      final d = value.toDouble();
+      if (d.isNaN || d.isInfinite) return defaultValue;
+      return d.clamp(0.0, 10.0);
+    }
+    return defaultValue;
   }
 
   /// Quick check if a video is likely suitable based on just age.
