@@ -4,8 +4,6 @@ import base64
 import json
 import logging
 
-import anthropic
-
 from config import settings
 from providers.base_provider import (
     AnalysisProvider,
@@ -31,7 +29,14 @@ class ClaudeProvider(AnalysisProvider):
         from analyzers.haiku_text_analyzer import HaikuTextAnalyzer
 
         self._text_analyzer = HaikuTextAnalyzer()
-        self._client = anthropic.Anthropic(api_key=settings.anthropic_api_key)
+        try:
+            import anthropic
+
+            api_key = settings.anthropic_api_key
+            self._client = anthropic.Anthropic(api_key=api_key) if api_key else None
+        except ImportError:
+            logger.warning("anthropic not installed; Claude provider unavailable")
+            self._client = None
 
     def analyze_text(
         self,
@@ -43,6 +48,13 @@ class ClaudeProvider(AnalysisProvider):
         transcript: str,
         toxicity_summary: str = "",
     ) -> TextAnalysisResult:
+        if self._client is None:
+            return TextAnalysisResult(
+                overall_verdict="NEEDS_VISUAL_REVIEW",
+                reasoning="Claude provider not available",
+                provider_name="claude",
+            )
+
         haiku_result = self._text_analyzer.analyze(
             title=title,
             channel=channel,
@@ -79,6 +91,12 @@ class ClaudeProvider(AnalysisProvider):
         title: str = "",
         context: str = "",
     ) -> ImageAnalysisResult:
+        if self._client is None:
+            return ImageAnalysisResult(
+                reasoning="Claude provider not available",
+                provider_name="claude",
+            )
+
         content = []
         for frame_data in frames[:12]:
             try:

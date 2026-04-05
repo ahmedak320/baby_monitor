@@ -4,8 +4,6 @@ import json
 import logging
 from dataclasses import dataclass
 
-import anthropic
-
 from config import settings
 from utils.score_validation import safe_float, safe_int
 
@@ -78,7 +76,14 @@ class HaikuTextAnalyzer:
     """Use Claude Haiku for nuanced text-based content analysis."""
 
     def __init__(self):
-        self._client = anthropic.Anthropic(api_key=settings.anthropic_api_key)
+        try:
+            import anthropic
+
+            api_key = settings.anthropic_api_key
+            self._client = anthropic.Anthropic(api_key=api_key) if api_key else None
+        except ImportError:
+            logger.warning("anthropic not installed; HaikuTextAnalyzer unavailable")
+            self._client = None
 
     def analyze(
         self,
@@ -91,6 +96,11 @@ class HaikuTextAnalyzer:
         toxicity_summary: str = "",
     ) -> HaikuTextResult:
         """Analyze video metadata + transcript via Claude Haiku."""
+        if self._client is None:
+            return HaikuTextResult(
+                overall_verdict="NEEDS_VISUAL_REVIEW",
+                reasoning="Claude provider not available",
+            )
 
         # Truncate transcript to avoid excessive token usage
         max_transcript_len = 15000
