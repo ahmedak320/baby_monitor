@@ -95,29 +95,21 @@ class PipelineOrchestrator:
             result.confidence,
         )
 
-        # Early stop: Tier 1 is confident enough
-        if result.confidence >= settings.tier1_confidence_threshold:
+        # Always run Tier 2 visual analysis for every video — ensures all
+        # content is visually verified regardless of Tier 1 confidence.
+        result = self._tier2.analyze(metadata, result)
+        logger.info(
+            "Tier 2 result: verdict=%s, confidence=%.2f",
+            result.verdict.value,
+            result.confidence,
+        )
+
+        # Early stop: Tier 2 resolved it with high confidence
+        if result.confidence >= settings.tier2_confidence_threshold:
             if result.verdict in (Verdict.APPROVE, Verdict.REJECT):
-                logger.info("Tier 1 confident — stopping early")
+                logger.info("Tier 2 confident — stopping early")
                 self._writer.write(result)
                 return result
-
-        # Tier 2: Visual analysis (if needed)
-        if result.verdict in (Verdict.NEEDS_VISUAL_REVIEW, Verdict.PENDING) or \
-           result.confidence < settings.tier1_confidence_threshold:
-            result = self._tier2.analyze(metadata, result)
-            logger.info(
-                "Tier 2 result: verdict=%s, confidence=%.2f",
-                result.verdict.value,
-                result.confidence,
-            )
-
-            # Early stop: Tier 2 resolved it
-            if result.confidence >= settings.tier2_confidence_threshold:
-                if result.verdict in (Verdict.APPROVE, Verdict.REJECT):
-                    logger.info("Tier 2 confident — stopping early")
-                    self._writer.write(result)
-                    return result
 
         # Tier 3: Audio analysis (if flagged)
         if result.verdict == Verdict.NEEDS_AUDIO_REVIEW or \

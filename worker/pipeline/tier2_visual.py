@@ -74,19 +74,10 @@ class Tier2VisualPipeline:
         )
 
         if frames is None or frames.count == 0:
-            logger.warning("No frames extracted for %s", metadata.video_id)
-            # Return Tier 1 result with visual tier marked as attempted
-            return AnalysisResult(
-                video_id=metadata.video_id,
-                verdict=tier1_result.verdict,
-                scores=tier1_result.scores,
-                tiers_completed=tier1_result.tiers_completed + [2],
-                content_labels=tier1_result.content_labels,
-                detected_issues=tier1_result.detected_issues
-                    + ["frame_extraction_failed"],
-                analysis_reasoning=tier1_result.analysis_reasoning
-                    + " | Tier 2: frame extraction failed",
-                confidence=tier1_result.confidence,
+            logger.error("Frame extraction failed for %s — raising for retry", metadata.video_id)
+            raise RuntimeError(
+                f"Frame extraction failed for {metadata.video_id}. "
+                "Video will be retried on next queue poll."
             )
 
         try:

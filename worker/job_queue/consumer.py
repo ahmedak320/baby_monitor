@@ -11,6 +11,9 @@ from utils.supabase_client import get_supabase_client
 
 logger = logging.getLogger(__name__)
 
+# How long to pause when hitting API rate limits (10 minutes)
+RATE_LIMIT_PAUSE_SECONDS = 600
+
 
 class QueueConsumer:
     """Polls the analysis_queue table and dispatches jobs to the pipeline."""
@@ -82,9 +85,29 @@ class QueueConsumer:
             return 0
 
         except Exception as e:
+            error_str = str(e)
+            is_rate_limit = "429" in error_str or "RESOURCE_EXHAUSTED" in error_str
+            is_frame_fail = "Frame extraction failed" in error_str
+
+            if is_rate_limit:
+                # Re-queue the job so it can be retried later
+                logger.warning(
+                    "Job %s hit rate limit — re-queuing and pausing %ds: %s",
+                    job_id, RATE_LIMIT_PAUSE_SECONDS, error_str[:200],
+                )
+                self._requeue_job(job_id)
+                await asyncio.sleep(RATE_LIMIT_PAUSE_SECONDS)
+                return 0
+
+            if is_frame_fail:
+                # Re-queue — frame extraction may succeed on retry
+                logger.warning("Job %s frame extraction failed — re-queuing: %s", job_id, error_str[:200])
+                self._requeue_job(job_id)
+                return 0
+
             logger.exception("Job %s failed: %s", job_id, e)
-            self._fail_job(job_id, str(e))
-            self._writer.mark_failed(video_id, str(e))
+            self._fail_job(job_id, error_str)
+            self._writer.mark_failed(video_id, error_str)
             return 0
 
     def _claim_job(self) -> dict | None:
@@ -144,6 +167,17 @@ class QueueConsumer:
             }).eq("id", job_id).execute()
         except Exception as e:
             logger.error("Failed to complete job %s: %s", job_id, e)
+
+    def _requeue_job(self, job_id: str) -> None:
+        """Put a job back in the queue for later retry."""
+        try:
+            self._client.table("analysis_queue").update({
+                "status": "queued",
+                "worker_id": None,
+                "started_at": None,
+            }).eq("id", job_id).execute()
+        except Exception as e:
+            logger.error("Failed to re-queue job %s: %s", job_id, e)
 
     def _fail_job(self, job_id: str, error: str) -> None:
         """Mark a job as failed."""

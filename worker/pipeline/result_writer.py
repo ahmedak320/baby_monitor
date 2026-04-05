@@ -45,18 +45,36 @@ class ResultWriter:
                 row, on_conflict="video_id"
             ).execute()
 
-            # Update video analysis_status — analysis was performed regardless
-            # of confidence level. The app uses the confidence field for filtering.
-            self._client.table("yt_videos").update(
-                {"analysis_status": "completed"}
-            ).eq("video_id", result.video_id).execute()
-
-            logger.info(
-                "Wrote analysis for %s: verdict=%s, confidence=%.2f",
-                result.video_id,
-                result.verdict.value,
-                result.confidence,
+            # Determine if this is a degraded result that should be retried
+            is_degraded = (
+                result.confidence < 0.5
+                and (
+                    "frame_extraction_failed" in result.detected_issues
+                    or "encountered an error" in (result.analysis_reasoning or "")
+                )
             )
+
+            if is_degraded:
+                # Mark as pending so it gets retried when conditions improve
+                self._client.table("yt_videos").update(
+                    {"analysis_status": "pending"}
+                ).eq("video_id", result.video_id).execute()
+                logger.warning(
+                    "Wrote DEGRADED analysis for %s (confidence=%.2f, issues=%s) — marked pending for retry",
+                    result.video_id,
+                    result.confidence,
+                    result.detected_issues,
+                )
+            else:
+                self._client.table("yt_videos").update(
+                    {"analysis_status": "completed"}
+                ).eq("video_id", result.video_id).execute()
+                logger.info(
+                    "Wrote analysis for %s: verdict=%s, confidence=%.2f",
+                    result.video_id,
+                    result.verdict.value,
+                    result.confidence,
+                )
             return True
 
         except Exception as e:

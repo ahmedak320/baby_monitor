@@ -86,7 +86,8 @@ class ToxicityAnalyzer:
             result.obscene = scores["obscene"]
             result.threat = scores["threat"]
             result.insult = scores["insult"]
-            result.identity_hate = scores["identity_hate"]
+            # Detoxify renamed identity_hate → identity_attack in newer versions
+            result.identity_hate = scores.get("identity_hate", scores.get("identity_attack", 0.0))
 
             if result.toxicity > self.TOXICITY_THRESHOLD:
                 concerns.append(f"toxicity={result.toxicity:.2f}")
