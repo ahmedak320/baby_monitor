@@ -1,36 +1,45 @@
-"""NSFW image classification using nsfw_model (TensorFlow Lite)."""
+"""NSFW image classification using NudeNet (ONNX-based)."""
 
 import logging
-from dataclasses import dataclass
-
-import numpy as np
-from PIL import Image
+from dataclasses import dataclass, field
 
 logger = logging.getLogger(__name__)
 
-_model = None
-_interpreter = None
+# NudeNet labels considered unsafe for children
+UNSAFE_LABELS = {
+    "FEMALE_BREAST_EXPOSED",
+    "FEMALE_GENITALIA_EXPOSED",
+    "MALE_GENITALIA_EXPOSED",
+    "BUTTOCKS_EXPOSED",
+    "ANUS_EXPOSED",
+}
+
+CONCERNING_LABELS = {
+    "FEMALE_BREAST_COVERED",
+    "MALE_BREAST_EXPOSED",
+    "BELLY_EXPOSED",
+    "BUTTOCKS_COVERED",
+}
+
+# Lazy-loaded singleton
+_detector = None
 
 
-def _get_model():
-    """Lazy-load the NSFW TFLite model."""
-    global _model, _interpreter
-    if _interpreter is not None:
-        return _interpreter
-
+def _get_detector():
+    """Lazy-load the NudeNet detector."""
+    global _detector
+    if _detector is not None:
+        return _detector
     try:
-        import tensorflow as tf
-
-        # Try to load TFLite model
-        # In production, download the nsfw_model TFLite file
-        # For now, use a placeholder that flags nothing
-        logger.warning(
-            "NSFW model not found. Using placeholder classifier. "
-            "Download nsfw_mobilenet_v2.tflite for production use."
-        )
-        return None
+        from nudenet import NudeDetector
+        _detector = NudeDetector()
+        logger.info("NudeNet NSFW classifier loaded")
+        return _detector
     except ImportError:
-        logger.warning("TensorFlow not available. NSFW classifier disabled.")
+        logger.warning("nudenet not installed; NSFW classifier disabled")
+        return None
+    except Exception as e:
+        logger.error("Failed to load NudeNet: %s", e)
         return None
 
 
@@ -40,6 +49,8 @@ class NSFWResult:
 
     frame_path: str
     timestamp: float
+    detections: list[dict] = field(default_factory=list)
+    # Scores derived from detections
     drawings: float = 0.0
     hentai: float = 0.0
     neutral: float = 1.0
@@ -48,12 +59,12 @@ class NSFWResult:
 
     @property
     def is_nsfw(self) -> bool:
-        """Whether this frame is NSFW (porn or hentai above threshold)."""
+        """Whether this frame has explicit NSFW content."""
         return self.porn > 0.5 or self.hentai > 0.5
 
     @property
     def is_concerning(self) -> bool:
-        """Whether this frame has concerning content (sexy above threshold)."""
+        """Whether this frame has concerning content."""
         return self.sexy > 0.5 or self.is_nsfw
 
     @property
@@ -63,34 +74,37 @@ class NSFWResult:
 
 
 class NSFWClassifier:
-    """Classify frames for NSFW content."""
+    """Classify frames for NSFW content using NudeNet."""
 
     def classify_frame(self, frame_path: str, timestamp: float = 0.0) -> NSFWResult:
         """Classify a single frame."""
-        model = _get_model()
+        detector = _get_detector()
 
-        if model is None:
-            # Placeholder: assume safe
+        if detector is None:
             return NSFWResult(frame_path=frame_path, timestamp=timestamp)
 
         try:
-            img = Image.open(frame_path).resize((224, 224))
-            img_array = np.array(img, dtype=np.float32) / 255.0
-            img_array = np.expand_dims(img_array, axis=0)
+            detections = detector.detect(frame_path)
 
-            # Run inference
-            model.set_tensor(model.get_input_details()[0]["index"], img_array)
-            model.invoke()
-            output = model.get_tensor(model.get_output_details()[0]["index"])[0]
+            unsafe_score = 0.0
+            concerning_score = 0.0
+
+            for det in detections:
+                label = det.get("class", "")
+                conf = det.get("score", 0.0)
+
+                if label in UNSAFE_LABELS:
+                    unsafe_score = max(unsafe_score, conf)
+                elif label in CONCERNING_LABELS:
+                    concerning_score = max(concerning_score, conf)
 
             return NSFWResult(
                 frame_path=frame_path,
                 timestamp=timestamp,
-                drawings=float(output[0]),
-                hentai=float(output[1]),
-                neutral=float(output[2]),
-                porn=float(output[3]),
-                sexy=float(output[4]),
+                detections=detections,
+                porn=unsafe_score,
+                sexy=concerning_score,
+                neutral=max(0.0, 1.0 - unsafe_score - concerning_score),
             )
 
         except Exception as e:
