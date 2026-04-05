@@ -1,5 +1,6 @@
 """FastAPI routes for direct video analysis and health checks."""
 
+import asyncio
 import hmac
 import logging
 import os
@@ -83,7 +84,10 @@ def create_api(settings: Any, orchestrator: Any, supabase_client: Any) -> FastAP
         logger.info("API: Analyzing video %s", video_id)
 
         try:
-            result = await orchestrator.analyze(video_id)
+            loop = asyncio.get_event_loop()
+            result = await loop.run_in_executor(
+                None, orchestrator.analyze, video_id
+            )
         except Exception as e:
             logger.error("API: Analysis failed for %s: %s", video_id, e)
             raise HTTPException(status_code=500, detail="Analysis failed due to an internal error")
@@ -93,21 +97,20 @@ def create_api(settings: Any, orchestrator: Any, supabase_client: Any) -> FastAP
 
         return AnalysisResponse(
             video_id=video_id,
-            age_min_appropriate=result.get("age_min_appropriate", 0),
-            age_max_appropriate=result.get("age_max_appropriate", 18),
-            overstimulation_score=result.get("overstimulation_score", 0),
-            educational_score=result.get("educational_score", 0),
-            scariness_score=result.get("scariness_score", 0),
-            brainrot_score=result.get("brainrot_score", 0),
-            language_safety_score=result.get("language_safety_score", 10),
-            violence_score=result.get("violence_score", 0),
-            audio_safety_score=result.get("audio_safety_score", 10),
-            content_labels=result.get("content_labels", []),
-            detected_issues=result.get("detected_issues", []),
-            analysis_reasoning=result.get("analysis_reasoning", ""),
-            confidence=result.get("confidence", 0),
-            tiers_completed=result.get("tiers_completed", []),
-            is_globally_blacklisted=result.get("is_globally_blacklisted", False),
+            age_min_appropriate=result.scores.age_min_appropriate,
+            age_max_appropriate=result.scores.age_max_appropriate,
+            overstimulation_score=result.scores.overstimulation_score,
+            educational_score=result.scores.educational_score,
+            scariness_score=result.scores.scariness_score,
+            brainrot_score=result.scores.brainrot_score,
+            language_safety_score=result.scores.language_safety_score,
+            violence_score=result.scores.violence_score,
+            audio_safety_score=result.scores.audio_safety_score,
+            content_labels=result.content_labels,
+            detected_issues=result.detected_issues,
+            analysis_reasoning=result.analysis_reasoning,
+            confidence=result.confidence,
+            tiers_completed=result.tiers_completed,
         )
 
     @app.get("/api/analysis/{video_id}", response_model=AnalysisResponse)

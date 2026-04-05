@@ -97,11 +97,19 @@ class FrameExtractor:
         output_template = os.path.join(temp_dir, "video.%(ext)s")
 
         ydl_opts = {
-            "format": "worst[ext=mp4]/worst",  # lowest quality to save bandwidth
+            # Prefer smallest video-only HTTPS stream (no audio needed for frames),
+            # fall back to pre-merged 360p mp4 (format 18), then any small non-HLS mp4.
+            "format": (
+                "worstvideo[ext=mp4][protocol=https]"
+                "/18"
+                "/worst[ext=mp4][protocol!=m3u8_native]"
+            ),
             "outtmpl": output_template,
             "quiet": True,
             "no_warnings": True,
             "socket_timeout": 30,
+            # Required for YouTube JS challenge solving (yt-dlp 2026+)
+            "remote_components": {"ejs": "github"},
         }
 
         try:

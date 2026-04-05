@@ -47,7 +47,7 @@ class AudioExtractor:
         )
 
         ydl_opts = {
-            "format": "worstaudio/worst",
+            "format": "worstaudio[protocol=https]/worstaudio/worst",
             "outtmpl": output_path.replace(".wav", ".%(ext)s"),
             "postprocessors": [
                 {
@@ -58,6 +58,8 @@ class AudioExtractor:
             ],
             "quiet": True,
             "no_warnings": True,
+            # Required for YouTube JS challenge solving (yt-dlp 2026+)
+            "remote_components": {"ejs": "github"},
         }
 
         try:

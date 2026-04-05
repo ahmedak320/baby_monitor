@@ -147,12 +147,11 @@ class QueueConsumer:
 
     def _fail_job(self, job_id: str, error: str) -> None:
         """Mark a job as failed."""
-        # Log the detailed error for debugging, but write a generic message to the database
         logger.error("Job %s failed with error: %s", job_id, error)
         try:
             self._client.table("analysis_queue").update({
                 "status": "failed",
-                "error_message": "Analysis failed due to an internal error",
+                "error_message": str(error)[:500],
             }).eq("id", job_id).execute()
         except Exception as e:
             logger.error("Failed to mark job %s as failed: %s", job_id, e)

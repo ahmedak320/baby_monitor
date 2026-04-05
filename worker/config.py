@@ -52,8 +52,9 @@ class Settings:
             _split_urls(os.getenv("PIPED_INSTANCES", ""))
             or _split_urls(os.getenv("PIPED_API_URL", ""))
             or [
+                "https://api.piped.private.coffee",
                 "https://pipedapi.kavin.rocks",
-                "https://pipedapi.adminforge.de",
+                "https://pipedapi.reallyaweso.me",
             ]
         )
     )

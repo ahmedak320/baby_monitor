@@ -3,7 +3,7 @@
 import asyncio
 import logging
 import re
-from datetime import date, datetime
+from datetime import UTC, date, datetime
 from typing import Any
 
 from clients.piped_client import PipedClient
@@ -136,50 +136,60 @@ class AutoDiscovery:
                 or "#shorts" in title.lower()
             )
 
-            # Upsert video
+            channel_id = self._extract_channel_id(
+                item.get("uploaderUrl", "")
+            )
+
             video_data = {
                 "video_id": video_id,
                 "title": title,
                 "description": item.get("shortDescription", ""),
-                "channel_id": self._extract_channel_id(
-                    item.get("uploaderUrl", "")
-                ),
+                "channel_id": channel_id,
                 "thumbnail_url": item.get("thumbnail", ""),
                 "duration_seconds": duration,
                 "view_count": item.get("views", 0),
-                "analysis_status": "pending",
                 "discovery_source": "auto_discovery",
                 "is_short": is_short,
-                "last_fetched_at": datetime.utcnow().isoformat(),
+                "last_fetched_at": datetime.now(UTC).isoformat(),
             }
 
             try:
-                self.supabase.table("yt_videos").upsert(
-                    video_data, on_conflict="video_id"
-                ).execute()
-
-                # Upsert channel
-                channel_id = video_data["channel_id"]
+                # Upsert channel FIRST (yt_videos has FK to yt_channels)
                 if channel_id:
                     self.supabase.table("yt_channels").upsert(
                         {
                             "channel_id": channel_id,
                             "title": item.get("uploaderName", ""),
                             "thumbnail_url": item.get("uploaderAvatar", ""),
-                            "last_fetched_at": datetime.utcnow().isoformat(),
+                            "last_fetched_at": datetime.now(UTC).isoformat(),
                         },
                         on_conflict="channel_id",
                     ).execute()
 
-                # Queue for analysis (low priority)
-                existing = (
+                # Check if video already exists to avoid overwriting analysis_status
+                existing_video = (
+                    self.supabase.table("yt_videos")
+                    .select("video_id")
+                    .eq("video_id", video_id)
+                    .maybe_single()
+                    .execute()
+                )
+                if not existing_video.data:
+                    video_data["analysis_status"] = "pending"
+
+                self.supabase.table("yt_videos").upsert(
+                    video_data, on_conflict="video_id"
+                ).execute()
+
+                # Queue for analysis only if not already queued/processing/completed
+                existing_queue = (
                     self.supabase.table("analysis_queue")
                     .select("id")
                     .eq("video_id", video_id)
-                    .in_("status", ["queued", "processing"])
+                    .in_("status", ["queued", "processing", "completed"])
                     .execute()
                 )
-                if not existing.data:
+                if not existing_queue.data:
                     self.supabase.table("analysis_queue").insert(
                         {
                             "video_id": video_id,

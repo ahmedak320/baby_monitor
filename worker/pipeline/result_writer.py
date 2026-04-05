@@ -45,10 +45,10 @@ class ResultWriter:
                 row, on_conflict="video_id"
             ).execute()
 
-            # Update video analysis_status
-            status = "completed" if result.confidence > 0.5 else "pending"
+            # Update video analysis_status — analysis was performed regardless
+            # of confidence level. The app uses the confidence field for filtering.
             self._client.table("yt_videos").update(
-                {"analysis_status": status}
+                {"analysis_status": "completed"}
             ).eq("video_id", result.video_id).execute()
 
             logger.info(
