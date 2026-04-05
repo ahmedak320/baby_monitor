@@ -3,19 +3,33 @@ import 'dart:convert';
 import 'package:crypto/crypto.dart';
 
 import '../../data/datasources/remote/supabase_client.dart';
+import '../../data/datasources/local/preferences_cache.dart';
 
 /// Lightweight analytics events tracked during beta testing.
 /// Events are stored in Supabase for analysis.
+/// Respects user's analytics opt-in preference (GDPR compliant).
 class AnalyticsService {
   static final _client = SupabaseClientWrapper.client;
 
   AnalyticsService._();
 
+  /// Whether the user has opted in to analytics collection.
+  /// Defaults to false (opt-in model for GDPR compliance).
+  static bool get isOptedIn => PreferencesCache.analyticsOptedIn;
+
+  /// Set the user's analytics preference.
+  static set isOptedIn(bool value) {
+    PreferencesCache.analyticsOptedIn = value;
+  }
+
   /// Track a user event. Events are fire-and-forget.
+  /// Respects the user's analytics opt-in setting.
   static Future<void> track(
     String eventName, {
     Map<String, dynamic>? properties,
   }) async {
+    if (!isOptedIn) return;
+
     try {
       final userId = SupabaseClientWrapper.currentUserId;
 

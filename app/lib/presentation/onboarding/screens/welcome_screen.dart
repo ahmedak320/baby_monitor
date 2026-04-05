@@ -38,7 +38,7 @@ class WelcomeScreen extends ConsumerWidget {
               _FeatureRow(
                 icon: Icons.shield_outlined,
                 title: 'AI Content Screening',
-                subtitle: 'Every video is analyzed before your child sees it',
+                subtitle: 'Videos are AI-screened for safety before viewing',
               ),
               const SizedBox(height: 16),
               _FeatureRow(
@@ -54,7 +54,7 @@ class WelcomeScreen extends ConsumerWidget {
               ),
               const Spacer(flex: 3),
               ElevatedButton(
-                onPressed: () => context.pushNamed(RouteNames.addChild),
+                onPressed: () => context.pushNamed(RouteNames.parentalConsent),
                 child: const Text('Get Started'),
               ),
               const SizedBox(height: 32),

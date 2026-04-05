@@ -4,8 +4,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../data/datasources/local/preferences_cache.dart';
 import '../../../data/datasources/remote/supabase_client.dart';
 import '../../../data/repositories/profile_repository.dart';
+import '../../../domain/services/analytics_service.dart';
 import '../../../domain/services/parental_control_service.dart';
 import '../../../routing/route_names.dart';
 import '../../../utils/biometric_helper.dart';
@@ -389,6 +391,36 @@ class _AccountSettingsScreenState extends ConsumerState<AccountSettingsScreen> {
               subtitle: const Text('Update your 4-digit parent PIN'),
               trailing: const Icon(Icons.chevron_right),
               onTap: _changePin,
+            ),
+          ),
+          const SizedBox(height: 12),
+
+          // Privacy settings
+          Card(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Padding(
+                  padding: EdgeInsets.fromLTRB(16, 16, 16, 0),
+                  child: Text(
+                    'Privacy',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                ),
+                SwitchListTile(
+                  secondary: const Icon(Icons.analytics_outlined),
+                  title: const Text('Usage Analytics'),
+                  subtitle: const Text(
+                    'Help improve Baby Monitor by sharing anonymous usage data',
+                  ),
+                  value: PreferencesCache.analyticsOptedIn,
+                  onChanged: (value) {
+                    setState(() {
+                      AnalyticsService.isOptedIn = value;
+                    });
+                  },
+                ),
+              ],
             ),
           ),
           const SizedBox(height: 24),

@@ -166,6 +166,19 @@ class PreferencesCache {
   static int get pinLockoutDurationSeconds =>
       (LocalCache.preferences.get(_lockoutDurationKey) as int?) ?? 30;
 
+  // --- Analytics opt-in (GDPR compliant, defaults to false) ---
+
+  static const _analyticsOptedInKey = 'analytics_opted_in';
+
+  /// Whether the user has opted in to analytics collection.
+  static bool get analyticsOptedIn =>
+      LocalCache.preferences.get(_analyticsOptedInKey) as bool? ?? false;
+
+  /// Set the analytics opt-in preference.
+  static set analyticsOptedIn(bool value) {
+    LocalCache.preferences.put(_analyticsOptedInKey, value);
+  }
+
   // --- Dev/Test Mode settings ---
 
   /// Whether to skip biometric auth during testing.

@@ -35,6 +35,14 @@ class _AboutScreenState extends State<AboutScreen> {
     }
   }
 
+  void _openLegal(String title, String content) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => LegalTextScreen(title: title, content: content),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -70,33 +78,117 @@ class _AboutScreenState extends State<AboutScreen> {
           ),
           const SizedBox(height: 32),
 
-          // Legal
+          // Legal section header
+          Padding(
+            padding: const EdgeInsets.only(left: 16, bottom: 8),
+            child: Text(
+              'LEGAL',
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: Colors.grey[500],
+                letterSpacing: 1.0,
+              ),
+            ),
+          ),
+
           ListTile(
             leading: const Icon(Icons.privacy_tip_outlined),
             title: const Text('Privacy Policy'),
             trailing: const Icon(Icons.chevron_right),
-            onTap: () => Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (_) => const LegalTextScreen(
-                  title: 'Privacy Policy',
-                  content: LegalContent.privacyPolicy,
-                ),
-              ),
-            ),
+            onTap: () =>
+                _openLegal('Privacy Policy', LegalContent.privacyPolicy),
           ),
           ListTile(
             leading: const Icon(Icons.description_outlined),
             title: const Text('Terms of Service'),
             trailing: const Icon(Icons.chevron_right),
-            onTap: () => Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (_) => const LegalTextScreen(
-                  title: 'Terms of Service',
-                  content: LegalContent.termsOfService,
-                ),
-              ),
+            onTap: () =>
+                _openLegal('Terms of Service', LegalContent.termsOfService),
+          ),
+          ListTile(
+            leading: const Icon(Icons.child_care_outlined),
+            title: const Text("Children's Privacy Notice"),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => _openLegal(
+              "Children's Privacy Notice",
+              LegalContent.childrensPrivacyNotice,
             ),
           ),
+          ListTile(
+            leading: const Icon(Icons.smart_toy_outlined),
+            title: const Text('AI Filtering Disclaimer'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => _openLegal(
+              'AI Content Filtering Disclaimer',
+              LegalContent.aiFilteringDisclaimer,
+            ),
+          ),
+          ListTile(
+            leading: const Icon(Icons.location_on_outlined),
+            title: const Text('California Privacy Notice'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => _openLegal(
+              'California Privacy Notice',
+              LegalContent.ccpaNotice,
+            ),
+          ),
+          ListTile(
+            leading: const Icon(Icons.payment_outlined),
+            title: const Text('Subscription Terms'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => _openLegal(
+              'Subscription Terms',
+              LegalContent.subscriptionTerms,
+            ),
+          ),
+          ListTile(
+            leading: const Icon(Icons.cloud_outlined),
+            title: const Text('Third-Party Services'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => _openLegal(
+              'Third-Party Service Disclosure',
+              LegalContent.thirdPartyDisclosure,
+            ),
+          ),
+          ListTile(
+            leading: const Icon(Icons.gavel_outlined),
+            title: const Text('Acceptable Use Policy'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => _openLegal(
+              'Acceptable Use Policy',
+              LegalContent.acceptableUsePolicy,
+            ),
+          ),
+          ListTile(
+            leading: const Icon(Icons.copyright_outlined),
+            title: const Text('Copyright / DMCA Policy'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () =>
+                _openLegal('Copyright / DMCA Policy', LegalContent.dmcaPolicy),
+          ),
+          ListTile(
+            leading: const Icon(Icons.security_outlined),
+            title: const Text('Data Breach Policy'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => _openLegal(
+              'Data Breach Notification Policy',
+              LegalContent.dataBreachPolicy,
+            ),
+          ),
+          ListTile(
+            leading: const Icon(Icons.accessibility_new_outlined),
+            title: const Text('Accessibility Statement'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => _openLegal(
+              'Accessibility Statement',
+              LegalContent.accessibilityStatement,
+            ),
+          ),
+
+          const Divider(),
+
+          // Support & account
           ListTile(
             leading: const Icon(Icons.email_outlined),
             title: const Text('Contact Support'),
@@ -105,7 +197,6 @@ class _AboutScreenState extends State<AboutScreen> {
               // Could launch mailto: link
             },
           ),
-          const Divider(),
           ListTile(
             leading: const Icon(Icons.manage_accounts_outlined),
             title: const Text('Account Settings'),

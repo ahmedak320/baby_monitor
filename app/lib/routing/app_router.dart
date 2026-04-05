@@ -7,6 +7,7 @@ import '../presentation/auth/screens/login_screen.dart';
 import '../presentation/auth/screens/signup_screen.dart';
 import '../presentation/onboarding/screens/welcome_screen.dart';
 import '../presentation/onboarding/screens/add_child_screen.dart';
+import '../presentation/onboarding/screens/parental_consent_screen.dart';
 import '../presentation/onboarding/screens/filter_setup_screen.dart';
 import '../presentation/onboarding/screens/channel_suggestions_screen.dart';
 import '../presentation/onboarding/screens/content_prefs_screen.dart';
@@ -96,6 +97,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: '/onboarding/welcome',
         name: RouteNames.welcome,
         builder: (context, state) => const WelcomeScreen(),
+      ),
+      GoRoute(
+        path: '/onboarding/parental-consent',
+        name: RouteNames.parentalConsent,
+        builder: (context, state) => const ParentalConsentScreen(),
       ),
       GoRoute(
         path: '/onboarding/add-child',

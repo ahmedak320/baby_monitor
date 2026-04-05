@@ -10,11 +10,11 @@ class AppMetadata {
   static const String shortDescription =
       'Safe YouTube content filtering for kids';
   static const String fullDescription =
-      'Baby Monitor gives parents complete control over what YouTube '
-      'content their children can watch. Our AI analyzes every video — '
-      'not just titles and thumbnails, but the actual content — to ensure '
-      'it is age-appropriate, non-overstimulating, and free of '
-      'inappropriate material.\n\n'
+      'Baby Monitor helps parents manage what YouTube content their '
+      'children can watch. Our AI screens videos for safety — '
+      'analyzing titles, thumbnails, transcripts, and actual content — '
+      'to help identify age-appropriate material and flag '
+      'potentially inappropriate content.\n\n'
       'Features:\n'
       '• AI-powered content analysis (text, visual, and audio)\n'
       '• Age-adaptive filtering (toddler through 12+)\n'

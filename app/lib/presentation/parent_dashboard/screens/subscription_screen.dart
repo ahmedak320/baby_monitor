@@ -137,6 +137,24 @@ class SubscriptionScreen extends ConsumerWidget {
                   textAlign: TextAlign.center,
                   style: TextStyle(color: Colors.grey, fontSize: 13),
                 ),
+                const SizedBox(height: 12),
+                Text(
+                  'Subscription automatically renews at \$4.99/month '
+                  'unless cancelled at least 24 hours before the end '
+                  'of the current period. Payment will be charged to '
+                  'your Apple ID or Google Play account.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: Colors.grey[500], fontSize: 11),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'To cancel on iPhone: Settings > [Your Name] > '
+                  'Subscriptions > Baby Monitor.\n'
+                  'To cancel on Android: Play Store > Subscriptions '
+                  '> Baby Monitor.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: Colors.grey[500], fontSize: 11),
+                ),
               ] else ...[
                 const Card(
                   child: Padding(

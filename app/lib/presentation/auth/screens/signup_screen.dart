@@ -1,9 +1,12 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../config/legal_content.dart';
 import '../../../routing/route_names.dart';
 import '../../../utils/validators.dart';
+import '../../common/widgets/legal_text_screen.dart';
 import '../providers/auth_provider.dart';
 
 class SignupScreen extends ConsumerStatefulWidget {
@@ -20,6 +23,9 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
   final _confirmPasswordController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
 
+  bool _agreedToTerms = false;
+  bool _confirmedAge = false;
+
   @override
   void dispose() {
     _nameController.dispose();
@@ -28,6 +34,8 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
     _confirmPasswordController.dispose();
     super.dispose();
   }
+
+  bool get _canSignup => _agreedToTerms && _confirmedAge;
 
   @override
   Widget build(BuildContext context) {
@@ -105,9 +113,61 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                     return null;
                   },
                 ),
+                const SizedBox(height: 20),
+
+                // Terms & Privacy consent checkbox
+                _ConsentCheckbox(
+                  value: _agreedToTerms,
+                  onChanged: (v) => setState(() => _agreedToTerms = v ?? false),
+                  child: Text.rich(
+                    TextSpan(
+                      text: 'I have read and agree to the ',
+                      style: Theme.of(context).textTheme.bodySmall,
+                      children: [
+                        _linkSpan(context, 'Terms of Service', () {
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) => const LegalTextScreen(
+                                title: 'Terms of Service',
+                                content: LegalContent.termsOfService,
+                              ),
+                            ),
+                          );
+                        }),
+                        const TextSpan(text: ' and '),
+                        _linkSpan(context, 'Privacy Policy', () {
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) => const LegalTextScreen(
+                                title: 'Privacy Policy',
+                                content: LegalContent.privacyPolicy,
+                              ),
+                            ),
+                          );
+                        }),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 8),
+
+                // Age & guardian confirmation checkbox
+                _ConsentCheckbox(
+                  value: _confirmedAge,
+                  onChanged: (v) => setState(() => _confirmedAge = v ?? false),
+                  child: Text(
+                    'I confirm I am 18 years of age or older and am the '
+                    'parent or legal guardian of any child whose profile I '
+                    'create',
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                ),
+
                 const SizedBox(height: 24),
                 ElevatedButton(
-                  onPressed: authState.isLoading ? null : _handleSignup,
+                  onPressed: authState.isLoading || !_canSignup
+                      ? null
+                      : _handleSignup,
                   child: authState.isLoading
                       ? const SizedBox(
                           height: 20,
@@ -129,8 +189,21 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
     );
   }
 
+  TextSpan _linkSpan(BuildContext context, String text, VoidCallback onTap) {
+    return TextSpan(
+      text: text,
+      style: TextStyle(
+        color: Theme.of(context).colorScheme.primary,
+        decoration: TextDecoration.underline,
+        fontSize: Theme.of(context).textTheme.bodySmall?.fontSize,
+      ),
+      recognizer: TapGestureRecognizer()..onTap = onTap,
+    );
+  }
+
   Future<void> _handleSignup() async {
     if (!_formKey.currentState!.validate()) return;
+    if (!_canSignup) return;
 
     final success = await ref
         .read(authNotifierProvider.notifier)
@@ -148,5 +221,46 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
       );
       context.goNamed(RouteNames.dashboard);
     }
+  }
+}
+
+class _ConsentCheckbox extends StatelessWidget {
+  final bool value;
+  final ValueChanged<bool?> onChanged;
+  final Widget child;
+
+  const _ConsentCheckbox({
+    required this.value,
+    required this.onChanged,
+    required this.child,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: () => onChanged(!value),
+      borderRadius: BorderRadius.circular(8),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 24,
+            height: 24,
+            child: Checkbox(
+              value: value,
+              onChanged: onChanged,
+              materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.only(top: 2),
+              child: child,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }

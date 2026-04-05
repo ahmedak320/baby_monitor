@@ -9,6 +9,7 @@ class RouteNames {
 
   // Onboarding
   static const welcome = 'welcome';
+  static const parentalConsent = 'parentalConsent';
   static const addChild = 'addChild';
   static const filterSetup = 'filterSetup';
   static const channelSuggestions = 'channelSuggestions';
