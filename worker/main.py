@@ -70,7 +70,11 @@ async def main() -> None:
             app, host=os.getenv("API_HOST", "127.0.0.1"), port=settings.api_port, log_level="info"
         )
         server = uvicorn.Server(config)
-        await server.serve()
+        try:
+            await server.serve()
+        except (SystemExit, OSError) as e:
+            logger.warning("API server failed to start (port %s may be in use): %s", settings.api_port, e)
+            logger.warning("Worker will continue without the API server")
 
     try:
         # Run queue consumer, auto-discovery, and API in parallel
