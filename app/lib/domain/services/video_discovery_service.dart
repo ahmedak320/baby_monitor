@@ -75,8 +75,7 @@ class VideoDiscoveryService {
     for (final query in _shortQueries) {
       try {
         final result = await _ytService.search(query, maxResults: 12);
-        final shorts = result.videos.where((video) => video.detectedAsShort);
-        for (final video in shorts) {
+        for (final video in result.videos) {
           discovered[video.videoId] = video;
         }
       } catch (_) {
@@ -88,7 +87,9 @@ class VideoDiscoveryService {
     final enriched = await _ytService.enrichCandidates(
       discovered.values.toList(),
     );
-    return _ingestVideos(enriched, 'shorts_discovery');
+    final shorts = enriched.where((v) => v.detectedAsShort).toList();
+    if (shorts.isEmpty) return [];
+    return _ingestVideos(shorts, 'shorts_discovery');
   }
 
   /// Submit a YouTube link from a parent.

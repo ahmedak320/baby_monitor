@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 
@@ -23,19 +25,28 @@ class ResolvedThumbnailImage extends StatefulWidget {
 }
 
 class _ResolvedThumbnailImageState extends State<ResolvedThumbnailImage> {
+  static const _precacheTimeout = Duration(seconds: 5);
+
   String? _resolvedUrl;
   bool _failed = false;
+  String? _lastUrl;
 
   @override
-  void initState() {
-    super.initState();
-    _resolve();
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_lastUrl != widget.thumbnailUrl) {
+      _lastUrl = widget.thumbnailUrl;
+      _resolvedUrl = null;
+      _failed = false;
+      _resolve();
+    }
   }
 
   @override
   void didUpdateWidget(covariant ResolvedThumbnailImage oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.thumbnailUrl != widget.thumbnailUrl) {
+      _lastUrl = widget.thumbnailUrl;
       _resolvedUrl = null;
       _failed = false;
       _resolve();
@@ -48,11 +59,18 @@ class _ResolvedThumbnailImageState extends State<ResolvedThumbnailImage> {
       return;
     }
 
-    for (final candidate in ThumbnailPreloader.candidateUrls(
-      widget.thumbnailUrl,
-    )) {
+    final candidates = ThumbnailPreloader.candidateUrls(widget.thumbnailUrl);
+    if (candidates.isEmpty) {
+      if (mounted) setState(() => _failed = true);
+      return;
+    }
+
+    for (final candidate in candidates) {
       try {
-        await precacheImage(CachedNetworkImageProvider(candidate), context);
+        await precacheImage(
+          CachedNetworkImageProvider(candidate),
+          context,
+        ).timeout(_precacheTimeout);
         if (mounted) {
           setState(() {
             _resolvedUrl = candidate;
@@ -60,13 +78,17 @@ class _ResolvedThumbnailImageState extends State<ResolvedThumbnailImage> {
           });
         }
         return;
-      } catch (_) {
-        // Try the next fallback before surfacing an error state.
+      } on TimeoutException {
+        debugPrint('Thumbnail precache timed out: $candidate');
+      } catch (e) {
+        debugPrint('Thumbnail precache failed: $candidate ($e)');
       }
     }
 
+    // All precache attempts failed — still try to display via CachedNetworkImage
+    // which has its own retry/error handling.
     if (mounted) {
-      setState(() => _failed = true);
+      setState(() => _resolvedUrl = candidates.first);
     }
   }
 

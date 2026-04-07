@@ -17,5 +17,11 @@ void main() {
     );
 
     expect(find.byType(ResolvedThumbnailImage), findsOneWidget);
+
+    // Pump enough time for all candidate precache timeout timers to
+    // fire (5 s each × number of candidates) so none remain pending.
+    for (var i = 0; i < 10; i++) {
+      await tester.pump(const Duration(seconds: 6));
+    }
   });
 }

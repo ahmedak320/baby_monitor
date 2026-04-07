@@ -7,11 +7,24 @@ import '../data/models/video_metadata.dart';
 class ThumbnailPreloader {
   ThumbnailPreloader._();
 
+  static final _pipedProxyPattern = RegExp(
+    r'https?://[^/]*pipedproxy[^/]*/vi/([a-zA-Z0-9_-]{11})/([^?]+)',
+  );
+
   static String normalizeUrl(String thumbnailUrl) {
     final trimmed = thumbnailUrl.trim();
     if (trimmed.isEmpty) return '';
 
     var normalized = trimmed.startsWith('//') ? 'https:$trimmed' : trimmed;
+
+    // Convert Piped proxy URLs to direct YouTube thumbnail URLs.
+    final pipedMatch = _pipedProxyPattern.firstMatch(normalized);
+    if (pipedMatch != null) {
+      final videoId = pipedMatch.group(1)!;
+      final filename = pipedMatch.group(2)!;
+      normalized = 'https://i.ytimg.com/vi/$videoId/$filename';
+    }
+
     if (normalized.contains('/hq_live.jpg')) {
       normalized = normalized.replaceAll('/hq_live.jpg', '/hqdefault_live.jpg');
     }
@@ -41,6 +54,17 @@ class ThumbnailPreloader {
       add(withoutLive.replaceAll('/hqdefault.jpg', '/mqdefault.jpg'));
       add(withoutLive.replaceAll('/hqdefault.jpg', '/default.jpg'));
       add(withoutLive.replaceAll('/mqdefault.jpg', '/default.jpg'));
+    }
+
+    // Ensure direct YouTube fallbacks exist for any URL containing a video ID.
+    final videoIdMatch = RegExp(
+      r'/vi/([a-zA-Z0-9_-]{11})/',
+    ).firstMatch(normalized);
+    if (videoIdMatch != null) {
+      final videoId = videoIdMatch.group(1)!;
+      add('https://i.ytimg.com/vi/$videoId/hqdefault.jpg');
+      add('https://i.ytimg.com/vi/$videoId/mqdefault.jpg');
+      add('https://i.ytimg.com/vi/$videoId/default.jpg');
     }
 
     return candidates.toList();
