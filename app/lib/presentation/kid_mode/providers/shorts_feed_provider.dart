@@ -35,15 +35,14 @@ final shortsFeedProvider = FutureProvider<List<FeedItem>>((ref) async {
     var shorts = videos.where((v) => v.detectedAsShort).toList();
 
     if (shorts.isEmpty) {
-      await discovery.discoverShorts();
-      final refreshed = await videoRepo.getApprovedVideos(
-        childId: child.id,
-        childAge: childAge,
-        limit: 120,
-        includeMetadataApproved: true,
-        includePending: false,
-      );
-      shorts = refreshed.where((v) => v.detectedAsShort).toList();
+      // discoverShorts() returns enriched, short-filtered videos that have
+      // been ingested into the database.  Use them directly as candidates
+      // because they won't yet satisfy getApprovedVideos() criteria (no
+      // analysis row / channel trust score).
+      final discovered = await discovery.discoverShorts();
+      if (discovered.isNotEmpty) {
+        shorts = discovered.where((v) => v.detectedAsShort).toList();
+      }
     }
 
     final channelPrefs = await channelRepo.getChannelPrefsMap(child.parentId);
