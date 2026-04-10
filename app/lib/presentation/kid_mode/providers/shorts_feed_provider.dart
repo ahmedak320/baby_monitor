@@ -29,7 +29,7 @@ final shortsFeedProvider = FutureProvider<List<FeedItem>>((ref) async {
       childAge: childAge,
       limit: 120,
       includeMetadataApproved: true,
-      includePending: false,
+      includePending: true, // Include pending shorts for immediate display
     );
 
     var shorts = videos.where((v) => v.detectedAsShort).toList();
@@ -67,17 +67,26 @@ final shortsFeedProvider = FutureProvider<List<FeedItem>>((ref) async {
           );
           continue;
         }
+        // Analysis exists and video is approved - add to feed
+        feedItems.add(
+          FeedItem(
+            video: video,
+            analysis: analysis,
+            contentLabels: analysis.contentLabels,
+            isPendingAnalysis: false,
+          ),
+        );
+      } else {
+        // No analysis yet — show the video (whitelist-until-checked)
+        feedItems.add(
+          FeedItem(
+            video: video,
+            analysis: null,
+            contentLabels: [],
+            isPendingAnalysis: true,
+          ),
+        );
       }
-      // No analysis yet — show the video (whitelist-until-checked)
-
-      feedItems.add(
-        FeedItem(
-          video: video,
-          analysis: analysis,
-          contentLabels: analysis?.contentLabels ?? [],
-          isPendingAnalysis: analysis == null,
-        ),
-      );
     }
 
     return feedItems;

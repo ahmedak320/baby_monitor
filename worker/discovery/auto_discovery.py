@@ -291,8 +291,9 @@ class AutoDiscovery:
             return False
 
         is_short = (
-            0 < duration_seconds <= 60
+            (0 < duration_seconds <= 60)
             or "#shorts" in title.lower()
+            or (duration_seconds == 0 and "short" in title.lower())
         )
 
         try:

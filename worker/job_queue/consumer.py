@@ -3,6 +3,7 @@
 import asyncio
 import logging
 import uuid
+from datetime import UTC, datetime, timedelta
 
 from config import settings
 from pipeline.orchestrator import PipelineOrchestrator
@@ -24,6 +25,8 @@ class QueueConsumer:
         self._orchestrator = PipelineOrchestrator()
         self._writer = ResultWriter()
         self._client = get_supabase_client()
+        self._poll_count = 0
+        self._reset_interval = 100  # Reset stalled jobs every 100 polls
 
     async def start(self) -> None:
         """Start the polling loop."""
@@ -36,6 +39,12 @@ class QueueConsumer:
 
         while self._running:
             try:
+                # Periodically reset stalled jobs
+                self._poll_count += 1
+                if self._poll_count >= self._reset_interval:
+                    self._reset_stalled_jobs()
+                    self._poll_count = 0
+
                 jobs_processed = await self._poll()
                 if jobs_processed == 0:
                     await asyncio.sleep(settings.poll_interval_seconds)
@@ -189,3 +198,23 @@ class QueueConsumer:
             }).eq("id", job_id).execute()
         except Exception as e:
             logger.error("Failed to mark job %s as failed: %s", job_id, e)
+
+    def _reset_stalled_jobs(self) -> None:
+        """Reset jobs stuck in failed state after 24 hours to allow retry."""
+        try:
+            cutoff = (datetime.now(UTC) - timedelta(hours=24)).isoformat()
+            result = (
+                self._client.table("analysis_queue")
+                .update({
+                    "attempts": 0,
+                    "status": "queued",
+                    "error_message": "Auto-reset after 24 hours",
+                })
+                .eq("status", "failed")
+                .lt("updated_at", cutoff)
+                .execute()
+            )
+            if result.data:
+                logger.info("Reset %d stalled failed jobs for retry", len(result.data))
+        except Exception as e:
+            logger.error("Failed to reset stalled jobs: %s", e)
